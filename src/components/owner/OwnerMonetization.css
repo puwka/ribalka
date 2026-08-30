@@ -1,0 +1,64 @@
+.mon-panel .mon-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mon-panel .mon-controls label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.mon-panel .mon-controls select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  font: inherit;
+}
+
+.mon-admin-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.mon-admin-form {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  margin-bottom: 14px;
+}
+
+.mon-admin-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.mon-admin-form input,
+.mon-admin-form textarea,
+.mon-admin-form select {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  font: inherit;
+}
+
+.mon-admin-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .mon-admin-row {
+    grid-template-columns: 1fr;
+  }
+}

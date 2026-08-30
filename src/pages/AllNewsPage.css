@@ -1,0 +1,29 @@
+.all-news-page {
+  padding: calc(var(--header-height) + var(--safe-top) + 40px) 0 80px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.all-news-page__container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+@media (max-width: 1024px) {
+  .news-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,93 @@
+.perm-datetime {
+  margin: 20px 0;
+  padding: 0;
+  position: relative;
+}
+
+.perm-datetime__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.perm-datetime__location {
+  color: #d4a017;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.perm-datetime__timezone {
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.perm-datetime__time {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-bottom: 4px;
+  font-family: 'Orbitron', 'Rubik', sans-serif;
+}
+
+.perm-datetime__hours {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #d4a017 0%, #f4c430 50%, #b8860b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1.5px;
+  line-height: 1;
+}
+
+.perm-datetime__seconds {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #d4a017;
+  opacity: 0.7;
+  animation: pulseSeconds 1s ease-in-out infinite;
+  letter-spacing: 0.5px;
+}
+
+@keyframes pulseSeconds {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.3; }
+}
+
+.perm-datetime__date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.perm-datetime__weekday {
+  color: #d4a017;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.perm-datetime__fulldate {
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+  .perm-datetime__hours {
+    font-size: 1.4rem;
+  }
+  
+  .perm-datetime__seconds {
+    font-size: 0.8rem;
+  }
+  
+  .perm-datetime__date {
+    flex-wrap: wrap;
+  }
+}

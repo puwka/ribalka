@@ -1,0 +1,5 @@
+/* Legacy page helper — prefer per-page padding via --header-height */
+.page {
+  min-height: 100vh;
+  padding-top: var(--header-height);
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-label="База &quot;Камские зори&quot;">
+  <defs>
+    <linearGradient id="sky-20" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f2cc8f"/>
+      <stop offset="55%" stop-color="#81b29a"/>
+      <stop offset="100%" stop-color="#3d405b"/>
+    </linearGradient>
+    <linearGradient id="water-20" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d405b"/>
+      <stop offset="100%" stop-color="#81b29a"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="600" fill="url(#sky-20)"/>
+  <path d="M0 340 Q240 300 480 330 T960 320 L960 600 L0 600 Z" fill="url(#water-20)" opacity="0.95"/>
+  <path d="M0 360 Q200 390 400 370 T800 385 T960 375 L960 600 L0 600 Z" fill="#3d405b" opacity="0.35"/>
+  <text x="32" y="560" fill="#ffffff" font-family="Rubik, Arial, sans-serif" font-size="22" font-weight="600" opacity="0.92">База &quot;Камские зори&quot;</text>
+</svg>

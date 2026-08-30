@@ -1,0 +1,62 @@
+.base-form {
+  display: grid;
+  gap: 16px;
+}
+
+.base-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.base-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.base-form__full {
+  grid-column: 1 / -1;
+}
+
+.base-form input,
+.base-form textarea,
+.base-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 400;
+}
+
+.base-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-badge--draft { background: #e2e8f0; color: #334155; }
+.status-badge--pending { background: #fef3c7; color: #92400e; }
+.status-badge--approved { background: #dcfce7; color: #166534; }
+.status-badge--rejected { background: #fee2e2; color: #991b1b; }
+.status-badge--archived { background: #f1f5f9; color: #64748b; }
+
+@media (max-width: 720px) {
+  .base-form__grid {
+    grid-template-columns: 1fr;
+  }
+}

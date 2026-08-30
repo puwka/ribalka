@@ -1,0 +1,312 @@
+.water-detail {
+  padding-top: calc(var(--header-height) + var(--safe-top));
+  background: var(--color-surface);
+  min-height: 60vh;
+  overflow-x: clip;
+}
+
+.water-detail__hero {
+  position: relative;
+  max-height: 400px;
+  overflow: hidden;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__hero-img {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
+}
+
+.water-detail__hero-img.is-broken {
+  display: none;
+}
+
+.water-detail__hero-placeholder {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  padding: var(--space-8);
+}
+
+.water-detail__thumbs {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-4);
+  display: flex;
+  gap: var(--space-2);
+  max-width: calc(100% - var(--space-8));
+  overflow-x: auto;
+}
+
+.water-detail__thumb {
+  width: 52px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid transparent;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+.water-detail__thumb.is-active {
+  border-color: var(--color-accent);
+}
+
+.water-detail__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.water-detail__layout {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-12);
+}
+
+.water-detail__breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.water-detail__breadcrumbs a:hover {
+  color: var(--color-accent);
+}
+
+.water-detail__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__type {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.water-detail__type--paid {
+  color: var(--color-accent);
+}
+
+.water-detail__type--free {
+  color: var(--color-success);
+}
+
+.water-detail__head h1 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.water-detail__lead {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+.water-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.water-detail__actions .btn.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.water-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-10);
+  align-items: start;
+}
+
+.water-detail__price-block {
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-primary);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__price-block--free {
+  color: var(--color-success);
+}
+
+.water-detail__section {
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__section:last-child {
+  border-bottom: none;
+}
+
+.water-detail__section h2 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  color: var(--color-primary);
+}
+
+.water-detail__section p {
+  color: var(--color-text);
+  line-height: 1.7;
+  font-size: var(--text-sm);
+}
+
+.water-detail__muted {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.water-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.water-detail__tags li {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  padding-right: var(--space-3);
+  border-right: 1px solid var(--color-border);
+}
+
+.water-detail__tags li:last-child {
+  border-right: none;
+}
+
+.water-detail__info-card {
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__info-card h3 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--color-primary);
+}
+
+.water-detail__info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.water-detail__info-row span {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: var(--text-xs);
+}
+
+.water-detail__info-row a {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.water-detail__booking {
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__booking h3 {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.water-detail__map-btn {
+  width: 100%;
+}
+
+.water-detail__reports {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+
+.water-detail__reports li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-detail__reports a {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  text-decoration: none;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+}
+
+.water-detail__reports a span {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.water-detail__skeleton-hero {
+  height: 240px;
+  background: var(--color-bg);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  margin-bottom: var(--space-6);
+}
+
+.water-detail__skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (max-width: 900px) {
+  .water-detail__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .water-detail__aside {
+    order: -1;
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .water-detail__info-card,
+  .water-detail__booking {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: var(--space-4);
+  }
+}

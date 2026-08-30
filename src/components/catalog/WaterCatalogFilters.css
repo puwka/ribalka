@@ -1,0 +1,50 @@
+.water-filters {
+  margin-bottom: var(--space-8);
+}
+
+.water-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.water-filters__search {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  background: var(--color-surface);
+}
+
+.water-filters__search:focus {
+  outline: 2px solid var(--color-accent-muted);
+  border-color: var(--color-accent);
+}
+
+.water-filters__select {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  background: var(--color-surface);
+  min-width: 140px;
+}
+
+.water-filters__reset {
+  flex-shrink: 0;
+}
+
+.water-filters__count {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.water-filters__count strong {
+  color: var(--color-primary);
+}

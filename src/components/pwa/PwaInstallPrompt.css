@@ -1,0 +1,55 @@
+.pwa-prompt {
+  position: fixed;
+  left: max(12px, var(--safe-left));
+  right: max(12px, var(--safe-right));
+  bottom: max(12px, var(--safe-bottom));
+  z-index: 3000;
+  pointer-events: none;
+}
+
+.pwa-prompt__inner {
+  pointer-events: auto;
+  max-width: 520px;
+  margin: 0 auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
+  flex-wrap: wrap;
+}
+
+.pwa-prompt__inner p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.pwa-prompt__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pwa-prompt__install,
+.pwa-prompt__later {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pwa-prompt__install {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.pwa-prompt__later {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}

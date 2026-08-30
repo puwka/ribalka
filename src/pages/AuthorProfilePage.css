@@ -1,0 +1,226 @@
+.author-page {
+  padding: calc(var(--header-height) + var(--space-6)) var(--space-4) var(--space-12);
+  background: var(--color-bg);
+  min-height: 70vh;
+}
+
+.author-page__inner {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: var(--space-6);
+}
+
+.author-head {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.author-head__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.author-head__role {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-1);
+  font-weight: 500;
+}
+
+.author-head h1 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.author-head__meta {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.author-head__bio {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  line-height: 1.6;
+  max-width: 48ch;
+}
+
+.author-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: var(--space-5) 0 0;
+  border: 1px solid var(--color-border);
+}
+
+.author-stats > div {
+  padding: var(--space-4);
+  border-right: 1px solid var(--color-border);
+}
+
+.author-stats > div:last-child {
+  border-right: none;
+}
+
+.author-stats__value {
+  display: block;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+.author-stats__label {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.author-block {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.author-block__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.author-block h2 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.author-block__count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.author-badges {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.author-badges li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.author-badges li:last-child {
+  border-bottom: none;
+}
+
+.author-badges span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.author-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.author-feed li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.author-feed li:last-child {
+  border-bottom: none;
+}
+
+.author-feed a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) 0;
+  text-decoration: none;
+}
+
+.author-feed__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.author-feed a:hover .author-feed__title {
+  color: var(--color-accent);
+}
+
+.author-feed__meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.author-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 560px) {
+  .author-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .author-stats > div:nth-child(2n) {
+    border-right: none;
+  }
+
+  .author-stats > div:nth-child(n + 3) {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .author-head {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .author-head__avatar {
+    width: 48px;
+    height: 48px;
+    font-size: var(--text-lg);
+  }
+}
+
+@media (max-width: 380px) {
+  .author-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .author-stats > div {
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .author-stats > div:first-child {
+    border-top: none;
+  }
+}

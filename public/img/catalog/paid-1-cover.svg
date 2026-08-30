@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-label="База &quot;Чусовские зори&quot;">
+  <defs>
+    <linearGradient id="sky-1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7eb8da"/>
+      <stop offset="55%" stop-color="#3d6b8e"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="water-1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#3d6b8e"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="600" fill="url(#sky-1)"/>
+  <path d="M0 340 Q240 300 480 330 T960 320 L960 600 L0 600 Z" fill="url(#water-1)" opacity="0.95"/>
+  <path d="M0 360 Q200 390 400 370 T800 385 T960 375 L960 600 L0 600 Z" fill="#1e3a5f" opacity="0.35"/>
+  <text x="32" y="560" fill="#ffffff" font-family="Rubik, Arial, sans-serif" font-size="22" font-weight="600" opacity="0.92">База &quot;Чусовские зори&quot;</text>
+</svg>

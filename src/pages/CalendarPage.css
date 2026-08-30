@@ -1,0 +1,1002 @@
+/* ============================================
+   КАЛЕНДАРЬ РЫБОЛОВА — СОВРЕМЕННЫЙ ДИЗАЙН
+   ============================================ */
+
+.calendar-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  padding-top: calc(var(--header-height) + var(--safe-top));
+}
+
+/* Шапка */
+.calendar-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  padding: 48px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.calendar-header__container {
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.calendar-header__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.calendar-header__badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+}
+
+.active-bans-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.badge-icon {
+  font-size: 1.1rem;
+}
+
+.calendar-header h1 {
+  color: white;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  font-weight: 800;
+  font-family: 'Rubik', sans-serif;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+}
+
+.calendar-header__subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+/* Контейнер */
+.calendar-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+}
+
+/* ============================================
+   ПАНЕЛЬ УПРАВЛЕНИЯ
+   ============================================ */
+
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.control-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fish-filter {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.fish-filter:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.view-btn {
+  background: transparent;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.view-btn.active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.today-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.today-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* ============================================
+   ЛЕГЕНДА
+   ============================================ */
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  background: white;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+
+.legend-title {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.legend-items {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.legend-ban { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.legend-excellent { background: linear-gradient(135deg, #10b981, #059669); }
+.legend-good { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.legend-poor { background: linear-gradient(135deg, #94a3b8, #64748b); }
+.legend-event { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+/* ============================================
+   КАЛЕНДАРЬ
+   ============================================ */
+
+.calendar-main {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.calendar-view {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.nav-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #1e293b;
+}
+
+.nav-btn:hover {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  transform: scale(1.1);
+}
+
+.current-month {
+  font-size: 1.8rem;
+  color: #1e293b;
+  font-weight: 800;
+  margin: 0;
+}
+
+.current-year {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Сетка календаря */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-day-name {
+  text-align: center;
+  font-weight: 700;
+  color: #64748b;
+  padding: 12px 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 2px solid transparent;
+}
+
+.calendar-day:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.calendar-day.other-month {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.calendar-day.other-month:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.calendar-day.today {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.calendar-day.selected {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+.calendar-day.selected .day-number {
+  color: white;
+}
+
+/* 🚫 ЗАПРЕТ — ЯРКИЙ КРАСНЫЙ */
+.calendar-day.has-ban {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border-color: #ef4444;
+}
+
+.calendar-day.has-ban.selected {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #ef4444;
+}
+
+/* ⭐ ОТЛИЧНЫЙ КЛЁВ — ЯРКИЙ ЗЕЛЁНЫЙ */
+.calendar-day.excellent {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-color: #10b981;
+}
+
+.calendar-day.excellent.selected {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+}
+
+/* ✨ ХОРОШИЙ КЛЁВ — ЯРКИЙ СИНИЙ */
+.calendar-day.good {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-color: #3b82f6;
+}
+
+.calendar-day.good.selected {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-color: #3b82f6;
+}
+
+/* ⚠️ СЛАБЫЙ КЛЁВ — СЕРЫЙ */
+.calendar-day.poor {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  border-color: #94a3b8;
+}
+
+/* 🎯 СОБЫТИЕ — ОРАНЖЕВЫЙ */
+.calendar-day.has-event::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+}
+
+.day-number {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1rem;
+}
+
+.day-indicators {
+  display: flex;
+  gap: 2px;
+  font-size: 0.7rem;
+}
+
+.indicator {
+  display: inline-block;
+}
+
+/* ============================================
+   ИНФОРМАЦИЯ О ВЫБРАННОМ ДНЕ
+   ============================================ */
+
+.selected-day-info {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.selected-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.selected-day-header h3 {
+  color: #1e293b;
+  font-size: 1.3rem;
+  margin: 0;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.close-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.info-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.info-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.info-section h4 {
+  color: #1e293b;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.info-card {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid;
+}
+
+.ban-card {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.event-card {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.info-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.info-card__header strong {
+  color: #1e293b;
+  font-size: 1rem;
+}
+
+.info-card__region {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.info-card p {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.info-card__period {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+/* Луна */
+.moon-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.moon-icon {
+  font-size: 3rem;
+}
+
+.moon-info strong {
+  display: block;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.moon-info p {
+  color: #475569;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Качество клёва */
+.fishing-quality {
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.quality-excellent {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+}
+
+.quality-good {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+}
+
+.quality-poor {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  color: #475569;
+}
+
+.empty-section {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-section p {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* ============================================
+   СПИСОК СОБЫТИЙ
+   ============================================ */
+
+.list-view {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 32px;
+}
+
+.list-title {
+  color: #1e293b;
+  font-size: 1.8rem;
+  margin-bottom: 24px;
+  font-weight: 800;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.event-item {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 16px;
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.event-item:hover {
+  transform: translateX(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.event-item--ban {
+  border-left-color: #ef4444;
+}
+
+.event-item--event {
+  border-left-color: #f59e0b;
+}
+
+.event-item__marker {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.event-item__content {
+  flex: 1;
+}
+
+.event-item__content h3 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.event-item__content p {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.event-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.no-events {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+/* ============================================
+   ТАБЛИЦА СЕЗОНОВ
+   ============================================ */
+
+.fishing-seasons {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.fishing-seasons h2 {
+  color: #1e293b;
+  font-size: 1.8rem;
+  margin-bottom: 24px;
+  font-weight: 800;
+}
+
+.seasons-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 20px;
+  border-radius: 12px;
+}
+
+.seasons-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.seasons-table thead {
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  color: white;
+}
+
+.seasons-table th {
+  padding: 14px 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.seasons-table th:first-child {
+  text-align: left;
+  padding-left: 16px;
+}
+
+.seasons-table td {
+  padding: 12px 8px;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.seasons-table td:first-child {
+  text-align: left;
+  padding-left: 16px;
+}
+
+.fish-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fish-name strong {
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.fish-name em {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.season-row {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.season-row:hover {
+  background: #f8fafc;
+}
+
+.season-row.selected {
+  background: #eff6ff;
+}
+
+.season-cell {
+  position: relative;
+}
+
+.cell-indicator {
+  display: inline-block;
+  width: 28px;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.season-best .cell-indicator {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.season-good .cell-indicator {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.season-poor .cell-indicator {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+}
+
+.seasons-legend {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.season-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.season-color {
+  width: 28px;
+  height: 10px;
+  border-radius: 5px;
+}
+
+.season-best { background: linear-gradient(135deg, #10b981, #059669); }
+.season-good { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.season-poor { background: linear-gradient(135deg, #cbd5e1, #94a3b8); }
+
+/* ============================================
+   АДАПТИВНОСТЬ
+   ============================================ */
+
+@media (max-width: 1200px) {
+  .calendar-main {
+    grid-template-columns: 1fr;
+  }
+  
+  .selected-day-info {
+    position: static;
+  }
+}
+
+@media (max-width: 1024px) {
+  .calendar-day {
+    padding: 6px;
+  }
+  
+  .day-number {
+    font-size: 0.9rem;
+  }
+  
+  .day-indicators {
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-header {
+    padding: 32px 16px;
+  }
+  
+  .calendar-header h1 {
+    font-size: clamp(1.4rem, 5vw, 1.8rem);
+  }
+  
+  .calendar-header__subtitle {
+    font-size: 0.95rem;
+  }
+  
+  .calendar-container {
+    padding: 20px 16px 40px;
+  }
+
+  .calendar-grid {
+    gap: 2px;
+  }
+
+  .calendar-day {
+    min-height: 52px;
+    padding: 6px 4px;
+  }
+
+  .day-number {
+    font-size: 0.85rem;
+  }
+
+  .day-indicators {
+    font-size: 0.55rem;
+    gap: 1px;
+  }
+  
+  .calendar-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .control-group {
+    min-width: 100%;
+  }
+  
+  .fish-filter,
+  .today-btn {
+    width: 100%;
+  }
+  
+  .view-toggle {
+    width: 100%;
+  }
+  
+  .view-btn {
+    flex: 1;
+  }
+  
+  .calendar-legend {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .legend-items {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .calendar-view,
+  .list-view,
+  .fishing-seasons {
+    padding: 16px;
+  }
+  
+  .current-month {
+    font-size: 1.3rem;
+  }
+  
+  .calendar-grid {
+    gap: 4px;
+  }
+  
+  .calendar-day {
+    padding: 4px;
+    border-radius: 8px;
+  }
+  
+  .day-number {
+    font-size: 0.8rem;
+  }
+  
+  .day-indicators {
+    font-size: 0.55rem;
+  }
+  
+  .calendar-day.has-event::after {
+    width: 6px;
+    height: 6px;
+    bottom: 4px;
+    right: 4px;
+  }
+  
+  .event-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .seasons-table th,
+  .seasons-table td {
+    padding: 8px 4px;
+  }
+  
+  .cell-indicator {
+    width: 20px;
+    height: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .calendar-day {
+    padding: 3px;
+  }
+  
+  .day-number {
+    font-size: 0.7rem;
+  }
+  
+  .day-indicators {
+    display: none;
+  }
+  
+  .list-title {
+    font-size: 1.3rem;
+  }
+}

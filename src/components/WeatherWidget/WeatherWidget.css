@@ -1,0 +1,199 @@
+.weather-widget {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #bfdbfe;
+  margin-bottom: 14px;
+}
+
+.weather-widget--loading {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weather-skeleton {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(90deg, #e0e7ff 25%, #c7d2fe 50%, #e0e7ff 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.weather-widget--error {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.weather-widget__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.weather-widget__header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.weather-widget__now {
+  font-size: 0.75rem;
+  color: #64748b;
+  background: white;
+  padding: 4px 10px;
+  border-radius: 50px;
+  font-weight: 600;
+}
+
+/* Текущая погода */
+.weather-current {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+}
+
+.weather-current__icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.weather-current__info {
+  flex: 1;
+}
+
+.weather-current__temp {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.weather-current__desc {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.weather-current__details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weather-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.weather-detail__icon {
+  font-size: 1rem;
+}
+
+/* Прогноз на 3 дня */
+.weather-forecast {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.weather-day {
+  background: white;
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.weather-day:hover {
+  transform: translateY(-2px);
+}
+
+.weather-day__date {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: capitalize;
+}
+
+.weather-day__icon {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+.weather-day__temps {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.temp-max {
+  color: #0f172a;
+}
+
+.temp-min {
+  color: #64748b;
+}
+
+/* Подсказка для рыбалки */
+.weather-tip {
+  background: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  text-align: center;
+  font-weight: 500;
+  border-left: 4px solid #3b82f6;
+}
+
+@media (max-width: 768px) {
+  .weather-current {
+    flex-wrap: wrap;
+  }
+  
+  .weather-current__details {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 4px;
+  }
+  
+  .weather-day__icon {
+    font-size: 1.5rem;
+  }
+  
+  .weather-current__temp {
+    font-size: 1.7rem;
+  }
+}

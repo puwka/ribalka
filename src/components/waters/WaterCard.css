@@ -1,0 +1,179 @@
+.water-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  height: 100%;
+}
+
+.water-card__link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+}
+
+.water-card__media {
+  aspect-ratio: 16 / 10;
+  background: var(--color-bg);
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.water-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.water-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+.water-card__body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.water-card__meta-primary {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.water-card__meta-primary--paid {
+  color: var(--color-primary);
+}
+
+.water-card__meta-primary--free {
+  color: var(--color-success);
+}
+
+.water-card__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-primary);
+  line-height: 1.35;
+}
+
+.water-card__location {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.water-card__excerpt {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.water-card__footer {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.water-card__text-link {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.water-card__text-link:hover {
+  text-decoration: underline;
+}
+
+/* Row layout — for free waters & home lists */
+.water-card--row {
+  flex-direction: row;
+  align-items: stretch;
+  height: auto;
+}
+
+.water-card__row-link {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.water-card__media--sm {
+  width: 120px;
+  flex-shrink: 0;
+  aspect-ratio: auto;
+  min-height: 88px;
+  border-bottom: none;
+  border-right: 1px solid var(--color-border);
+}
+
+.water-card__row-body {
+  padding: var(--space-4);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+.water-card__meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.water-card__meta-sep {
+  color: var(--color-text-muted);
+}
+
+.water-card__row-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-left: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.water-card--skeleton {
+  min-height: 88px;
+  align-items: center;
+  padding: var(--space-4);
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .water-card--row {
+    flex-direction: column;
+  }
+
+  .water-card__media--sm {
+    width: 100%;
+    min-height: 140px;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .water-card__row-actions {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-3) var(--space-4);
+  }
+}

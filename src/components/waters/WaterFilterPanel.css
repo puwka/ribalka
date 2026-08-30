@@ -1,0 +1,228 @@
+.water-filters-wrap {
+
+  margin-bottom: var(--space-6);
+
+  padding-bottom: var(--space-4);
+
+  border-bottom: 1px solid var(--color-border);
+
+}
+
+
+
+.water-filters-mobile-toggle {
+
+  display: none;
+
+  width: 100%;
+
+  margin-bottom: var(--space-3);
+
+}
+
+
+
+.water-filters-panel {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: var(--space-2);
+
+  align-items: center;
+
+}
+
+
+
+.water-filters-panel__search {
+
+  flex: 1 1 240px;
+
+  min-width: 0;
+
+  padding: 9px 12px;
+
+  border: 1px solid var(--color-border);
+
+  border-radius: var(--radius-md);
+
+  font-family: var(--font-sans);
+
+  font-size: var(--text-sm);
+
+  background: var(--color-surface);
+
+}
+
+
+
+.water-filters-panel__search:focus {
+
+  outline: 2px solid var(--color-accent-muted);
+
+  border-color: var(--color-accent);
+
+}
+
+
+
+.water-filters-panel__select,
+
+.water-filters-panel__price {
+
+  padding: 9px 12px;
+
+  border: 1px solid var(--color-border);
+
+  border-radius: var(--radius-md);
+
+  font-family: var(--font-sans);
+
+  font-size: var(--text-sm);
+
+  background: var(--color-surface);
+
+  min-width: 120px;
+
+}
+
+
+
+.water-filters-panel__price {
+
+  width: 100px;
+
+}
+
+
+
+.water-filters-drawer__scrim {
+
+  position: fixed;
+
+  inset: 0;
+
+  background: rgba(17, 24, 39, 0.35);
+
+  border: 0;
+
+  z-index: 1100;
+
+}
+
+
+
+.water-filters-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1101;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-5) var(--space-5) calc(var(--space-5) + var(--safe-bottom));
+  max-height: min(85dvh, 640px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 16px 16px 0 0;
+}
+
+
+
+.water-filters-drawer__head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: var(--space-4);
+
+  font-size: var(--text-base);
+
+  font-weight: 600;
+
+}
+
+
+
+.water-filters-drawer__head button {
+
+  font-size: var(--text-sm);
+
+  color: var(--color-text-secondary);
+
+  padding: var(--space-2);
+
+}
+
+
+
+.water-filters-drawer .water-filters-panel {
+
+  flex-direction: column;
+
+  align-items: stretch;
+
+}
+
+
+
+.water-filters-drawer .water-filters-panel__search,
+
+.water-filters-drawer .water-filters-panel__select,
+
+.water-filters-drawer .water-filters-panel__price {
+
+  width: 100%;
+
+}
+
+
+
+.water-filters-drawer__apply {
+
+  width: 100%;
+
+  margin-top: var(--space-4);
+
+}
+
+
+
+@media (max-width: 768px) {
+
+  .water-filters-mobile-toggle {
+
+    display: flex;
+
+  }
+
+
+
+  .water-filters-desktop {
+
+    display: none;
+
+  }
+
+}
+
+
+
+@media (min-width: 769px) {
+
+  .water-filters-drawer,
+
+  .water-filters-drawer__scrim {
+
+    display: none !important;
+
+  }
+
+}
+
+
