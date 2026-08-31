@@ -1,5 +1,5 @@
 @import './styles/tokens.css';
-@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
 
 *,
 *::before,
@@ -24,7 +24,7 @@ html {
 
 body {
   font-family: var(--font-sans);
-  line-height: 1.6;
+  line-height: var(--leading-normal);
   color: var(--color-text);
   background: var(--color-surface);
   -webkit-font-smoothing: antialiased;
@@ -81,10 +81,12 @@ h3,
 h4,
 h5,
 h6 {
-  line-height: 1.25;
+  font-family: var(--font-display);
+  line-height: var(--leading-snug);
   font-weight: 700;
   color: var(--color-primary);
   overflow-wrap: anywhere;
+  letter-spacing: var(--tracking-display);
 }
 
 p,
@@ -114,9 +116,8 @@ table {
   }
 }
 
-/* Landscape phones: keep fixed chrome usable */
 @media (max-height: 480px) and (orientation: landscape) {
   :root {
-    --header-height: 48px;
+    --header-height: 52px;
   }
 }

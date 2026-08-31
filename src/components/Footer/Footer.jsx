@@ -1,6 +1,7 @@
 import { useSmartNavigation } from '../../hooks/useSmartNavigation';
 import { useCmsSettings, useCmsFooter } from '../../hooks/useCms';
 import PermDateTime from '../PermDateTime/PermDateTime';
+import Logo from '../Logo/Logo';
 import './Footer.css';
 
 export default function Footer() {
@@ -8,8 +9,8 @@ export default function Footer() {
   const { data: settings } = useCmsSettings();
   const { data: footer } = useCmsFooter();
 
-  const siteName = settings?.siteName || 'Рыбалка в Прикамье';
   const brandText = footer?.brandText || settings?.tagline || '';
+  const siteName = settings?.siteName || 'Рыбалка в Прикамье';
   const sponsors = settings?.sponsors || [];
   const social = settings?.social || {};
 
@@ -28,9 +29,7 @@ export default function Footer() {
       <div className="footer__container">
         {/* БРЕНД */}
         <div className="footer__brand">
-          <div className="footer__logo">
-            <span className="footer__logo-text">{siteName}</span>
-          </div>
+          <Logo to="/" variant="on-dark" />
           <p>{brandText}</p>
           
           {footer?.showDateTime !== false && <PermDateTime />}
@@ -91,7 +90,6 @@ export default function Footer() {
             <li><a href="/paid-waters" onClick={(e) => onFooterClick(e, '/paid-waters')}>Платные водоёмы</a></li>
             <li><a href="/free-waters" onClick={(e) => onFooterClick(e, '/free-waters')}>Бесплатные водоёмы</a></li>
             <li><a href="/map" onClick={(e) => onFooterClick(e, '/map')}>Карта</a></li>
-            <li><a href="/calendar" onClick={(e) => onFooterClick(e, '/calendar')}>Календарь рыболова</a></li>
             <li><a href="/lunar" onClick={(e) => onFooterClick(e, '/lunar')}>Лунный календарь</a></li>
             <li><a href="/directory" onClick={(e) => onFooterClick(e, '/directory')}>Справочник</a></li>
             <li><a href="/reports" onClick={(e) => onFooterClick(e, '/reports')}>Отчёты о рыбалке</a></li>

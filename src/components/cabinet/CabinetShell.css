@@ -18,9 +18,11 @@
 .cabinet__aside {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: var(--space-5);
   position: sticky;
   top: calc(var(--header-height) + var(--space-4));
+  box-shadow: var(--shadow-sm);
 }
 
 .cabinet__identity {

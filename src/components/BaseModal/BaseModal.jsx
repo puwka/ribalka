@@ -6,10 +6,12 @@ import { useAuth } from '../auth/AuthContext';
 import { favoritesService } from '../../services/favoritesService';
 import { gamificationService } from '../../services/gamificationService';
 import BookingForm from '../booking/BookingForm';
+import { useToast } from '../ui/ToastContext';
 import './BaseModal.css';
 
 export default function BaseModal({ item, onClose }) {
   const { user, isAuthenticated, refresh } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('info');
   const [activeVideo, setActiveVideo] = useState(0);
   const [rating, setRating] = useState(0);
@@ -103,15 +105,20 @@ export default function BaseModal({ item, onClose }) {
 
   const toggleFavorite = async () => {
     if (!isAuthenticated || !user) {
-      alert('Войдите, чтобы добавить в избранное');
+      showToast('Войдите, чтобы добавить в избранное', { type: 'info' });
       return;
     }
     try {
       const result = await favoritesService.toggleBaseOrPlace(user.id, item);
       setFavorited(result.favorited);
       await refresh();
+      if (result.favorited) {
+        showToast(`«${item.name}» добавлено в избранное`);
+      } else {
+        showToast(`«${item.name}» убрано из избранного`, { type: 'info' });
+      }
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || 'Не удалось изменить избранное', { type: 'error' });
     }
   };
 

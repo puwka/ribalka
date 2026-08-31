@@ -18,7 +18,6 @@ import ReportDetailPage from './pages/ReportDetailPage';
 import ForumPage from './pages/ForumPage';
 import ForumTopicPage from './pages/ForumTopicPage';
 import AuthorProfilePage from './pages/AuthorProfilePage';
-import CalendarPage from './pages/CalendarPage';
 import LunarCalendarPage from './pages/LunarCalendarPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -29,6 +28,7 @@ import DocumentTitle from './components/seo/DocumentTitle';
 import BaseDetailPage from './pages/BaseDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ScrollToTop from './components/ScrollToTop';
+import { ToastProvider } from './components/ui/ToastContext';
 import './App.css';
 
 function RedirectBaseToWater() {
@@ -49,6 +49,7 @@ function SiteLayout({ children }) {
 function App() {
   return (
     <AuthProvider>
+      <ToastProvider>
       <Router>
         <ScrollToTop />
         <div className="app">
@@ -82,7 +83,7 @@ function App() {
                     <Route path="/forum" element={<ForumPage />} />
                     <Route path="/forum/:id" element={<ForumTopicPage />} />
                     <Route path="/u/:userId" element={<AuthorProfilePage />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
+                    <Route path="/calendar" element={<Navigate to="/lunar" replace />} />
                     <Route path="/lunar" element={<LunarCalendarPage />} />
                     <Route path="/favorites" element={<Navigate to="/cabinet/favorites" replace />} />
                     <Route path="/login" element={<LoginPage />} />
@@ -97,6 +98,7 @@ function App() {
           </Routes>
         </div>
       </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

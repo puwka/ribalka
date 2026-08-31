@@ -190,7 +190,7 @@ export function getRecommendations(date = new Date()) {
 
   const month = date.getMonth() + 1;
   if (month >= 5 && month <= 6) {
-    tips.push('Учитывайте нерестовые запреты Пермского края на календаре рыболова.');
+    tips.push('Учитывайте местные нерестовые запреты Пермского края.');
   }
 
   return {

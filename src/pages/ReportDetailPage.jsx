@@ -4,6 +4,7 @@ import { useAuth } from '../components/auth/AuthContext';
 import { getAnonId } from '../hooks/useReports';
 import { reportSocialService } from '../services/reportSocialService';
 import { favoritesService } from '../services/favoritesService';
+import { useToast } from '../components/ui/ToastContext';
 import './ReportDetailPage.css';
 
 function buildTree(comments) {
@@ -16,6 +17,7 @@ function buildTree(comments) {
 export default function ReportDetailPage() {
   const { id } = useParams();
   const { user, profile, isAuthenticated, isAdmin, loading: authLoading, refresh } = useAuth();
+  const { showToast } = useToast();
   const anonId = getAnonId();
   const viewerKey = user?.id || `anon:${anonId}`;
 
@@ -129,12 +131,22 @@ export default function ReportDetailPage() {
 
   const onFavorite = async () => {
     if (!isAuthenticated || !user) {
-      alert('Войдите, чтобы добавить в избранное');
+      showToast('Войдите, чтобы добавить в избранное', { type: 'info' });
       return;
     }
-    const res = await favoritesService.toggleReport(user.id, report);
-    setFavorited(Boolean(res?.favorited));
-    await refresh();
+    try {
+      const res = await favoritesService.toggleReport(user.id, report);
+      setFavorited(Boolean(res?.favorited));
+      await refresh();
+      const title = report.place || 'Отчёт';
+      if (res?.favorited) {
+        showToast(`«${title}» добавлено в избранное`);
+      } else {
+        showToast(`«${title}» убрано из избранного`, { type: 'info' });
+      }
+    } catch (err) {
+      showToast(err.message || 'Не удалось изменить избранное', { type: 'error' });
+    }
   };
 
   const onModerate = async (action) => {

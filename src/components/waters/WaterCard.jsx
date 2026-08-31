@@ -1,12 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
 import { useAuth } from '../auth/AuthContext';
-
+import { useToast } from '../ui/ToastContext';
 import { favoritesService } from '../../services/favoritesService';
-
 import { formatPaidPrice } from '../../lib/waterUtils';
-
 import './WaterCard.css';
 
 function PlaceholderImage() {
@@ -36,42 +33,69 @@ function WaterCardImage({ images = [], alt = '' }) {
   );
 }
 
+function favoriteType(item) {
+  return item?.type === 'free' ? 'place' : 'base';
+}
+
 export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
   const navigate = useNavigate();
-
   const { user, isAuthenticated, refresh } = useAuth();
+  const { showToast } = useToast();
+  const [favorited, setFavorited] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const isPaid = variant === 'paid';
-
   const detailPath = `/waters/${item.id}`;
+
+  useEffect(() => {
+    let alive = true;
+    if (!user?.id || !item?.id) {
+      setFavorited(false);
+      return undefined;
+    }
+    favoritesService.isFavorite(user.id, favoriteType(item), item.id).then((v) => {
+      if (alive) setFavorited(Boolean(v));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user?.id, item?.id, item?.type]);
 
   const toggleFavorite = async (e) => {
     e.preventDefault();
-
     e.stopPropagation();
 
     if (!isAuthenticated || !user) {
       navigate('/login', { state: { from: detailPath } });
-
       return;
     }
 
+    if (busy) return;
+    setBusy(true);
     try {
-      await favoritesService.toggleBaseOrPlace(user.id, item);
-
+      const result = await favoritesService.toggleBaseOrPlace(user.id, item);
+      setFavorited(Boolean(result?.favorited));
       await refresh();
+      if (result?.favorited) {
+        showToast(`«${item.name}» добавлено в избранное`);
+      } else {
+        showToast(`«${item.name}» убрано из избранного`, { type: 'info' });
+      }
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || 'Не удалось изменить избранное', { type: 'error' });
+    } finally {
+      setBusy(false);
     }
   };
 
   const location = [item.region, item.locality].filter(Boolean).join(', ');
-
   const metaPrimary = isPaid ? formatPaidPrice(item) : 'Бесплатная рыбалка';
-
   const metaSecondary = isPaid
     ? [item.waterKind, item.fish?.split(',')[0]?.trim()].filter(Boolean).join(' · ')
     : [item.waterKind, location].filter(Boolean).join(' · ');
+
+  const favLabel = favorited ? 'В избранном' : 'В избранное';
+  const favClass = `water-card__text-link${favorited ? ' is-favorited' : ''}`;
 
   if (layout === 'row') {
     return (
@@ -103,8 +127,8 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
             Подробнее
           </Link>
 
-          <button type="button" className="water-card__text-link" onClick={toggleFavorite}>
-            В избранное
+          <button type="button" className={favClass} onClick={toggleFavorite} disabled={busy}>
+            {favLabel}
           </button>
         </div>
       </article>
@@ -136,8 +160,8 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
           Подробнее
         </Link>
 
-        <button type="button" className="water-card__text-link" onClick={toggleFavorite}>
-          В избранное
+        <button type="button" className={favClass} onClick={toggleFavorite} disabled={busy}>
+          {favLabel}
         </button>
       </div>
     </article>

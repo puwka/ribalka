@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { favoritesService } from '../../services/favoritesService';
+import { useToast } from '../ui/ToastContext';
 import './ReportModal.css';
 
 export default function ReportModal({
@@ -12,6 +13,7 @@ export default function ReportModal({
   currentUserId,
   formatDate,
 }) {
+  const { showToast } = useToast();
   const [activeImage, setActiveImage] = useState(0);
   const [activeTab, setActiveTab] = useState('details');
   const [commentAuthor, setCommentAuthor] = useState('');
@@ -46,8 +48,14 @@ export default function ReportModal({
     try {
       const result = await onToggleFavorite(report);
       setFavorited(Boolean(result?.favorited));
+      const title = report.place || 'Отчёт';
+      if (result?.favorited) {
+        showToast(`«${title}» добавлено в избранное`);
+      } else {
+        showToast(`«${title}» убрано из избранного`, { type: 'info' });
+      }
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || 'Не удалось изменить избранное', { type: 'error' });
     }
   };
 

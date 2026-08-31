@@ -39,14 +39,15 @@ const DEFAULT_SETTINGS = {
 const DEFAULT_PAGES = {
   [CMS_PAGES.HOME]: {
     hero: {
-      title: 'Водоёмы и места для рыбалки в Пермском крае',
-      description: '',
+      title: 'Активный отдых и рыбалка в Пермском крае',
+      description:
+        'Платные базы с комфортом и дикие водоёмы с невероятной природой. Найдите своё место для незабываемого отдыха на природе в сердце Урала.',
       descriptionFallback:
-        'Найдите платный водоём или бесплатное место, спланируйте поездку и читайте отчёты местных рыбаков.',
+        'Платные базы с комфортом и дикие водоёмы с невероятной природой. Найдите своё место для незабываемого отдыха на природе в сердце Урала.',
       image: '/img/hero/header-img.jpeg',
-      ctaPrimary: { label: 'Открыть карту', url: '/map' },
-      ctaSecondary: { label: 'Платные водоёмы', url: '/paid-waters' },
-      ctaTertiary: { label: 'Бесплатные', url: '/free-waters' },
+      ctaPrimary: { label: 'Платные водоёмы', url: '/paid-waters' },
+      ctaSecondary: { label: 'Бесплатные места', url: '/free-waters' },
+      ctaTertiary: { label: 'Карта', url: '/map' },
       showStats: true,
     },
     blocks: {
@@ -159,8 +160,7 @@ const DEFAULT_FOOTER = {
   ],
   serviceLinks: [
     { label: 'Справочник', url: '/directory' },
-    { label: 'Календарь', url: '/calendar' },
-    { label: 'Лунный календарь', url: '/lunar-calendar' },
+    { label: 'Лунный календарь', url: '/lunar' },
     { label: 'Форум', url: '/forum' },
   ],
   legalLinks: [

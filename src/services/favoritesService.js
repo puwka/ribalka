@@ -109,6 +109,12 @@ export const favoritesService = {
       snapshot: snapshotFromReport(report),
     });
     await gamificationService.onFavoriteAdded(userId);
+    notificationService.notifyFavorite(
+      userId,
+      'Добавлено в избранное',
+      snapshotFromReport(report).name,
+      `/reports/${report.id}`
+    );
     return { favorited: true, type };
   },
 

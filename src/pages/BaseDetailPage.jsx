@@ -6,12 +6,14 @@ import { useAuth } from '../components/auth/AuthContext';
 import { favoritesService } from '../services/favoritesService';
 import { formatPaidPrice, enrichWaterItem } from '../lib/waterUtils';
 import BookingForm from '../components/booking/BookingForm';
+import { useToast } from '../components/ui/ToastContext';
 import './BaseDetailPage.css';
 
 export default function BaseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated, refresh } = useAuth();
+  const { showToast } = useToast();
   const [item, setItem] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -68,8 +70,13 @@ export default function BaseDetailPage() {
       const result = await favoritesService.toggleBaseOrPlace(user.id, item);
       setFavorited(result.favorited);
       await refresh();
+      if (result.favorited) {
+        showToast(`«${item.name}» добавлено в избранное`);
+      } else {
+        showToast(`«${item.name}» убрано из избранного`, { type: 'info' });
+      }
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || 'Не удалось изменить избранное', { type: 'error' });
     }
   };
 

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { lunarCalendarService } from '../services/lunarCalendarService';
 import './LunarCalendarPage.css';
 
@@ -36,7 +35,6 @@ export default function LunarCalendarPage() {
           </p>
           <div className="lunar-page__hero-actions">
             <button type="button" className="lunar-btn" onClick={goToday}>Сегодня</button>
-            <Link to="/calendar" className="lunar-btn lunar-btn--ghost">Запреты и сезоны</Link>
           </div>
         </div>
       </div>

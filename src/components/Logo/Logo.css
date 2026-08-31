@@ -1,0 +1,78 @@
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.brand-logo__mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.brand-logo__mark-bg {
+  fill: var(--color-accent);
+}
+
+.brand-logo__mark-wave {
+  stroke: #fff;
+}
+
+.brand-logo__mark-wave--soft {
+  opacity: 0.7;
+}
+
+.brand-logo__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.brand-logo__name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+.brand-logo__sub {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.brand-logo--on-dark .brand-logo__name {
+  color: #fff;
+}
+
+.brand-logo--on-dark .brand-logo__sub {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.brand-logo--on-dark .brand-logo__mark-bg {
+  fill: #fff;
+}
+
+.brand-logo--on-dark .brand-logo__mark-wave {
+  stroke: var(--color-accent);
+}
+
+.brand-logo--compact .brand-logo__sub {
+  display: none;
+}
+
+.brand-logo--compact .brand-logo__name {
+  font-size: 1rem;
+}
+
+@media (max-width: 380px) {
+  .brand-logo__sub {
+    display: none;
+  }
+}

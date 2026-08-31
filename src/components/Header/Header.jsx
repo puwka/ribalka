@@ -1,25 +1,37 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useSmartNavigation } from '../../hooks/useSmartNavigation';
 import { useAuth } from '../auth/AuthContext';
 import SearchBar from '../SearchBar/SearchBar';
 import NotificationCenter from '../notifications/NotificationCenter';
+import Logo from '../Logo/Logo';
 import './Header.css';
 
-const SITE_NAME = 'Рыбалка в Прикамье';
+/** Быстрые ссылки в шапке (desktop) */
+const DESKTOP_NAV = [
+  { to: '/paid-waters', label: 'Платные' },
+  { to: '/free-waters', label: 'Бесплатные' },
+  { to: '/map', label: 'Карта' },
+  { to: '/reports', label: 'Отчёты' },
+  { to: '/forum', label: 'Форум' },
+  { to: '/directory', label: 'Справочник' },
+];
 
-const MENU_ITEMS = [
-  { href: '/', label: 'Главная', route: true },
-  { href: '/paid-waters', label: 'Платные водоёмы', route: true },
-  { href: '/free-waters', label: 'Бесплатные водоёмы', route: true },
-  { href: '/map', label: 'Карта', route: true },
-  { href: '/calendar', label: 'Календарь рыболова', route: true },
-  { href: '/lunar', label: 'Лунный календарь', route: true },
-  { href: '/directory', label: 'Справочник', route: true },
-  { href: '/reports', label: 'Отчёты о рыбалке', route: true },
-  { href: '/forum', label: 'Форум', route: true },
-  { href: '#news', label: 'Новости', route: false },
-  { href: '/about', label: 'О нас', route: true },
+/** Основные разделы — в бургере на мобиле (на desktop уже в шапке) */
+const DRAWER_PRIMARY = [
+  { href: '/paid-waters', label: 'Платные водоёмы' },
+  { href: '/free-waters', label: 'Бесплатные водоёмы' },
+  { href: '/map', label: 'Карта' },
+  { href: '/reports', label: 'Отчёты о рыбалке' },
+  { href: '/forum', label: 'Форум' },
+  { href: '/directory', label: 'Справочник' },
+];
+
+/** Остальные пункты — всегда в бургере */
+const DRAWER_MORE = [
+  { href: '/lunar', label: 'Лунный календарь' },
+  { href: '/news/all', label: 'Новости' },
+  { href: '/about', label: 'О нас' },
 ];
 
 function IconStar() {
@@ -38,14 +50,7 @@ function IconStar() {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { handleClick } = useSmartNavigation();
-  const {
-    isAuthenticated,
-    loading,
-    profile,
-    isOwner,
-    isAdmin,
-    logout,
-  } = useAuth();
+  const { isAuthenticated, loading, profile, isOwner, isAdmin, logout } = useAuth();
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? 'hidden' : '';
@@ -63,10 +68,22 @@ export default function Header() {
 
   return (
     <header className="site-header">
-      <div className="site-header__bar section-inner">
-        <a href="/" className="site-header__brand" onClick={(e) => onNavClick(e, '/')}>
-          <span className="site-header__brand-name">{SITE_NAME}</span>
-        </a>
+      <div className="site-header__bar section-inner section-inner--wide">
+        <Logo to="/" onClick={(e) => onNavClick(e, '/')} className="site-header__logo" />
+
+        <nav className="site-header__nav" aria-label="Основная навигация">
+          {DESKTOP_NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `site-header__link${isActive ? ' is-active' : ''}`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
         <div className="site-header__actions">
           <SearchBar />
@@ -88,7 +105,7 @@ export default function Header() {
               {profile?.display_name?.slice(0, 16) || 'Кабинет'}
             </Link>
           ) : !loading ? (
-            <Link to="/login" className="btn btn--primary site-header__login">
+            <Link to="/login" className="btn btn--primary btn--sm site-header__login">
               Войти
             </Link>
           ) : null}
@@ -97,7 +114,7 @@ export default function Header() {
             type="button"
             className={`site-header__burger ${isMenuOpen ? 'is-open' : ''}`}
             onClick={() => setIsMenuOpen((v) => !v)}
-            aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+            aria-label={isMenuOpen ? 'Закрыть меню' : 'Ещё разделы'}
             aria-expanded={isMenuOpen}
             aria-controls="site-header-menu"
           >
@@ -121,30 +138,44 @@ export default function Header() {
         id="site-header-menu"
         className={`site-header__drawer ${isMenuOpen ? 'is-open' : ''}`}
         aria-hidden={!isMenuOpen}
-        aria-label="Меню"
+        aria-label="Дополнительное меню"
       >
         <div className="site-header__drawer-brand">
-          <Link to="/" className="site-header__drawer-brand-name" onClick={closeMenu}>
-            {SITE_NAME}
-          </Link>
+          <Logo to="/" onClick={closeMenu} />
           <p className="site-header__drawer-title">Меню</p>
         </div>
 
-        {MENU_ITEMS.map((item) =>
-          item.route ? (
-            <Link key={item.href + item.label} to={item.href} onClick={closeMenu}>
-              {item.label}
-            </Link>
-          ) : (
-            <a
-              key={item.href + item.label}
-              href={item.href}
-              onClick={(e) => onNavClick(e, item.href)}
-            >
-              {item.label}
-            </a>
-          )
-        )}
+        <Link
+          to="/"
+          className="site-header__drawer-item site-header__drawer-item--home"
+          onClick={closeMenu}
+        >
+          Главная
+        </Link>
+
+        {DRAWER_PRIMARY.map((item) => (
+          <Link
+            key={item.href}
+            to={item.href}
+            className="site-header__drawer-item site-header__drawer-item--primary"
+            onClick={closeMenu}
+          >
+            {item.label}
+          </Link>
+        ))}
+
+        <p className="site-header__drawer-label site-header__drawer-label--more">Ещё</p>
+
+        {DRAWER_MORE.map((item) => (
+          <Link
+            key={item.href}
+            to={item.href}
+            className="site-header__drawer-item"
+            onClick={closeMenu}
+          >
+            {item.label}
+          </Link>
+        ))}
 
         <div className="site-header__drawer-auth">
           {loading ? null : isAuthenticated ? (

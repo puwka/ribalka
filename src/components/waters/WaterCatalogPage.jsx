@@ -10,7 +10,6 @@ import {
   PaidWaterCard,
   FreeWaterCard,
   WaterCardGridSkeleton,
-  WaterCardListSkeleton,
 } from './WaterCard';
 import './WaterCatalogPage.css';
 
@@ -43,7 +42,6 @@ export default function WaterCatalogPage({ waterType }) {
 
   const isPaid = waterType === WATER_TYPE.PAID;
   const Card = isPaid ? PaidWaterCard : FreeWaterCard;
-  const cardLayout = isPaid ? 'grid' : 'row';
 
   return (
     <div className={`water-catalog-page water-catalog-page--${isPaid ? 'paid' : 'free'}`}>
@@ -96,8 +94,7 @@ export default function WaterCatalogPage({ waterType }) {
           hasActiveFilters={catalog.hasActiveFilters}
         />
 
-        {catalog.loading &&
-          (isPaid ? <WaterCardGridSkeleton count={8} /> : <WaterCardListSkeleton count={3} />)}
+        {catalog.loading && <WaterCardGridSkeleton count={8} />}
 
         {catalog.error && (
           <div className="state-block">
@@ -123,9 +120,9 @@ export default function WaterCatalogPage({ waterType }) {
         )}
 
         {!catalog.loading && viewMode === 'list' && catalog.filtered.length > 0 && (
-          <div className={isPaid ? 'water-catalog__grid' : 'water-catalog__list'}>
+          <div className="water-catalog__grid">
             {catalog.filtered.map((item) => (
-              <Card key={item.id} item={item} layout={cardLayout} />
+              <Card key={item.id} item={item} layout="grid" />
             ))}
           </div>
         )}
