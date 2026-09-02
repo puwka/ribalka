@@ -1,5 +1,7 @@
 .admin-shell {
   min-height: 100dvh;
+  width: 100%;
+  max-width: none;
   background: var(--color-bg, #f4f5f6);
   padding-top: calc(var(--header-height, 56px) + var(--safe-top));
   overflow-x: clip;
@@ -23,8 +25,7 @@
   justify-content: space-between;
   gap: var(--space-4, 16px);
   padding: 10px 20px;
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .admin-topbar__left {
@@ -91,8 +92,9 @@
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 0;
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   min-height: calc(100vh - var(--header-height, 56px) - 45px);
   padding-top: 45px;
 }
