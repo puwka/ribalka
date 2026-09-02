@@ -31,15 +31,15 @@ export function unwrap(result) {
 }
 
 /**
- * Public Storage URL or passthrough external URL.
- * @param {import('@supabase/supabase-js').SupabaseClient} client
+ * @param {unknown} _client — legacy, ignored
  * @param {string} bucket
  * @param {string | null | undefined} path
  * @param {string | null | undefined} externalUrl
  */
-export function resolveMediaUrl(client, bucket, path, externalUrl) {
+export function resolveMediaUrl(_client, bucket, path, externalUrl) {
   if (externalUrl) return externalUrl;
   if (!path) return null;
-  const { data } = client.storage.from(bucket).getPublicUrl(path);
-  return data?.publicUrl ?? null;
+  const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  if (base) return `${base}/uploads/${bucket}/${path}`.replace(/([^:]\/)\/+/g, '$1');
+  return `/uploads/${bucket}/${path}`;
 }

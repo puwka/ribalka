@@ -4,8 +4,8 @@
 
 Клиентское SPA с двумя режимами данных:
 
-1. **Local** (`VITE_USE_SUPABASE=false`) — IndexedDB / localStorage, демо-аккаунты.
-2. **Supabase** (`VITE_USE_SUPABASE=true` + валидные URL/anon) — Auth, Postgres, Storage, RLS.
+1. **Local** (`VITE_USE_API=false`) — IndexedDB / localStorage, демо-аккаунты.
+2. **API + Postgres** (`VITE_USE_API=true`) — JWT auth, REST API, PostgreSQL на сервере.
 
 UI всегда React. Бизнес-логика — в `src/services/*`.
 
@@ -14,9 +14,10 @@ src/
   pages/           # маршруты
   components/      # UI (auth, booking, notifications, owner, admin, pwa, seo)
   services/        # доменные сервисы
-  lib/             # supabase, IndexedDB stores, mappers
+  lib/             # apiClient, IndexedDB stores, mappers
   hooks/           # React-хуки данных
-supabase/migrations/
+database/migrations/
+server/            # Express REST API
 ```
 
 ## Роли

@@ -13,7 +13,7 @@
  * - AdminPage sessionStorage   → auth.users + users + RLS (admin role)
  * - fishing_user_id            → auth.uid() / users.id
  *
- * Enable remote data: set VITE_USE_SUPABASE=true and valid VITE_SUPABASE_* in .env.local
+ * Enable remote data: set VITE_USE_API=true and run server/ + database/
  * Until then hooks keep serving static / localStorage data.
  */
 

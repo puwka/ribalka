@@ -131,8 +131,8 @@ export default function AdminSettingsSection() {
           </p>
           <ul style={{ fontSize: '0.875rem', lineHeight: 1.7, paddingLeft: 18 }}>
             <li>ENV: см. <code>.env.example</code></li>
-            <li>Миграции: <code>supabase/migrations/</code></li>
-            <li>CMS: IndexedDB + Supabase <code>cms_kv</code></li>
+            <li>Миграции: <code>database/migrations/</code></li>
+            <li>CMS: IndexedDB (API CMS — в roadmap)</li>
           </ul>
         </section>
       )}

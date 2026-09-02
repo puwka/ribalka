@@ -1,6 +1,6 @@
 /**
  * Service layer entry — foundation for platform features.
- * UI hooks can opt into these when VITE_USE_SUPABASE=true.
+ * UI hooks can opt into these when VITE_USE_API=true.
  */
 
 export { basesService } from './basesService';

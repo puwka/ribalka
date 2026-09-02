@@ -1,32 +1,34 @@
 # База данных
 
-## Postgres (Supabase)
+## PostgreSQL (standalone)
 
-Миграции: `supabase/migrations/`.
+Миграции: `database/migrations/`.
 
 | Файл | Содержание |
 |------|------------|
-| `20260827120000_init_platform.sql` | ядро: users, roles, bases, reports, forum, bookings, plans, payments, ads, RLS helpers |
-| `20260827120100_rls_policies.sql` | RLS |
-| `20260827120200_storage_buckets.sql` | buckets + policies |
-| `20260827120300_seed_plans_achievements.sql` | seed планов/достижений |
-| `20260827120400_grants.sql` | GRANT |
-| `20260827120500_base_review_owner_reply.sql` | ответ владельца на отзыв |
-| `20260827120600_base_listing_moderation.sql` | enum value `approved` (отдельная транзакция) |
-| `20260827120700_base_listing_moderation_apply.sql` | поля модерации баз + notify |
-| `20260827120800_email_outbox.sql` | email_outbox + email_subscriptions |
-| `20260827120900_monetization_extend.sql` | price_year/limits, ad_orders, payment columns |
-| `20260827121000_fix_ad_orders_admin_rls.sql` | RLS ad_orders через `is_admin()` |
-| `20260827121100_signup_requested_role.sql` | OWNER при регистрации из metadata |
-| `20260827121200_monetization_grants.sql` | grants для ad_orders / email / plans |
-| `20260827121300_fix_base_media_rls_approved.sql` | RLS media: `approved` вместо `published` |
+| `001_init_platform.sql` | ядро: users (+ password_hash), roles, bases, reports, forum, bookings, plans, payments, ads |
+| `002_seed_plans_achievements.sql` | seed планов/достижений |
+| `003_base_review_owner_reply.sql` | ответ владельца на отзыв |
+| `004_base_listing_moderation.sql` | enum `approved` |
+| `005_base_listing_moderation_apply.sql` | поля модерации баз + notify |
+| `006_email_outbox.sql` | email_outbox + email_subscriptions |
+| `007_monetization_extend.sql` | price_year/limits, ad_orders, payment columns |
 
 Применение:
 
 ```bash
-supabase db push
-# или SQL Editor по файлам по порядку
+DATABASE_URL=postgresql://... npm run db:migrate
 ```
+
+Админ:
+
+```bash
+npm run db:seed-admin -- admin@example.com password
+```
+
+Отличия от Supabase: без `auth.users`, без RLS/Storage — права в REST API (`server/`).
+
+Папка `supabase/migrations/` устарела (архив).
 
 ## IndexedDB (local / hybrid UI)
 

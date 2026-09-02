@@ -1,28 +1,23 @@
 import { localAuthStore } from './localAuthStore';
-import { supabase, supabaseDataEnabled } from './supabase';
+import { apiDataEnabled } from './apiClient';
 import { authService } from '../services/authService';
 import { ApiError } from './apiError';
 
 /**
  * Admin gate aligned with AuthContext / RequireRole.
- * Supabase session first, then local demo admin fallback.
+ * API session first, then local demo admin fallback.
  */
 export async function assertAdmin(adminId) {
   if (!adminId) throw new ApiError('Нет прав администратора', { status: 403 });
 
-  if (supabaseDataEnabled && supabase) {
+  if (apiDataEnabled && authService.mode() === 'api') {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user && user.id === adminId) {
-        const bundle = await authService.getSessionBundle();
-        if (bundle?.isAdmin) {
-          return { id: user.id, mode: 'supabase' };
-        }
+      const bundle = await authService.getSessionBundle();
+      if (bundle?.user?.id === adminId && bundle?.isAdmin) {
+        return { id: adminId, mode: 'api' };
       }
     } catch {
-      /* fall through to local admin */
+      /* fall through */
     }
   }
 

@@ -5,19 +5,20 @@ SPA-платформа о рыбалке и отдыхе в Пермском к�
 ## Стек
 
 - React 19 + Vite 8 + React Router 7
-- Supabase (Auth + Postgres + Storage + RLS) при `VITE_USE_SUPABASE=true`
-- Локальный режим: IndexedDB / localStorage (auth, базы, соцслой, брони, монетизация)
+- **Production:** PostgreSQL + Node.js REST API (`server/`, `database/`)
+- **Локальный режим:** IndexedDB / localStorage (`VITE_USE_API=false`)
 - PWA: `vite-plugin-pwa` + Workbox
 
-## Быстрый старт
+## Быстрый старт (локально без сервера)
 
 ```bash
 npm install
-cp .env.example .env   # заполните ключи
+cp .env.example .env
+# VITE_USE_API=false — демо на IndexedDB
 npm run dev
 ```
 
-Демо-аккаунты (только при `VITE_USE_SUPABASE=false`):
+Демо-аккаунты (только при `VITE_USE_API=false`):
 
 | Роль  | Email             | Пароль   |
 |-------|-------------------|----------|
@@ -25,50 +26,42 @@ npm run dev
 | OWNER | owner@demo.local  | demo1234 |
 | ADMIN | admin@demo.local  | demo1234 |
 
+## Production (Postgres + API)
+
+```bash
+npm run db:migrate          # DATABASE_URL в окружении
+npm run db:seed-admin -- admin@example.com password
+npm run server:dev          # API на :3001
+# VITE_USE_API=true в .env.local
+npm run dev
+```
+
+См. [database/README.md](database/README.md) и [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Скрипты
 
 | Команда | Назначение |
 |---------|------------|
-| `npm run dev` | Dev-сервер |
-| `npm run build` | Production-сборка (+ SW/manifest) |
-| `npm run preview` | Просмотр `dist/` |
+| `npm run dev` | Dev-сервер Vite |
+| `npm run build` | Production-сборка |
+| `npm run server:dev` | API с hot-reload |
+| `npm run server:start` | API (prod) |
+| `npm run db:migrate` | Миграции Postgres |
+| `npm run db:seed-admin` | Создать admin |
 | `npm run lint` | oxlint |
-| `npm run verify:auth` | Проверка ролей (local) |
 
 ## Документация
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — слои, роли, сценарии
-- [docs/DATABASE.md](docs/DATABASE.md) — миграции и хранилища
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — деплой, ENV, интеграции
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/DATABASE.md](docs/DATABASE.md)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- [database/README.md](database/README.md)
 
-## Production build
+## Режимы данных
 
-```bash
-npm run build
-npm run preview -- --host
-```
+| `VITE_USE_API` | Auth | Базы / новости | Остальное |
+|----------------|------|----------------|-----------|
+| `false` | localStorage | IndexedDB | IndexedDB |
+| `true` | JWT API | REST API | пока IndexedDB (отчёты, CMS, admin CRUD — в roadmap) |
 
-Сборка должна завершаться без ошибок. PWA-артефакты: `dist/sw.js`, `dist/manifest.webmanifest`, `dist/icons/*`.
-
-## Реализовано
-
-- Роли USER / OWNER / ADMIN, кабинеты, модерация баз
-- Каталог, карта, `/bases/:id`, поиск → карточка базы
-- Избранное, бронирования, отчёты, форум, достижения
-- Уведомления + PWA (install, offline, SW)
-- Монетизация: тарифы, платежи (симулятор / архитектура ЮKassa·Robokassa), реклама
-- SEO: title, OG, robots, sitemap
-- Документация: `docs/ARCHITECTURE.md`, `DATABASE.md`, `DEPLOYMENT.md`
-
-## Гибридный режим данных
-
-При `VITE_USE_SUPABASE=true` auth и каталог баз идут в Supabase. Избранное, брони, соцслой, аналитика owner и монетизация UI пока на IndexedDB (см. ARCHITECTURE). Для полного локального демо: `VITE_USE_SUPABASE=false`.
-
-## Изменения аудита (ключевые)
-
-- `/news/all` до `/news/:id`; 404; `/bases/:id`
-- Мобильный auth в burger-меню
-- `assertAdmin` через сессию Supabase + local
-- Симуляция оплаты только владельцу платежа + `VITE_PAYMENTS_SIMULATE`
-- RLS media: миграция `20260827121300_fix_base_media_rls_approved.sql`
-- Admin: пользователи из Supabase, вкладка «Настройки»
+Supabase удалён; миграции перенесены в `database/migrations/`.

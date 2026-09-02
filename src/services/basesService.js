@@ -1,4 +1,4 @@
-import { supabase, supabaseDataEnabled } from '../lib/supabase';
+import { api, apiDataEnabled } from '../lib/apiClient';
 import { unwrap, resolveMediaUrl, ApiError } from '../lib/apiError';
 import { mapBaseToUi } from '../lib/mappers';
 import { basesLocalDb } from '../lib/basesLocalDb';
@@ -28,7 +28,7 @@ const BASE_SELECT = `
 `;
 
 function isRemoteDb() {
-  return supabaseDataEnabled && Boolean(supabase) && authService.mode() === 'supabase';
+  return apiDataEnabled && authService.mode() === 'api';
 }
 
 function nowIso() {
@@ -198,11 +198,11 @@ function toUi(record) {
 function enrichRemote(row) {
   const images = (row.base_images ?? []).map((img) => ({
     ...img,
-    public_url: resolveMediaUrl(supabase, 'base-images', img.storage_path, img.external_url),
+    public_url: resolveMediaUrl(null, 'base-images', img.storage_path, img.external_url),
   }));
   const videos = (row.base_videos ?? []).map((vid) => ({
     ...vid,
-    public_url: resolveMediaUrl(supabase, 'base-videos', vid.storage_path, vid.external_url),
+    public_url: resolveMediaUrl(null, 'base-videos', vid.storage_path, vid.external_url),
   }));
   const mapped = mapBaseToUi(row, {
     images,
@@ -261,37 +261,16 @@ async function listLocalForModeration(statusFilter) {
     .map((r) => normalizeModerationRow(r));
 }
 
-async function listRemoteForModeration(statusFilter) {
+async function listRemoteForModeration(_statusFilter) {
+  // Moderation API endpoints — next iteration
   if (!isRemoteDb()) return [];
-  try {
-    let query = supabase
-      .from('bases')
-      .select(BASE_SELECT)
-      .order('submitted_at', { ascending: false, nullsFirst: false });
-    if (statusFilter && statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
-    } else {
-      query = query.in('status', [
-        BASE_STATUSES.PENDING,
-        BASE_STATUSES.APPROVED,
-        BASE_STATUSES.REJECTED,
-        BASE_STATUSES.DRAFT,
-        BASE_STATUSES.ARCHIVED,
-      ]);
-    }
-    const rows = unwrap(await query);
-    return (rows ?? []).map((row) => normalizeModerationRow(enrichRemote(row)));
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 async function fetchRemoteById(id) {
   if (!isRemoteDb()) return null;
   try {
-    const row = unwrap(
-      await supabase.from('bases').select(BASE_SELECT).eq('id', id).maybeSingle()
-    );
+    const row = await api.get(`/api/bases/${id}`);
     return row ? normalizeModerationRow(enrichRemote(row)) : null;
   } catch {
     return null;
@@ -305,47 +284,8 @@ function validateForm(form) {
   if (!form.phone?.trim()) throw new ApiError('Укажите телефон');
 }
 
-async function replaceRemoteMedia(baseId, images, videos, services) {
-  unwrap(await supabase.from('base_images').delete().eq('base_id', baseId));
-  unwrap(await supabase.from('base_videos').delete().eq('base_id', baseId));
-  unwrap(await supabase.from('base_services').delete().eq('base_id', baseId));
-
-  if (images.length) {
-    unwrap(
-      await supabase.from('base_images').insert(
-        images.map((url, i) => ({
-          base_id: baseId,
-          external_url: url,
-          provider: 'external',
-          sort_order: i,
-          is_cover: i === 0,
-        }))
-      )
-    );
-  }
-  if (videos.length) {
-    unwrap(
-      await supabase.from('base_videos').insert(
-        videos.map((url, i) => ({
-          base_id: baseId,
-          external_url: url,
-          provider: url.includes('youtube') ? 'youtube' : 'external',
-          sort_order: i,
-        }))
-      )
-    );
-  }
-  if (services.length) {
-    unwrap(
-      await supabase.from('base_services').insert(
-        services.map((name, i) => ({
-          base_id: baseId,
-          name,
-          sort_order: i,
-        }))
-      )
-    );
-  }
+async function replaceRemoteMedia() {
+  throw new ApiError('Запись медиа баз через API — в следующем обновлении');
 }
 
 function remotePayload(record) {
@@ -405,13 +345,8 @@ export const basesService = {
     const catalog = getCatalogUiList(filters);
 
     if (isRemoteDb()) {
-      let query = supabase
-        .from('bases')
-        .select(BASE_SELECT)
-        .eq('status', BASE_STATUSES.APPROVED)
-        .order('name');
-      if (filters.type) query = query.eq('type', filters.type);
-      const rows = unwrap(await query);
+      const qs = filters.type ? `?type=${encodeURIComponent(filters.type)}` : '';
+      const rows = await api.get(`/api/bases${qs}`);
       const remote = (rows ?? []).map(enrichRemote);
       return catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
     }
@@ -434,13 +369,7 @@ export const basesService = {
     if (!ownerId) throw new ApiError('Нужна авторизация');
 
     if (isRemoteDb()) {
-      const rows = unwrap(
-        await supabase
-          .from('bases')
-          .select(BASE_SELECT)
-          .eq('owner_id', ownerId)
-          .order('updated_at', { ascending: false })
-      );
+      const rows = await api.get('/api/bases/mine');
       return (rows ?? []).map((row) => {
         const ui = enrichRemote(row);
         return {
@@ -516,43 +445,7 @@ export const basesService = {
   async saveDraft(ownerId, form, existingId) {
     validateForm(form);
     if (isRemoteDb()) {
-      const existing = existingId
-        ? unwrap(await supabase.from('bases').select('*').eq('id', existingId).maybeSingle())
-        : null;
-      if (existing && existing.owner_id !== ownerId) {
-        throw new ApiError('Нет доступа', { status: 403 });
-      }
-      if (existing && !['draft', 'rejected'].includes(existing.status)) {
-        throw new ApiError('Редактирование доступно только для draft/rejected');
-      }
-
-      const record = formToRecord(form, { ownerId, existing });
-      record.status = existing?.status === BASE_STATUSES.REJECTED
-        ? BASE_STATUSES.REJECTED
-        : BASE_STATUSES.DRAFT;
-
-      let baseId = existingId;
-      if (existingId) {
-        unwrap(
-          await supabase
-            .from('bases')
-            .update(remotePayload(record))
-            .eq('id', existingId)
-            .eq('owner_id', ownerId)
-        );
-      } else {
-        const inserted = unwrap(
-          await supabase
-            .from('bases')
-            .insert(remotePayload(record))
-            .select('*')
-            .single()
-        );
-        baseId = inserted.id;
-      }
-
-      await replaceRemoteMedia(baseId, record.images, record.videos, record.services);
-      return this.getById(baseId, { ownerId });
+      throw new ApiError('Сохранение баз через API — в следующем обновлении');
     }
 
     const existing = existingId ? await basesLocalDb.getById(existingId) : null;
@@ -578,25 +471,7 @@ export const basesService = {
 
   async submitForReview(ownerId, baseId) {
     if (isRemoteDb()) {
-      const row = unwrap(
-        await supabase.from('bases').select('*').eq('id', baseId).maybeSingle()
-      );
-      if (!row || row.owner_id !== ownerId) throw new ApiError('Нет доступа', { status: 403 });
-      if (![BASE_STATUSES.DRAFT, BASE_STATUSES.REJECTED].includes(row.status)) {
-        throw new ApiError('На модерацию можно отправить только draft/rejected');
-      }
-      unwrap(
-        await supabase
-          .from('bases')
-          .update({
-            status: BASE_STATUSES.PENDING,
-            submitted_at: nowIso(),
-            rejection_reason: null,
-          })
-          .eq('id', baseId)
-          .eq('owner_id', ownerId)
-      );
-      return this.getById(baseId, { ownerId });
+      throw new ApiError('Модерация баз через API — в следующем обновлении');
     }
 
     const row = await basesLocalDb.getById(baseId);
@@ -615,18 +490,7 @@ export const basesService = {
   async adminUpdate(adminId, baseId, form) {
     validateForm(form);
     if (isRemoteDb()) {
-      const existing = unwrap(
-        await supabase.from('bases').select('*').eq('id', baseId).maybeSingle()
-      );
-      if (!existing) throw new ApiError('База не найдена');
-      const record = formToRecord(form, {
-        ownerId: existing.owner_id,
-        existing,
-      });
-      record.status = existing.status;
-      unwrap(await supabase.from('bases').update(remotePayload(record)).eq('id', baseId));
-      await replaceRemoteMedia(baseId, record.images, record.videos, record.services);
-      return this.getById(baseId, { isAdmin: true });
+      throw new ApiError('Редактирование баз через API — в следующем обновлении');
     }
 
     const existing = await basesLocalDb.getById(baseId);
@@ -645,32 +509,7 @@ export const basesService = {
     }
 
     if (isRemoteDb()) {
-      const patch = { reviewed_at: nowIso(), reviewed_by: adminId };
-      if (action === 'approve') {
-        Object.assign(patch, {
-          status: BASE_STATUSES.APPROVED,
-          published_at: nowIso(),
-          rejection_reason: null,
-        });
-      } else if (action === 'reject') {
-        if (!reason?.trim()) throw new ApiError('Укажите причину отказа');
-        Object.assign(patch, {
-          status: BASE_STATUSES.REJECTED,
-          rejection_reason: reason.trim(),
-        });
-      } else if (action === 'archive') {
-        Object.assign(patch, { status: BASE_STATUSES.ARCHIVED });
-      } else if (action === 'pending') {
-        Object.assign(patch, {
-          status: BASE_STATUSES.PENDING,
-          submitted_at: nowIso(),
-        });
-      } else {
-        throw new ApiError('Неизвестное действие');
-      }
-
-      unwrap(await supabase.from('bases').update(patch).eq('id', baseId));
-      return this.getById(baseId, { isAdmin: true });
+      throw new ApiError('Модерация баз через API — в следующем обновлении');
     }
 
     const row = await basesLocalDb.getById(baseId);
@@ -733,12 +572,7 @@ export const basesService = {
     const key = String(baseId);
 
     if (isRemoteDb()) {
-      const existing = unwrap(
-        await supabase.from('bases').select('id').eq('id', key).maybeSingle()
-      );
-      if (!existing) return false;
-      unwrap(await supabase.from('bases').delete().eq('id', key));
-      return true;
+      throw new ApiError('Удаление баз через API — в следующем обновлении');
     }
 
     const existing = await basesLocalDb.getById(key);

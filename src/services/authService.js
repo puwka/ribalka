@@ -1,69 +1,33 @@
-import { supabase, supabaseDataEnabled } from '../lib/supabase';
-import { unwrap } from '../lib/apiError';
+import { api, apiDataEnabled, getToken, setToken } from '../lib/apiClient';
 import { localAuthStore } from '../lib/localAuthStore';
 
 function isRemoteAuth() {
-  return supabaseDataEnabled && Boolean(supabase);
+  return apiDataEnabled;
 }
 
-async function remoteBundle() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const appUser = unwrap(
-    await supabase.from('users').select('*').eq('id', user.id).maybeSingle()
-  );
-  const profile = unwrap(
-    await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle()
-  );
-  const rolesRows = unwrap(
-    await supabase
-      .from('user_roles')
-      .select('roles ( code, name )')
-      .eq('user_id', user.id)
-  );
-
-  let notifications = [];
-  try {
-    notifications = unwrap(
-      await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
-    ) || [];
-  } catch {
-    notifications = [];
-  }
-
-  const roles = Array.from(
-    new Set([
-      appUser?.primary_role,
-      ...(rolesRows ?? []).map((r) => r.roles?.code).filter(Boolean),
-    ].filter(Boolean))
-  );
-
+function mapBundle(data) {
+  if (!data?.user) return null;
   return {
-    authUser: user,
-    user: appUser,
-    profile,
-    roles,
-    isAdmin: roles.includes('admin'),
-    isOwner: roles.includes('owner') || roles.includes('admin'),
+    authUser: { id: data.user.id, email: data.user.email },
+    user: data.user,
+    profile: data.profile,
+    roles: data.roles || [],
+    isAdmin: Boolean(data.isAdmin),
+    isOwner: Boolean(data.isOwner),
     isUser: true,
     ratingPoints: 0,
     achievements: [],
-    notifications,
+    notifications: data.notifications || [],
     favorites: [],
+    token: data.token,
   };
 }
 
 /**
- * Unified auth facade: Supabase when enabled, otherwise local store.
+ * Unified auth: self-hosted API when enabled, otherwise local store.
  */
 export const authService = {
-  mode: () => (isRemoteAuth() ? 'supabase' : 'local'),
+  mode: () => (isRemoteAuth() ? 'api' : 'local'),
 
   async init() {
     if (!isRemoteAuth()) await localAuthStore.init();
@@ -71,9 +35,14 @@ export const authService = {
 
   async getSessionBundle() {
     if (isRemoteAuth()) {
-      const session = await this.getSession();
-      if (!session) return null;
-      return remoteBundle();
+      if (!getToken()) return null;
+      try {
+        const data = await api.get('/api/auth/me');
+        return mapBundle(data);
+      } catch {
+        setToken(null);
+        return null;
+      }
     }
     return localAuthStore.getSessionBundle();
   },
@@ -83,14 +52,15 @@ export const authService = {
       const bundle = await localAuthStore.getSessionBundle();
       return bundle ? { user: bundle.authUser } : null;
     }
-    const { data } = await supabase.auth.getSession();
-    return data.session;
+    if (!getToken()) return null;
+    return { access_token: getToken() };
   },
 
   async signIn(email, password) {
     if (isRemoteAuth()) {
-      unwrap(await supabase.auth.signInWithPassword({ email, password }));
-      return remoteBundle();
+      const data = await api.post('/api/auth/login', { email, password });
+      setToken(data.token);
+      return mapBundle(data);
     }
     return localAuthStore.signIn(email, password);
   },
@@ -98,26 +68,21 @@ export const authService = {
   async signUp(email, password, displayName, role = 'user') {
     const safeRole = role === 'owner' ? 'owner' : 'user';
     if (isRemoteAuth()) {
-      unwrap(
-        await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              display_name: displayName,
-              requested_role: safeRole,
-            },
-          },
-        })
-      );
-      return remoteBundle();
+      const data = await api.post('/api/auth/register', {
+        email,
+        password,
+        displayName,
+        role: safeRole,
+      });
+      setToken(data.token);
+      return mapBundle(data);
     }
     return localAuthStore.signUp({ email, password, displayName, role: safeRole });
   },
 
   async signOut() {
     if (isRemoteAuth()) {
-      await supabase.auth.signOut();
+      setToken(null);
       return;
     }
     await localAuthStore.signOut();
@@ -125,19 +90,8 @@ export const authService = {
 
   async updateProfile(userId, patch) {
     if (isRemoteAuth()) {
-      unwrap(
-        await supabase
-          .from('profiles')
-          .update({
-            display_name: patch.display_name,
-            bio: patch.bio,
-            phone: patch.phone,
-            city: patch.city,
-            is_public: patch.is_public,
-          })
-          .eq('user_id', userId)
-      );
-      return remoteBundle();
+      const data = await api.patch('/api/auth/profile', patch);
+      return mapBundle({ ...data, user: data.user, token: getToken() });
     }
     return localAuthStore.updateProfile(userId, patch);
   },

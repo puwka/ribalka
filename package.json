@@ -11,10 +11,20 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "verify:auth": "node scripts/verify-auth-roles.mjs"
+    "verify:auth": "node scripts/verify-auth-roles.mjs",
+    "server:dev": "node --watch server/index.js",
+    "server:start": "node server/index.js",
+    "db:migrate": "node database/migrate.mjs",
+    "db:seed-admin": "node database/scripts/seed-admin.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.97.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.2",
+    "pg": "^8.13.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"

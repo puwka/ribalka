@@ -17,7 +17,10 @@ dist-ssr
 .env.*
 !.env.example
 
-# Supabase
+uploads/
+!.gitkeep
+
+# Supabase (legacy)
 supabase/.temp
 supabase/.branches
 
