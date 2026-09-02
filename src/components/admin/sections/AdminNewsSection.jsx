@@ -108,14 +108,19 @@ export default function AdminNewsSection() {
       <AdminAlert type="success">{message}</AdminAlert>
 
       <div className="admin-toolbar">
-        {['all', 'published', 'draft', 'archived'].map((s) => (
+        {[
+          { id: 'all', label: 'Все' },
+          { id: 'published', label: 'Опубликованные' },
+          { id: 'draft', label: 'Черновики' },
+          { id: 'archived', label: 'В архиве' },
+        ].map((s) => (
           <button
-            key={s}
+            key={s.id}
             type="button"
-            className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
-            onClick={() => setFilter(s)}
+            className={`admin-btn ${filter === s.id ? 'admin-btn--primary' : ''}`}
+            onClick={() => setFilter(s.id)}
           >
-            {s}
+            {s.label}
           </button>
         ))}
       </div>

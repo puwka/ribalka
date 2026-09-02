@@ -139,8 +139,8 @@ export default function AdminWatersSection() {
           onChange={(e) => setFilter((f) => ({ ...f, type: e.target.value }))}
         >
           <option value="">Все типы</option>
-          <option value="paid">PAID</option>
-          <option value="free">FREE</option>
+          <option value="paid">Платные</option>
+          <option value="free">Бесплатные</option>
         </select>
         <input
           className="admin-input"
@@ -165,7 +165,7 @@ export default function AdminWatersSection() {
               >
                 <div className="admin-list-item__title">{w.name}</div>
                 <div className="admin-list-item__meta">
-                  <AdminStatus status={w.type}>{w.type === 'free' ? 'FREE' : 'PAID'}</AdminStatus>
+                  <AdminStatus status={w.type}>{w.type === 'free' ? 'Бесплатный' : 'Платный'}</AdminStatus>
                   {' · '}
                   {w.region}
                 </div>
@@ -192,15 +192,15 @@ export default function AdminWatersSection() {
                 <div className="admin-grid-2">
                   <AdminField label="Тип">
                     <select className="admin-select" value={form.type} onChange={(e) => setField('type', e.target.value)}>
-                      <option value="paid">PAID</option>
-                      <option value="free">FREE</option>
+                      <option value="paid">Платный</option>
+                      <option value="free">Бесплатный</option>
                     </select>
                   </AdminField>
                   <AdminField label="Статус">
                     <select className="admin-select" value={form.status} onChange={(e) => setField('status', e.target.value)}>
-                      <option value="published">published</option>
-                      <option value="draft">draft</option>
-                      <option value="archived">archived</option>
+                      <option value="published">Опубликован</option>
+                      <option value="draft">Черновик</option>
+                      <option value="archived">В архиве</option>
                     </select>
                   </AdminField>
                 </div>
@@ -246,11 +246,24 @@ export default function AdminWatersSection() {
                   max={15}
                 />
 
+                <AdminField
+                  label="Видео"
+                  hint="YouTube / VK Video — ссылка или embed, каждая с новой строки"
+                >
+                  <textarea
+                    className="admin-textarea"
+                    rows={3}
+                    value={form.videosText}
+                    onChange={(e) => setField('videosText', e.target.value)}
+                    placeholder="https://www.youtube.com/embed/…"
+                  />
+                </AdminField>
+
                 <div className="admin-grid-2">
-                  <AdminField label="SEO title">
+                  <AdminField label="SEO-заголовок">
                     <input className="admin-input" value={form.seo_title} onChange={(e) => setField('seo_title', e.target.value)} />
                   </AdminField>
-                  <AdminField label="SEO description">
+                  <AdminField label="SEO-описание">
                     <input className="admin-input" value={form.seo_description} onChange={(e) => setField('seo_description', e.target.value)} />
                   </AdminField>
                 </div>

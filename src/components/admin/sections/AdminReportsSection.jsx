@@ -4,6 +4,13 @@ import { useAuth } from '../../auth/AuthContext';
 import { reportSocialService } from '../../../services/reportSocialService';
 import { AdminPageHead, AdminAlert, AdminStatus } from '../AdminUI';
 
+const STATUS_LABELS = {
+  pending: 'На модерации',
+  approved: 'Одобрен',
+  rejected: 'Отклонён',
+  hidden: 'Скрыт',
+};
+
 export default function AdminReportsSection() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -117,24 +124,21 @@ export default function AdminReportsSection() {
 
       <div className="admin-toolbar">
 
-        {['pending', 'approved', 'rejected', 'hidden', 'all'].map((s) => (
-
+        {[
+          { id: 'pending', label: 'На модерации' },
+          { id: 'approved', label: 'Одобренные' },
+          { id: 'rejected', label: 'Отклонённые' },
+          { id: 'hidden', label: 'Скрытые' },
+          { id: 'all', label: 'Все' },
+        ].map((s) => (
           <button
-
-            key={s}
-
+            key={s.id}
             type="button"
-
-            className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
-
-            onClick={() => setFilter(s)}
-
+            className={`admin-btn ${filter === s.id ? 'admin-btn--primary' : ''}`}
+            onClick={() => setFilter(s.id)}
           >
-
-            {s}
-
+            {s.label}
           </button>
-
         ))}
 
       </div>
@@ -177,7 +181,7 @@ export default function AdminReportsSection() {
 
                 <div className="admin-list-item__meta">
 
-                  <AdminStatus status={r.status}>{r.status}</AdminStatus>
+                  <AdminStatus status={r.status}>{STATUS_LABELS[r.status] || r.status}</AdminStatus>
 
                   {' · '}
 
@@ -211,7 +215,7 @@ export default function AdminReportsSection() {
 
                 <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: 12 }}>
 
-                  <AdminStatus status={selected.status}>{selected.status}</AdminStatus>
+                  <AdminStatus status={selected.status}>{STATUS_LABELS[selected.status] || selected.status}</AdminStatus>
 
                   {' · '}
 

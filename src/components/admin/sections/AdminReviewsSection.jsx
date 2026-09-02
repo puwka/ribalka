@@ -43,14 +43,19 @@ export default function AdminReviewsSection() {
       <AdminPageHead title="Отзывы" subtitle="Модерация отзывов о базах" />
       <AdminAlert type="error">{error}</AdminAlert>
       <div className="admin-toolbar">
-        {['', 'approved', 'pending', 'hidden'].map((s) => (
+        {[
+          { id: '', label: 'Все' },
+          { id: 'approved', label: 'Одобренные' },
+          { id: 'pending', label: 'На модерации' },
+          { id: 'hidden', label: 'Скрытые' },
+        ].map((s) => (
           <button
-            key={s || 'all'}
+            key={s.id || 'all'}
             type="button"
-            className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
-            onClick={() => setFilter(s)}
+            className={`admin-btn ${filter === s.id ? 'admin-btn--primary' : ''}`}
+            onClick={() => setFilter(s.id)}
           >
-            {s || 'Все'}
+            {s.label}
           </button>
         ))}
       </div>

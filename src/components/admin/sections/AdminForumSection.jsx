@@ -48,14 +48,20 @@ export default function AdminForumSection() {
       <AdminAlert type="error">{error}</AdminAlert>
 
       <div className="admin-toolbar">
-        {['pending', 'approved', 'rejected', 'hidden', 'all'].map((s) => (
+        {[
+          { id: 'pending', label: 'На модерации' },
+          { id: 'approved', label: 'Одобренные' },
+          { id: 'rejected', label: 'Отклонённые' },
+          { id: 'hidden', label: 'Скрытые' },
+          { id: 'all', label: 'Все' },
+        ].map((s) => (
           <button
-            key={s}
+            key={s.id}
             type="button"
-            className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
-            onClick={() => setFilter(s)}
+            className={`admin-btn ${filter === s.id ? 'admin-btn--primary' : ''}`}
+            onClick={() => setFilter(s.id)}
           >
-            {s}
+            {s.label}
           </button>
         ))}
       </div>
@@ -83,7 +89,16 @@ export default function AdminForumSection() {
                       {item._type === 'topic' ? item.title : (item.body || '').slice(0, 120)}
                     </td>
                     <td>{item.authorName}</td>
-                    <td><AdminStatus status={item.status}>{item.status}</AdminStatus></td>
+                    <td>
+                      <AdminStatus status={item.status}>
+                        {{
+                          pending: 'На модерации',
+                          approved: 'Одобрено',
+                          rejected: 'Отклонено',
+                          hidden: 'Скрыто',
+                        }[item.status] || item.status}
+                      </AdminStatus>
+                    </td>
                     <td>
                       <div className="admin-table__actions">
                         {item._type === 'topic' ? (
