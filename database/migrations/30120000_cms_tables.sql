@@ -1,4 +1,5 @@
 -- CMS tables for site settings, pages, SEO, audit log
+-- RLS omitted: access control is enforced in server/ REST API (no Supabase auth.uid()).
 
 create table if not exists public.cms_kv (
   key text primary key,
@@ -23,18 +24,3 @@ create index if not exists cms_audit_log_created_idx on public.cms_audit_log (cr
 create trigger cms_kv_set_updated_at
 before update on public.cms_kv
 for each row execute function public.set_updated_at();
-
-alter table public.cms_kv enable row level security;
-alter table public.cms_audit_log enable row level security;
-
-create policy cms_kv_public_read on public.cms_kv
-  for select using (true);
-
-create policy cms_kv_admin_write on public.cms_kv
-  for all using (public.is_admin()) with check (public.is_admin());
-
-create policy cms_audit_admin_read on public.cms_audit_log
-  for select using (public.is_admin());
-
-create policy cms_audit_admin_insert on public.cms_audit_log
-  for insert with check (public.is_admin());
