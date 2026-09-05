@@ -71,7 +71,7 @@ router.get('/topics', async (req, res, next) => {
     const dbStatus = status === 'all' ? null : toDbStatus(status);
     const { rows } = await pool.query(
       dbStatus
-        ? `select * from public.forum_topics where status = $1
+        ? `select * from public.forum_topics where status = $1::public.content_status
            order by is_pinned desc, coalesce(last_message_at, created_at) desc`
         : `select * from public.forum_topics
            order by is_pinned desc, coalesce(last_message_at, created_at) desc`,
@@ -90,7 +90,7 @@ router.get('/topics/moderation', requireAuth, requireAdmin, async (req, res, nex
     const dbStatus = status === 'all' ? null : toDbStatus(status);
     const { rows } = await pool.query(
       dbStatus
-        ? `select * from public.forum_topics where status = $1 order by created_at desc`
+        ? `select * from public.forum_topics where status = $1::public.content_status order by created_at desc`
         : `select * from public.forum_topics order by created_at desc`,
       dbStatus ? [dbStatus] : []
     );
@@ -163,7 +163,7 @@ router.patch('/topics/:id/moderate', requireAuth, requireAdmin, async (req, res,
       return res.status(400).json({ error: 'Invalid status' });
     }
     const { rows } = await pool.query(
-      `update public.forum_topics set status = $2, updated_at = now()
+      `update public.forum_topics set status = $2::public.content_status, updated_at = now()
        where id = $1 returning *`,
       [req.params.id, status]
     );

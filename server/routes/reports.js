@@ -64,11 +64,15 @@ router.get('/', async (req, res, next) => {
   try {
     const status = req.query.status || 'approved';
     const { rows } = await pool.query(
-      `select * from public.fishing_reports
-       where ($1::text = 'all' or status = $1)
-       order by trip_date desc nulls last, created_at desc
-       limit 200`,
-      [status]
+      status === 'all'
+        ? `select * from public.fishing_reports
+           order by trip_date desc nulls last, created_at desc
+           limit 200`
+        : `select * from public.fishing_reports
+           where status = $1::public.moderation_status
+           order by trip_date desc nulls last, created_at desc
+           limit 200`,
+      status === 'all' ? [] : [status]
     );
     const out = [];
     for (const row of rows) {
@@ -104,11 +108,15 @@ router.get('/moderation', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const status = req.query.status || 'pending';
     const { rows } = await pool.query(
-      `select * from public.fishing_reports
-       where ($1::text = 'all' or status = $1)
-       order by created_at desc
-       limit 300`,
-      [status]
+      status === 'all'
+        ? `select * from public.fishing_reports
+           order by created_at desc
+           limit 300`
+        : `select * from public.fishing_reports
+           where status = $1::public.moderation_status
+           order by created_at desc
+           limit 300`,
+      status === 'all' ? [] : [status]
     );
     const out = [];
     for (const row of rows) {
@@ -192,7 +200,7 @@ router.patch('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) 
     const note = req.body?.note || req.body?.moderationNote || null;
     const { rows } = await pool.query(
       `update public.fishing_reports set
-         status = $2,
+         status = $2::public.moderation_status,
          moderation_note = $3,
          moderated_at = now(),
          updated_at = now()

@@ -47,7 +47,7 @@ router.get('/moderation', requireAuth, requireAdmin, async (req, res, next) => {
     const { rows } = await pool.query(
       status === 'all'
         ? `select * from public.site_reviews order by created_at desc limit 300`
-        : `select * from public.site_reviews where status = $1 order by created_at desc limit 300`,
+        : `select * from public.site_reviews where status = $1::public.moderation_status order by created_at desc limit 300`,
       status === 'all' ? [] : [status]
     );
     res.json(rows.map(mapReview));
@@ -97,7 +97,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid status' });
     }
     const { rows } = await pool.query(
-      `update public.site_reviews set status = $2, updated_at = now()
+      `update public.site_reviews set status = $2::public.moderation_status, updated_at = now()
        where id = $1 returning *`,
       [req.params.id, status]
     );
