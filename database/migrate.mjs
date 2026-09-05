@@ -3,8 +3,10 @@
  * Apply SQL migrations to PostgreSQL (standalone, no Supabase CLI).
  *
  * Usage:
+ *   npm run db:migrate
  *   DATABASE_URL=postgresql://user:pass@localhost:5432/rybalka node database/migrate.mjs
  */
+import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +17,7 @@ const migrationsDir = path.join(__dirname, 'migrations');
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
-  console.error('DATABASE_URL is required');
+  console.error('DATABASE_URL is required (set in .env or environment)');
   process.exit(1);
 }
 

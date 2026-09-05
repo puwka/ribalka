@@ -3,6 +3,7 @@
  * Create admin user in standalone Postgres.
  * Usage: node database/scripts/seed-admin.mjs admin@example.com demo1234
  */
+import 'dotenv/config';
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
@@ -12,7 +13,7 @@ const password = process.argv[3] || 'demo1234';
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('DATABASE_URL is required');
+  console.error('DATABASE_URL is required (set in .env or environment)');
   process.exit(1);
 }
 
