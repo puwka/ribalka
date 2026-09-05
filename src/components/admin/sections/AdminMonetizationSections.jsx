@@ -51,18 +51,12 @@ export function AdminPlansSection() {
     try {
       const saved = await listingPaymentService.saveDirectoryPrice(kind, directory[kind]);
       setDirectory((d) => ({ ...d, [kind]: saved }));
-      setMessage(`Тариф справочника (${kind}) сохранён.`);
+      setMessage(`Тариф справочника сохранён.`);
     } catch (err) {
       setError(err.message);
     } finally {
       setSavingDir('');
     }
-  };
-
-  const dirLabels = {
-    shop: 'Магазины',
-    service: 'Сервисы',
-    guide: 'Гиды',
   };
 
   return (
@@ -132,68 +126,212 @@ export function AdminPlansSection() {
         <section className="admin-panel" style={{ marginBottom: 16 }}>
           <h3 style={{ marginTop: 0 }}>Тарифы справочника</h3>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            Цены размещения магазинов, сервисов и гидов в справочнике.
+            Конструктор — для магазинов и гидов. Отдельный тариф — для сервисов.
           </p>
           {!directory ? (
             <AdminLoading />
           ) : (
-            ['shop', 'service', 'guide'].map((kind) => (
-              <div key={kind} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
-                <h4 style={{ marginTop: 0 }}>{dirLabels[kind]}</h4>
-                <AdminField label="Название услуги">
+            <>
+              <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
+                <h4 style={{ marginTop: 0 }}>Тариф Конструктор (магазины / гиды)</h4>
+                <AdminField label="Название">
                   <input
                     className="admin-input"
-                    value={directory[kind]?.title || ''}
+                    value={directory.constructor?.title || ''}
                     onChange={(e) =>
                       setDirectory((d) => ({
                         ...d,
-                        [kind]: { ...d[kind], title: e.target.value },
+                        constructor: { ...d.constructor, title: e.target.value },
                       }))
                     }
                   />
                 </AdminField>
                 <div className="admin-grid-2">
-                  <AdminField label="Цена (₽)">
+                  <AdminField label="База ₽/мес (1 фото + 1 видео)">
                     <input
                       className="admin-input"
                       type="number"
                       min="0"
-                      step="1"
-                      value={directory[kind]?.amount ?? 0}
+                      value={directory.constructor?.baseAmount ?? 2900}
                       onChange={(e) =>
                         setDirectory((d) => ({
                           ...d,
-                          [kind]: { ...d[kind], amount: Number(e.target.value) },
+                          constructor: { ...d.constructor, baseAmount: Number(e.target.value) },
                         }))
                       }
                     />
                   </AdminField>
-                  <AdminField label="Статус">
-                    <select
-                      className="admin-select"
-                      value={directory[kind]?.enabled ? '1' : '0'}
+                  <AdminField label="ТОП ₽/мес">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      value={directory.constructor?.addonTop ?? 1000}
                       onChange={(e) =>
                         setDirectory((d) => ({
                           ...d,
-                          [kind]: { ...d[kind], enabled: e.target.value === '1' },
+                          constructor: { ...d.constructor, addonTop: Number(e.target.value) },
                         }))
                       }
-                    >
-                      <option value="1">Включено</option>
-                      <option value="0">Выключено</option>
-                    </select>
+                    />
+                  </AdminField>
+                  <AdminField label="Жёлтая рамка ₽/мес">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      value={directory.constructor?.addonFrame ?? 390}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          constructor: { ...d.constructor, addonFrame: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="+1 фото ₽">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      value={directory.constructor?.addonPhoto ?? 100}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          constructor: { ...d.constructor, addonPhoto: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="+1 видео ₽">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      value={directory.constructor?.addonVideo ?? 100}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          constructor: { ...d.constructor, addonVideo: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                </div>
+                <div className="admin-grid-2">
+                  <AdminField label="Скидка 3 мес. %">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={directory.constructor?.discount3 ?? 10}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          constructor: { ...d.constructor, discount3: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Скидка 6 мес. %">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={directory.constructor?.discount6 ?? 20}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          constructor: { ...d.constructor, discount6: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Скидка 12 мес. %">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={directory.constructor?.discount12 ?? 30}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          constructor: { ...d.constructor, discount12: Number(e.target.value) },
+                        }))
+                      }
+                    />
                   </AdminField>
                 </div>
                 <button
                   type="button"
                   className="admin-btn admin-btn--primary"
-                  disabled={savingDir === kind}
-                  onClick={() => saveDirectoryKind(kind)}
+                  disabled={savingDir === 'constructor'}
+                  onClick={() => saveDirectoryKind('constructor')}
                 >
-                  {savingDir === kind ? 'Сохранение…' : `Сохранить (${dirLabels[kind]})`}
+                  {savingDir === 'constructor' ? 'Сохранение…' : 'Сохранить Конструктор'}
                 </button>
               </div>
-            ))
+
+              <div>
+                <h4 style={{ marginTop: 0 }}>Тариф для сервисов</h4>
+                <AdminField label="Название">
+                  <input
+                    className="admin-input"
+                    value={directory.service?.title || ''}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        service: { ...d.service, title: e.target.value },
+                      }))
+                    }
+                  />
+                </AdminField>
+                <div className="admin-grid-2">
+                  <AdminField label="Цена ₽/мес">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      value={directory.service?.amountPerMonth ?? directory.service?.amount ?? 590}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          service: { ...d.service, amountPerMonth: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Жёлтая рамка ₽/мес">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      value={directory.service?.addonFrame ?? 100}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          service: { ...d.service, addonFrame: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                </div>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                  Оплата от 3 / 6 / 12 месяцев без скидок.
+                </p>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--primary"
+                  disabled={savingDir === 'service'}
+                  onClick={() => saveDirectoryKind('service')}
+                >
+                  {savingDir === 'service' ? 'Сохранение…' : 'Сохранить тариф сервисов'}
+                </button>
+              </div>
+            </>
           )}
         </section>
       )}

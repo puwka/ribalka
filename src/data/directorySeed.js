@@ -175,6 +175,48 @@ export const DIRECTORY_SEED_ITEMS = [
     tags: ['Фототуры', 'Природа', 'Трофеи'],
     status: 'published',
   },
+  {
+    id: 'dir-13',
+    name: 'Снасти Урала',
+    category: 'shop',
+    description:
+      'Сеть магазинов с широким выбором спиннингов, катушек и зимней экипировки. Постоянные акции для постоянных клиентов.',
+    address: 'г. Пермь, ул. Пушкина, 12',
+    phone: '8-993-196-05-88',
+    website: 'https://example.com',
+    hours: '10:00 - 20:00',
+    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600',
+    tags: ['Спиннинги', 'Зима', 'Акции'],
+    status: 'published',
+  },
+  {
+    id: 'dir-14',
+    name: 'Камский сервис ПВХ',
+    category: 'service',
+    description:
+      'Ремонт и тюнинг лодок ПВХ, установка транцев, якорных лебёдок и консолей. Выезд на место.',
+    address: 'г. Пермь, ул. Промышленная, 7',
+    phone: '8-993-196-05-89',
+    website: '',
+    hours: 'Пн-Пт: 09:00 - 18:00',
+    image: 'https://images.unsplash.com/photo-1500384244275-712d0a83fd9e?w=600',
+    tags: ['ПВХ', 'Тюнинг', 'Ремонт'],
+    status: 'published',
+  },
+  {
+    id: 'dir-15',
+    name: 'Гид Сергей — сплавы',
+    category: 'guide',
+    description:
+      'Сплавы и рыбалка на Чусовой и Сылве. Группы до 6 человек, питание и снаряжение по запросу.',
+    address: 'Пермский край',
+    phone: '8-993-196-05-90',
+    website: 'https://example.com',
+    hours: 'Май — сентябрь',
+    image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600',
+    tags: ['Сплав', 'Чусовая', 'Группы'],
+    status: 'published',
+  },
 ];
 
 export const DIRECTORY_PAGE_DEFAULTS = {

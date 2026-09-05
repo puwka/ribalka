@@ -10,14 +10,33 @@ const DEFAULT_LISTING = {
 };
 
 const DIRECTORY_DEFAULTS = {
-  shop: { title: 'Размещение магазина в справочнике', amount: 3000, currency: 'RUB', enabled: true },
-  service: { title: 'Размещение сервиса в справочнике', amount: 3000, currency: 'RUB', enabled: true },
-  guide: { title: 'Размещение гида в справочнике', amount: 2500, currency: 'RUB', enabled: true },
+  constructor: {
+    title: 'Тариф Конструктор',
+    baseAmount: 2900,
+    includedPhotos: 1,
+    includedVideos: 1,
+    addonTop: 1000,
+    addonFrame: 390,
+    addonPhoto: 100,
+    addonVideo: 100,
+    discount3: 10,
+    discount6: 20,
+    discount12: 30,
+    currency: 'RUB',
+    enabled: true,
+  },
+  service: {
+    title: 'Тариф для сервисов',
+    amountPerMonth: 590,
+    addonFrame: 100,
+    currency: 'RUB',
+    enabled: true,
+  },
 };
 
 const ORDER_TTL_HOURS = 24;
 
-async function readSiteSetting(key, fallback) {
+async function readSiteSettingRaw(key) {
   const { rows } = await pool.query('select value from public.site_settings where key = $1', [key]);
   let value = rows[0]?.value ?? {};
   if (typeof value === 'string') {
@@ -27,6 +46,11 @@ async function readSiteSetting(key, fallback) {
       value = {};
     }
   }
+  return value && typeof value === 'object' ? value : {};
+}
+
+async function readSiteSetting(key, fallback) {
+  const value = await readSiteSettingRaw(key);
   const amount = Number(value.amount);
   return {
     title: value.title || fallback.title,
@@ -61,6 +85,50 @@ async function writeSiteSetting(key, adminId, input, fallback) {
   return readSiteSetting(key, fallback);
 }
 
+async function writeJsonSetting(key, adminId, value) {
+  await pool.query(
+    `insert into public.site_settings (key, value, updated_by, updated_at)
+     values ($1, $2::jsonb, $3, now())
+     on conflict (key) do update set
+       value = excluded.value,
+       updated_by = excluded.updated_by,
+       updated_at = now()`,
+    [key, value, adminId]
+  );
+  return value;
+}
+
+function normalizeConstructorSettings(raw = {}) {
+  const d = DIRECTORY_DEFAULTS.constructor;
+  return {
+    title: String(raw.title || d.title),
+    baseAmount: Number.isFinite(Number(raw.baseAmount)) ? Number(raw.baseAmount) : d.baseAmount,
+    includedPhotos: Number(raw.includedPhotos ?? d.includedPhotos),
+    includedVideos: Number(raw.includedVideos ?? d.includedVideos),
+    addonTop: Number.isFinite(Number(raw.addonTop)) ? Number(raw.addonTop) : d.addonTop,
+    addonFrame: Number.isFinite(Number(raw.addonFrame)) ? Number(raw.addonFrame) : d.addonFrame,
+    addonPhoto: Number.isFinite(Number(raw.addonPhoto)) ? Number(raw.addonPhoto) : d.addonPhoto,
+    addonVideo: Number.isFinite(Number(raw.addonVideo)) ? Number(raw.addonVideo) : d.addonVideo,
+    discount3: Number.isFinite(Number(raw.discount3)) ? Number(raw.discount3) : d.discount3,
+    discount6: Number.isFinite(Number(raw.discount6)) ? Number(raw.discount6) : d.discount6,
+    discount12: Number.isFinite(Number(raw.discount12)) ? Number(raw.discount12) : d.discount12,
+    currency: 'RUB',
+    enabled: raw.enabled !== false,
+  };
+}
+
+function normalizeServiceSettings(raw = {}) {
+  const d = DIRECTORY_DEFAULTS.service;
+  const perMonth = Number(raw.amountPerMonth ?? raw.amount);
+  return {
+    title: String(raw.title || d.title),
+    amountPerMonth: Number.isFinite(perMonth) ? perMonth : d.amountPerMonth,
+    addonFrame: Number.isFinite(Number(raw.addonFrame)) ? Number(raw.addonFrame) : d.addonFrame,
+    currency: 'RUB',
+    enabled: raw.enabled !== false,
+  };
+}
+
 export async function getListingPriceSettings() {
   return readSiteSetting(SETTINGS_KEY, DEFAULT_LISTING);
 }
@@ -70,27 +138,57 @@ export async function saveListingPriceSettings(adminId, input) {
 }
 
 export async function getDirectoryListingPrices() {
-  const [shop, service, guide] = await Promise.all([
-    readSiteSetting('directory_listing_shop', DIRECTORY_DEFAULTS.shop),
-    readSiteSetting('directory_listing_service', DIRECTORY_DEFAULTS.service),
-    readSiteSetting('directory_listing_guide', DIRECTORY_DEFAULTS.guide),
+  const [constructorRaw, serviceRaw, shopLegacy] = await Promise.all([
+    readSiteSettingRaw('directory_listing_constructor'),
+    readSiteSettingRaw('directory_listing_service'),
+    readSiteSettingRaw('directory_listing_shop'),
   ]);
-  return { shop, service, guide };
+
+  const constructor =
+    Object.keys(constructorRaw).length > 0
+      ? normalizeConstructorSettings(constructorRaw)
+      : normalizeConstructorSettings({
+          ...DIRECTORY_DEFAULTS.constructor,
+          baseAmount: Number(shopLegacy.amount) || DIRECTORY_DEFAULTS.constructor.baseAmount,
+          title: shopLegacy.title || DIRECTORY_DEFAULTS.constructor.title,
+        });
+
+  const service = normalizeServiceSettings(
+    Object.keys(serviceRaw).length ? serviceRaw : DIRECTORY_DEFAULTS.service
+  );
+
+  return {
+    constructor,
+    service,
+    shop: {
+      title: constructor.title,
+      amount: constructor.baseAmount,
+      currency: 'RUB',
+      enabled: constructor.enabled,
+    },
+    guide: {
+      title: constructor.title,
+      amount: constructor.baseAmount,
+      currency: 'RUB',
+      enabled: constructor.enabled,
+    },
+  };
 }
 
 export async function saveDirectoryListingPrice(adminId, kind, input) {
-  const keyMap = {
-    shop: 'directory_listing_shop',
-    service: 'directory_listing_service',
-    guide: 'directory_listing_guide',
-  };
-  const key = keyMap[kind];
-  if (!key) {
-    const err = new Error('Неизвестный тип: shop | service | guide');
-    err.status = 400;
-    throw err;
+  if (kind === 'constructor' || kind === 'shop' || kind === 'guide') {
+    const value = normalizeConstructorSettings(input);
+    await writeJsonSetting('directory_listing_constructor', adminId, value);
+    return value;
   }
-  return writeSiteSetting(key, adminId, input, DIRECTORY_DEFAULTS[kind]);
+  if (kind === 'service') {
+    const value = normalizeServiceSettings(input);
+    await writeJsonSetting('directory_listing_service', adminId, value);
+    return value;
+  }
+  const err = new Error('Неизвестный тип: constructor | service');
+  err.status = 400;
+  throw err;
 }
 
 function mapOrder(row) {

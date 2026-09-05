@@ -30,10 +30,10 @@ export default function WatersHomeSection() {
             </Link>
           </div>
           {loadingPaid ? (
-            <WaterCardGridSkeleton count={3} />
+            <WaterCardGridSkeleton count={4} />
           ) : (
             <div className="waters-home__grid">
-              {paid.slice(0, 3).map((item) => (
+              {paid.slice(0, 4).map((item) => (
                 <PaidWaterCard key={item.id} item={item} />
               ))}
             </div>
@@ -48,10 +48,10 @@ export default function WatersHomeSection() {
             </Link>
           </div>
           {loadingFree ? (
-            <WaterCardGridSkeleton count={3} />
+            <WaterCardGridSkeleton count={4} />
           ) : (
             <div className="waters-home__grid">
-              {free.slice(0, 3).map((item) => (
+              {free.slice(0, 4).map((item) => (
                 <FreeWaterCard key={item.id} item={item} />
               ))}
             </div>
