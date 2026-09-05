@@ -15,6 +15,12 @@ export const listingPaymentService = {
     return api.get('/api/payments/listing-price');
   },
 
+  async getCheckoutPreview(baseId) {
+    return api.get(
+      `/api/payments/listing-checkout-preview?baseId=${encodeURIComponent(baseId)}`
+    );
+  },
+
   async savePrice(payload) {
     return api.put('/api/payments/listing-price', payload);
   },

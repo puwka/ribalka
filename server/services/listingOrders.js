@@ -16,10 +16,18 @@ export async function getListingPriceSettings() {
     'select value from public.site_settings where key = $1',
     [SETTINGS_KEY]
   );
-  const value = rows[0]?.value || {};
+  let value = rows[0]?.value ?? {};
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      value = {};
+    }
+  }
+  const amount = Number(value.amount);
   return {
     title: value.title || DEFAULT_LISTING.title,
-    amount: Number(value.amount ?? DEFAULT_LISTING.amount),
+    amount: Number.isFinite(amount) ? amount : DEFAULT_LISTING.amount,
     currency: value.currency || DEFAULT_LISTING.currency,
     enabled: value.enabled !== false,
   };
@@ -36,8 +44,9 @@ export async function saveListingPriceSettings(adminId, input) {
     title: (input.title || DEFAULT_LISTING.title).trim() || DEFAULT_LISTING.title,
     amount,
     currency: 'RUB',
-    enabled: input.enabled !== false,
+    enabled: input.enabled !== false && input.enabled !== '0' && input.enabled !== 0,
   };
+  // Pass object — node-pg serializes jsonb correctly (avoid double-encoding)
   await pool.query(
     `insert into public.site_settings (key, value, updated_by, updated_at)
      values ($1, $2::jsonb, $3, now())
@@ -45,9 +54,9 @@ export async function saveListingPriceSettings(adminId, input) {
        value = excluded.value,
        updated_by = excluded.updated_by,
        updated_at = now()`,
-    [SETTINGS_KEY, JSON.stringify(value), adminId]
+    [SETTINGS_KEY, value, adminId]
   );
-  return value;
+  return getListingPriceSettings();
 }
 
 function mapOrder(row) {
@@ -60,6 +69,21 @@ function mapOrder(row) {
 
 export async function getOrderById(orderId) {
   const { rows } = await pool.query('select * from public.listing_orders where id = $1', [orderId]);
+  return mapOrder(rows[0]);
+}
+
+export async function getActiveOrderForBase(userId, baseId) {
+  const { rows } = await pool.query(
+    `select o.*, b.name as base_name
+     from public.listing_orders o
+     left join public.bases b on b.id = o.base_id
+     where o.user_id = $1 and o.base_id = $2
+       and o.status in ('pending', 'waiting_for_payment')
+       and (o.expires_at is null or o.expires_at > now())
+     order by o.created_at desc
+     limit 1`,
+    [userId, baseId]
+  );
   return mapOrder(rows[0]);
 }
 
@@ -109,6 +133,38 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
     [baseId, userId]
   );
   let order = mapOrder(existing[0]);
+
+  // If unpaid order has no YooKassa payment yet — sync amount to current admin price
+  if (order && !order.provider_payment_id && Number(order.amount) !== Number(settings.amount)) {
+    const { rows: updated } = await pool.query(
+      `update public.listing_orders
+       set amount = $2, description = $3, updated_at = now()
+       where id = $1
+       returning *`,
+      [
+        order.id,
+        settings.amount,
+        `${settings.title}: «${base.name}»`.slice(0, 128),
+      ]
+    );
+    order = mapOrder(updated[0]);
+  }
+
+  // If unpaid order already has YooKassa payment at old amount — cancel and create new
+  if (
+    order &&
+    order.provider_payment_id &&
+    Number(order.amount) !== Number(settings.amount)
+  ) {
+    await pool.query(
+      `update public.listing_orders
+       set status = 'cancelled', updated_at = now(),
+           meta = coalesce(meta, '{}'::jsonb) || '{"reason":"price_changed"}'::jsonb
+       where id = $1 and status in ('pending', 'waiting_for_payment')`,
+      [order.id]
+    );
+    order = null;
+  }
 
   if (!order) {
     const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();

@@ -16,6 +16,27 @@ router.get('/listing-price', requireAuth, async (_req, res, next) => {
   }
 });
 
+/** Preview amount for a base (settings + active order) */
+router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
+  try {
+    const baseId = req.query.baseId;
+    if (!baseId) return res.status(400).json({ error: 'baseId required' });
+    const settings = await listingOrders.getListingPriceSettings();
+    const activeOrder = await listingOrders.getActiveOrderForBase(req.user.sub, baseId);
+    res.json({
+      settings,
+      activeOrder,
+      displayAmount:
+        activeOrder && activeOrder.provider_payment_id
+          ? Number(activeOrder.amount)
+          : Number(settings.amount),
+      frozen: Boolean(activeOrder?.provider_payment_id),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Admin: update price */
 router.put('/listing-price', requireAuth, requireAdmin, async (req, res, next) => {
   try {

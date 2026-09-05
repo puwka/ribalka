@@ -42,14 +42,21 @@ export function OwnerListingCheckoutPage() {
       setLoading(true);
       setError('');
       try {
-        const [b, p] = await Promise.all([
+        const [b, preview] = await Promise.all([
           basesService.getById(baseId, { ownerId: user.id }),
-          listingPaymentService.getPrice(),
+          listingPaymentService.getCheckoutPreview(baseId).catch(async () => {
+            const p = await listingPaymentService.getPrice();
+            return { settings: p, displayAmount: p.amount, frozen: false };
+          }),
         ]);
         if (!alive) return;
         if (!b || b.owner_id !== user.id) throw new Error('База не найдена');
         setBase(b);
-        setPrice(p);
+        setPrice({
+          ...(preview.settings || {}),
+          amount: preview.displayAmount ?? preview.settings?.amount,
+          frozen: preview.frozen,
+        });
       } catch (err) {
         if (alive) setError(err.message || 'Ошибка загрузки');
       } finally {
@@ -123,6 +130,13 @@ export function OwnerListingCheckoutPage() {
           <strong>{formatMoney(amount, price?.currency)}</strong>
         </div>
       </div>
+
+      {price?.frozen && (
+        <p className="listing-pay__note" style={{ marginTop: 0 }}>
+          Сумма зафиксирована в уже созданном платеже ЮKassa. Чтобы оплатить новую цену из
+          админки — дождитесь обновления сервера или создайте заказ заново после деплоя.
+        </p>
+      )}
 
       {error && <div className="auth-error">{error}</div>}
 
