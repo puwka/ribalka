@@ -47,6 +47,27 @@ router.put('/listing-price', requireAuth, requireAdmin, async (req, res, next) =
   }
 });
 
+router.get('/directory-prices', requireAuth, requireAdmin, async (_req, res, next) => {
+  try {
+    res.json(await listingOrders.getDirectoryListingPrices());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/directory-prices/:kind', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const saved = await listingOrders.saveDirectoryListingPrice(
+      req.user.sub,
+      req.params.kind,
+      req.body || {}
+    );
+    res.json(saved);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Owner: create order + YooKassa payment for a base */
 router.post('/listing-checkout', requireAuth, async (req, res, next) => {
   try {

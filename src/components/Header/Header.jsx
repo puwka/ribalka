@@ -164,8 +164,6 @@ export default function Header() {
           </Link>
         ))}
 
-        <p className="site-header__drawer-label site-header__drawer-label--more">Ещё</p>
-
         {DRAWER_MORE.map((item) => (
           <Link
             key={item.href}

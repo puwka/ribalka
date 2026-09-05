@@ -59,4 +59,12 @@ export const listingPaymentService = {
     const q = qs.toString();
     return api.get(`/api/payments/listing-orders${q ? `?${q}` : ''}`);
   },
+
+  async getDirectoryPrices() {
+    return api.get('/api/payments/directory-prices');
+  },
+
+  async saveDirectoryPrice(kind, payload) {
+    return api.put(`/api/payments/directory-prices/${encodeURIComponent(kind)}`, payload);
+  },
 };

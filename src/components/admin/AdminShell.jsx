@@ -38,17 +38,14 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin/plans', label: 'Тарифы' },
       { to: '/admin/payments', label: 'Платежи' },
-      { to: '/admin/bookings', label: 'Бронирования' },
-      { to: '/admin/ads', label: 'Реклама' },
-      { to: '/admin/referrals', label: 'Партнёрка' },
     ],
   },
   {
     title: 'Система',
     items: [
-      { to: '/admin/notifications', label: 'Уведомления' },
       { to: '/admin/seo', label: 'SEO' },
       { to: '/admin/settings', label: 'Настройки' },
+      { to: '/admin/districts', label: 'Районы' },
     ],
   },
 ];
@@ -72,12 +69,9 @@ function breadcrumbLabel(pathname) {
     '/admin/reviews': 'Отзывы',
     '/admin/plans': 'Тарифы',
     '/admin/payments': 'Платежи',
-    '/admin/bookings': 'Бронирования',
-    '/admin/ads': 'Реклама',
-    '/admin/referrals': 'Партнёрка',
-    '/admin/notifications': 'Уведомления',
     '/admin/seo': 'SEO',
     '/admin/settings': 'Настройки',
+    '/admin/districts': 'Районы',
   };
   return map[pathname] || 'Админка';
 }

@@ -39,12 +39,12 @@ export default function Footer() {
             <span className="sponsors-text">Сайт работает при поддержке</span>
             <div className="sponsors-links">
               {sponsors.map((s, i) => (
-                <span key={s.url}>
-                  {i > 0 && <span className="sponsors-divider">и</span>}
-                  <a 
-                    href={s.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                <span key={s.url || s.label || i}>
+                  {i > 0 && <span className="sponsors-divider">·</span>}
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="sponsor-link-item"
                   >
                     {s.label}

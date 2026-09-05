@@ -8,6 +8,8 @@ import { gamificationService } from '../../services/gamificationService';
 import BookingForm from '../booking/BookingForm';
 import { useToast } from '../ui/ToastContext';
 import './BaseModal.css';
+import { toVideoEmbedUrl } from '../../lib/videoEmbed';
+import { toYandexCoords } from '../../lib/coords';
 
 export default function BaseModal({ item, onClose }) {
   const { user, isAuthenticated, refresh } = useAuth();
@@ -59,8 +61,9 @@ export default function BaseModal({ item, onClose }) {
 
   if (!item) return null;
 
-  const mapUrl = item.coords
-    ? `https://yandex.ru/maps/?pt=${item.coords.split(',').reverse().join(',')}&z=12&l=map`
+  const yandexPt = toYandexCoords(item);
+  const mapUrl = yandexPt
+    ? `https://yandex.ru/maps/?pt=${yandexPt[1]},${yandexPt[0]}&z=12&l=map`
     : '#';
 
   const handleSubmitComment = async (e) => {
@@ -302,7 +305,7 @@ export default function BaseModal({ item, onClose }) {
         {activeTab === 'video' && item.videos?.length > 0 && (
           <div className="base-modal__videos">
             <div className="video-main">
-              <iframe src={item.videos[activeVideo]} title="Видео" frameBorder="0" allowFullScreen />
+              <iframe src={toVideoEmbedUrl(item.videos[activeVideo])} title="Видео" frameBorder="0" allowFullScreen />
             </div>
             <div className="video-buttons">
               {item.videos.map((_, i) => (

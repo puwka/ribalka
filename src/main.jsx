@@ -6,6 +6,10 @@ import App from './App.jsx';
 
 registerSW({
   immediate: true,
+  onNeedRefresh(updateSW) {
+    // Apply new build without asking user to reinstall the PWA
+    updateSW(true);
+  },
 });
 
 createRoot(document.getElementById('root')).render(

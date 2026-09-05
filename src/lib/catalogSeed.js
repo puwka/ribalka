@@ -7,17 +7,9 @@
 import { paidBases, freePlaces } from '../data/bases';
 import { mapBaseToUi } from './mappers';
 import { resolveCatalogImages } from './catalogImages';
+import { resolveLatLng } from './coords';
 
 export const CATALOG_OWNER_ID = 'catalog-seed';
-
-function parseCoords(coordsStr) {
-  if (!coordsStr) return { lat: null, lng: null };
-  const parts = String(coordsStr).split(',').map((s) => parseFloat(s.trim()));
-  return {
-    lat: Number.isFinite(parts[0]) ? parts[0] : null,
-    lng: Number.isFinite(parts[1]) ? parts[1] : null,
-  };
-}
 
 function extractRegion(address = '') {
   const m = address.match(/Пермский край,\s*([^,]+)/i);
@@ -26,7 +18,7 @@ function extractRegion(address = '') {
 
 /** DB-shaped record from legacy bases.js item */
 export function legacyItemToRecord(item, type) {
-  const { lat, lng } = parseCoords(item.coords);
+  const { lat, lng } = resolveLatLng(item);
   return {
     id: String(item.id),
     catalog_legacy_id: item.id,

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import Comments from '../Comments/Comments';
+import { toVideoEmbedUrl } from '../../lib/videoEmbed';
+import { toYandexCoords } from '../../lib/coords';
 import './Modal.css';
 
 export default function Modal({ item, onClose }) {
@@ -8,7 +10,10 @@ export default function Modal({ item, onClose }) {
 
   if (!item) return null;
 
-  const mapUrl = `https://yandex.ru/maps/?pt=${item.coords.split(',').reverse().join(',')}&z=12&l=map`;
+  const yandexPt = toYandexCoords(item);
+  const mapUrl = yandexPt
+    ? `https://yandex.ru/maps/?pt=${yandexPt[1]},${yandexPt[0]}&z=12&l=map`
+    : '#';
 
   return (
     <div className="modal" onClick={onClose}>
@@ -182,7 +187,7 @@ export default function Modal({ item, onClose }) {
           <div className="modal__videos">
             <div className="video-main">
               <iframe 
-                src={item.videos[activeVideo]} 
+                src={toVideoEmbedUrl(item.videos[activeVideo])} 
                 title="Видео" 
                 frameBorder="0" 
                 allowFullScreen

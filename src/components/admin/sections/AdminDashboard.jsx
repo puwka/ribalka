@@ -111,10 +111,10 @@ export default function AdminDashboard() {
             </div>
             <div className="admin-feed__item">
               <div>
-                <div className="admin-feed__title">Реклама</div>
-                <div className="admin-feed__meta">{stats?.pendingAds ?? 0} ожидают</div>
+                <div className="admin-feed__title">Районы</div>
+                <div className="admin-feed__meta">Фильтр каталога</div>
               </div>
-              <Link to="/admin/ads" className="admin-btn admin-btn--sm">Открыть</Link>
+              <Link to="/admin/districts" className="admin-btn admin-btn--sm">Открыть</Link>
             </div>
           </div>
         </section>

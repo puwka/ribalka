@@ -11,6 +11,8 @@ import { authService } from './authService';
 import { notificationService } from './notificationService';
 import { catalogAdminService } from './catalogAdminService';
 import { localAuthStore } from '../lib/localAuthStore';
+import { normalizeVideoList } from '../lib/videoEmbed';
+import { parseCoordNumber, resolveLatLng } from '../lib/coords';
 
 export const BASE_STATUSES = Object.freeze({
   DRAFT: 'draft',
@@ -65,8 +67,13 @@ function emptyForm() {
 }
 
 function formToRecord(form, { ownerId, existing }) {
-  const lat = form.lat === '' || form.lat == null ? null : Number(form.lat);
-  const lng = form.lng === '' || form.lng == null ? null : Number(form.lng);
+  let lat = parseCoordNumber(form.lat);
+  let lng = parseCoordNumber(form.lng);
+  if (lat == null || lng == null) {
+    const prev = resolveLatLng(existing || {});
+    if (lat == null) lat = prev.lat;
+    if (lng == null) lng = prev.lng;
+  }
   const services = String(form.servicesText || '')
     .split(/[,;\n]/)
     .map((s) => s.trim())
@@ -91,8 +98,8 @@ function formToRecord(form, { ownerId, existing }) {
     description: form.description.trim(),
     region: form.region.trim(),
     address: form.address.trim(),
-    lat: Number.isFinite(lat) ? lat : null,
-    lng: Number.isFinite(lng) ? lng : null,
+    lat,
+    lng,
     phone: form.phone.trim(),
     contacts: form.contacts.trim(),
     website_url: form.website_url.trim() || null,
@@ -146,8 +153,8 @@ function recordToForm(record) {
     description: record.description || '',
     region: record.region || 'Пермский край',
     address: record.address || '',
-    lat: record.lat ?? '',
-    lng: record.lng ?? '',
+    lat: resolveLatLng(record).lat ?? '',
+    lng: resolveLatLng(record).lng ?? '',
     phone: record.phone || '',
     contacts: record.contacts || '',
     website_url: record.website_url || '',
@@ -425,15 +432,33 @@ export const basesService = {
   async getPublic(id) {
     const cmsItem = await catalogAdminService.getById(id);
     if (cmsItem && cmsItem.status !== 'archived') {
-      if (cmsItem.source === 'admin' || cmsItem._hasOverride) return cmsItem;
+      // Admin overrides / CMS waters and published catalog entries
+      if (
+        cmsItem.source === 'admin' ||
+        cmsItem._hasOverride ||
+        cmsItem.status === 'published' ||
+        cmsItem.status === 'approved'
+      ) {
+        return {
+          ...cmsItem,
+          videos: normalizeVideoList(cmsItem.videos || (cmsItem.video ? [cmsItem.video] : [])),
+        };
+      }
     }
 
     const catalog = findCatalogById(id);
     try {
       if (isRemoteDb()) {
         const row = await this.getById(id);
-        if (row && row.status === BASE_STATUSES.APPROVED) return row;
-        return catalog;
+        if (row && row.status === BASE_STATUSES.APPROVED) {
+          return {
+            ...row,
+            videos: normalizeVideoList(row.videos || []),
+          };
+        }
+        return catalog
+          ? { ...catalog, videos: normalizeVideoList(catalog.videos || []) }
+          : null;
       }
       const row = await basesLocalDb.getById(id);
       if (
@@ -442,12 +467,15 @@ export const basesService = {
         row.source !== 'catalog' &&
         row.owner_id !== CATALOG_OWNER_ID
       ) {
-        return { ...row, ...toUi(row) };
+        const ui = { ...row, ...toUi(row) };
+        return { ...ui, videos: normalizeVideoList(ui.videos || []) };
       }
     } catch {
       /* fall through to catalog */
     }
-    return catalog;
+    return catalog
+      ? { ...catalog, videos: normalizeVideoList(catalog.videos || []) }
+      : null;
   },
 
   async saveDraft(ownerId, form, existingId) {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { basesService } from '../services/basesService';
+import { api, apiDataEnabled } from '../lib/apiClient';
 import {
   WATER_TYPE,
   enrichWaterItem,
@@ -13,7 +14,7 @@ function useDebounced(value, delay = 300) {
   useEffect(() => {
     const t = setTimeout(() => setDebounced(value), delay);
     return () => clearTimeout(t);
-  }, [value, delay]);
+  }, [delay, value]);
   return debounced;
 }
 
@@ -26,6 +27,7 @@ const DEFAULT_FILTERS = {
 
 export function useWaterCatalog(waterType) {
   const [items, setItems] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
@@ -40,6 +42,14 @@ export function useWaterCatalog(waterType) {
     try {
       const rows = await basesService.listPublic({ type: waterType });
       setItems((rows || []).map(enrichWaterItem));
+      if (apiDataEnabled) {
+        try {
+          const d = await api.get('/api/cms/districts');
+          setDistricts((d || []).map((x) => x.name).filter(Boolean));
+        } catch {
+          setDistricts([]);
+        }
+      }
     } catch (err) {
       setError(err);
       setItems([]);
@@ -53,9 +63,12 @@ export function useWaterCatalog(waterType) {
   }, [load]);
 
   const regions = useMemo(() => {
-    const set = new Set(items.map((i) => i.region).filter(Boolean));
+    const set = new Set([
+      ...districts,
+      ...items.map((i) => i.region).filter(Boolean),
+    ]);
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
-  }, [items]);
+  }, [items, districts]);
 
   const kinds = useMemo(() => {
     const set = new Set(items.map((i) => i.waterKind).filter(Boolean));

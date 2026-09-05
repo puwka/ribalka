@@ -1,6 +1,7 @@
+import { resolveLatLng, toCoordsString } from './coords';
+
 /**
  * Maps DB rows → shapes expected by current UI (bases.js / news / reports).
- * Keeps frontend stable while data source switches to Supabase.
  */
 
 /**
@@ -25,8 +26,8 @@ export function mapBaseToUi(row, rels = {}) {
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     .map((s) => s.name);
 
-  const coords =
-    row.lat != null && row.lng != null ? `${row.lat}, ${row.lng}` : null;
+  const { lat, lng } = resolveLatLng(row);
+  const coords = toCoordsString(row);
 
   return {
     id: row.id,
@@ -37,6 +38,8 @@ export function mapBaseToUi(row, rels = {}) {
     services,
     fish: row.fish_species ?? '',
     address: row.address ?? '',
+    lat,
+    lng,
     coords,
     howToGet: row.how_to_get ?? row.conditions ?? '',
     transport: row.transport ?? '',
@@ -158,3 +161,4 @@ export function mapAdvertisingToDirectoryUi(row) {
     tags: row.tags ?? [],
   };
 }
+

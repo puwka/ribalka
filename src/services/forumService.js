@@ -2,6 +2,7 @@ import { socialDb, CONTENT_STATUS } from '../lib/socialDb';
 import { ApiError } from '../lib/apiError';
 import { assertAdmin } from '../lib/assertAdmin';
 import { localAuthStore } from '../lib/localAuthStore';
+import { api, apiDataEnabled } from '../lib/apiClient';
 
 function voterKey(userId, anonId) {
   return userId ? String(userId) : anonId ? `anon:${anonId}` : null;
@@ -31,6 +32,11 @@ export const forumService = {
   statuses: CONTENT_STATUS,
 
   async listTopics({ status = 'approved', viewerKey = null, includeAll = false } = {}) {
+    if (apiDataEnabled) {
+      const qs = includeAll || status === 'all' ? 'all' : status;
+      const rows = await api.get(`/api/forum/topics?status=${encodeURIComponent(qs)}`);
+      return (rows || []).map((t) => publicTopic(t, viewerKey));
+    }
     let rows = await socialDb.listTopics();
     if (!includeAll) rows = rows.filter((t) => t.status === status);
     else if (status !== 'all') rows = rows.filter((t) => t.status === status);
@@ -47,6 +53,13 @@ export const forumService = {
   },
 
   async getTopic(id, { viewerKey = null, isAdmin = false } = {}) {
+    if (apiDataEnabled) {
+      const data = await api.get(`/api/forum/topics/${encodeURIComponent(id)}`);
+      return {
+        topic: publicTopic(data.topic, viewerKey),
+        messages: (data.messages || []).map((m) => publicMessage(m, viewerKey)),
+      };
+    }
     const topic = await socialDb.getTopic(id);
     if (!topic) throw new ApiError('Тема не найдена', { status: 404 });
     if (!isAdmin && topic.status !== CONTENT_STATUS.APPROVED && topic.status !== 'locked') {
@@ -58,9 +71,10 @@ export const forumService = {
       messages = messages.filter(
         (m) => m.status === CONTENT_STATUS.APPROVED || m.status === CONTENT_STATUS.PENDING
       );
-      // show pending only to author — filter later in UI if needed
       messages = messages.filter(
-        (m) => m.status === CONTENT_STATUS.APPROVED || (viewerKey && m.authorId && viewerKey === String(m.authorId))
+        (m) =>
+          m.status === CONTENT_STATUS.APPROVED ||
+          (viewerKey && m.authorId && viewerKey === String(m.authorId))
       );
     }
     messages.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
@@ -72,10 +86,8 @@ export const forumService = {
   },
 
   async listByAuthor(authorId, { viewerKey = null } = {}) {
-    const topics = (await socialDb.listTopics()).filter(
-      (t) => t.authorId === authorId && t.status === CONTENT_STATUS.APPROVED
-    );
-    return topics.map((t) => publicTopic(t, viewerKey));
+    const topics = await this.listTopics({ status: 'all', includeAll: true, viewerKey });
+    return topics.filter((t) => t.authorId === authorId);
   },
 
   async createTopic({
@@ -90,6 +102,17 @@ export const forumService = {
     if (!authorId) throw new ApiError('Войдите, чтобы создать тему');
     if (!title?.trim()) throw new ApiError('Укажите заголовок');
     if (!body?.trim()) throw new ApiError('Напишите текст темы');
+
+    if (apiDataEnabled) {
+      const topic = await api.post('/api/forum/topics', {
+        title,
+        body,
+        baseId,
+        baseName,
+        placeLabel,
+      });
+      return publicTopic(topic, authorId);
+    }
 
     const now = new Date().toISOString();
     const topic = {
@@ -124,16 +147,20 @@ export const forumService = {
     return publicTopic(topic, authorId);
   },
 
-  async addMessage({
-    topicId,
-    authorId,
-    authorName,
-    body,
-    parentId = null,
-    kind = 'message', // message | reply | comment
-  }) {
+  async addMessage({ topicId, authorId, authorName, body, parentId = null, kind = 'message' }) {
     if (!authorId) throw new ApiError('Войдите, чтобы ответить');
     if (!body?.trim()) throw new ApiError('Введите текст');
+
+    if (apiDataEnabled) {
+      return publicMessage(
+        await api.post(`/api/forum/topics/${encodeURIComponent(topicId)}/messages`, {
+          body,
+          parentId,
+          kind,
+        }),
+        authorId
+      );
+    }
 
     const topic = await socialDb.getTopic(topicId);
     if (!topic) throw new ApiError('Тема не найдена');
@@ -178,6 +205,7 @@ export const forumService = {
   },
 
   async likeTopic(topicId, { userId = null, anonId = null }) {
+    if (apiDataEnabled) return { success: false, topic: null };
     const key = voterKey(userId, anonId);
     if (!key) throw new ApiError('Не удалось определить пользователя');
     const topic = await socialDb.getTopic(topicId);
@@ -193,6 +221,7 @@ export const forumService = {
   },
 
   async likeMessage(messageId, { userId = null, anonId = null }) {
+    if (apiDataEnabled) return { success: false, message: null };
     const key = voterKey(userId, anonId);
     if (!key) throw new ApiError('Не удалось определить пользователя');
     const msg = await socialDb.getMessage(messageId);
@@ -211,6 +240,27 @@ export const forumService = {
 
   async moderateTopic(adminId, topicId, { action, note = '' }) {
     await assertAdmin(adminId);
+
+    if (apiDataEnabled) {
+      const statusMap = {
+        approve: 'approved',
+        reject: 'rejected',
+        hide: 'rejected',
+        pending: 'pending',
+      };
+      if (!statusMap[action] && !['lock', 'unlock', 'pin', 'unpin'].includes(action)) {
+        throw new ApiError('Неизвестное действие');
+      }
+      const status = statusMap[action] || 'approved';
+      return publicTopic(
+        await api.patch(`/api/forum/topics/${encodeURIComponent(topicId)}/moderate`, {
+          status,
+          note,
+        }),
+        null
+      );
+    }
+
     const topic = await socialDb.getTopic(topicId);
     if (!topic) throw new ApiError('Тема не найдена');
 
@@ -241,35 +291,18 @@ export const forumService = {
         link_path: '/forum',
       });
     }
-    return topic;
-  },
-
-  async moderateMessage(adminId, messageId, { action, note = '' }) {
-    await assertAdmin(adminId);
-    const msg = await socialDb.getMessage(messageId);
-    if (!msg) throw new ApiError('Сообщение не найдено');
-    if (action === 'approve') msg.status = CONTENT_STATUS.APPROVED;
-    else if (action === 'reject') msg.status = CONTENT_STATUS.REJECTED;
-    else if (action === 'hide') msg.status = CONTENT_STATUS.HIDDEN;
-    else throw new ApiError('Неизвестное действие');
-    msg.moderationNote = note || null;
-    await socialDb.putMessage(msg);
-    return msg;
+    return publicTopic(topic, null);
   },
 
   async listForModeration(status = 'pending') {
-    const topics = await socialDb.listTopics();
-    const messages = await socialDb.listAllMessages();
-    const t = (status === 'all' ? topics : topics.filter((x) => x.status === status)).map((x) => ({
-      ...x,
-      _type: 'topic',
-    }));
-    const m = (status === 'all' ? messages : messages.filter((x) => x.status === status)).map((x) => ({
-      ...x,
-      _type: 'message',
-    }));
-    return [...t, ...m].sort((a, b) =>
-      String(b.createdAt || b.updatedAt).localeCompare(String(a.createdAt || a.updatedAt))
-    );
+    if (apiDataEnabled) {
+      const rows = await api.get(
+        `/api/forum/topics/moderation?status=${encodeURIComponent(status || 'pending')}`
+      );
+      return (rows || []).map((t) => publicTopic(t, null));
+    }
+    let rows = await socialDb.listTopics();
+    if (status !== 'all') rows = rows.filter((t) => t.status === status);
+    return rows.map((t) => publicTopic(t, null));
   },
 };

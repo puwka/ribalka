@@ -7,6 +7,7 @@ import { assertAdmin } from '../lib/assertAdmin';
 import { gamificationService } from './gamificationService';
 import { notificationService } from './notificationService';
 import { engagementDb } from '../lib/engagementDb';
+import { api, apiDataEnabled } from '../lib/apiClient';
 
 const REPORT_SELECT = `
   *,
@@ -14,8 +15,12 @@ const REPORT_SELECT = `
   report_videos ( id, storage_path, external_url, provider, sort_order )
 `;
 
+function isApiReports() {
+  return apiDataEnabled;
+}
+
 function isRemoteReports() {
-  return supabaseDataEnabled && Boolean(supabase);
+  return !isApiReports() && supabaseDataEnabled && Boolean(supabase);
 }
 
 function voterKey(userId, anonId) {
@@ -192,6 +197,21 @@ export const reportSocialService = {
   statuses: CONTENT_STATUS,
 
   async list({ status = 'approved', sortBy = 'date', viewerKey = null, includeAll = false } = {}) {
+    if (isApiReports()) {
+      const qs = includeAll || status === 'all' ? 'all' : status;
+      const rows = await api.get(`/api/reports?status=${encodeURIComponent(qs)}`);
+      let mapped = (rows || []).map((r) => publicReport(r, viewerKey));
+      if (!includeAll && status !== 'all') {
+        mapped = mapped.filter((r) => r.status === status);
+      }
+      if (sortBy === 'rating') {
+        mapped.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      } else {
+        mapped.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      }
+      return mapped;
+    }
+
     const localRows = await socialDb.listReports();
     const remoteRows = isRemoteReports()
       ? await listRemoteReports({ status: includeAll ? 'all' : status })
@@ -239,13 +259,52 @@ export const reportSocialService = {
   },
 
   async listByAuthor(authorUserId, { viewerKey = null } = {}) {
-    const rows = await this.list({ status: CONTENT_STATUS.APPROVED, viewerKey });
+    if (isApiReports()) {
+      const rows = await api.get('/api/reports/mine');
+      return (rows || [])
+        .map((r) => publicReport(r, viewerKey))
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    }
+    const rows = await this.list({ status: 'all', includeAll: true, viewerKey });
     return rows
       .filter((r) => r.authorUserId === authorUserId)
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   },
 
   async create(payload) {
+    if (isApiReports()) {
+      const {
+        author,
+        authorUserId = null,
+        place,
+        baseId = null,
+        baseName = null,
+        date,
+        fish,
+        bait = '',
+        weight = '',
+        description,
+        images = [],
+        videos = [],
+        requireAuth = false,
+      } = payload;
+      if (requireAuth && !authorUserId) throw new ApiError('Войдите, чтобы опубликовать отчёт');
+      const created = await api.post('/api/reports', {
+        author,
+        place: baseName || place,
+        baseId,
+        baseName,
+        date,
+        fish,
+        bait,
+        weight,
+        description,
+        images,
+        videos,
+      });
+      return publicReport(created, authorUserId);
+    }
+
     const {
       author,
       authorUserId = null,
@@ -438,6 +497,22 @@ export const reportSocialService = {
   async moderate(adminId, reportId, { action, note = '' }) {
     await assertAdmin(adminId);
 
+    if (isApiReports()) {
+      const statusMap = {
+        approve: 'approved',
+        reject: 'rejected',
+        hide: 'hidden',
+        pending: 'pending',
+      };
+      const status = statusMap[action];
+      if (!status) throw new ApiError('Неизвестное действие');
+      const row = await api.patch(`/api/reports/${encodeURIComponent(reportId)}/moderate`, {
+        status,
+        note,
+      });
+      return publicReport(row, null);
+    }
+
     const row = await resolveReport(reportId);
     if (!row) throw new ApiError('Отчёт не найден');
 
@@ -486,6 +561,12 @@ export const reportSocialService = {
   },
 
   async listForModeration(status = 'pending') {
+    if (isApiReports()) {
+      const rows = await api.get(
+        `/api/reports/moderation?status=${encodeURIComponent(status || 'pending')}`
+      );
+      return (rows || []).map((r) => publicReport(r, null));
+    }
     const localRows = await socialDb.listReports();
     const remoteRows = await listRemoteReports({ status });
     const merged = mergeReports(localRows, remoteRows);

@@ -11,10 +11,12 @@ import {
 } from '../AdminUI';
 import { ImageUploadListField } from '../../media/ImageUpload';
 import { uploadService } from '../../../services/uploadService';
+import { api, apiDataEnabled } from '../../../lib/apiClient';
 
 export default function AdminWatersSection() {
   const { user, profile } = useAuth();
   const [items, setItems] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [filter, setFilter] = useState({ type: '', q: '' });
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(catalogAdminService.emptyForm());
@@ -28,6 +30,14 @@ export default function AdminWatersSection() {
     setLoading(true);
     try {
       setItems(await catalogAdminService.listAll(filter));
+      if (apiDataEnabled) {
+        try {
+          const d = await api.get('/api/cms/districts');
+          setDistricts((d || []).map((x) => x.name).filter(Boolean));
+        } catch {
+          /* optional */
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -121,7 +131,7 @@ export default function AdminWatersSection() {
     <>
       <AdminPageHead
         title="Водоёмы"
-        subtitle="CRUD каталога водоёмов (отдельно от контента страниц)"
+        subtitle="Изменения сохраняются на сервер и видны всем посетителям"
         actions={
           <button type="button" className="admin-btn admin-btn--primary" onClick={startNew}>
             + Создать
@@ -210,8 +220,34 @@ export default function AdminWatersSection() {
                 </AdminField>
 
                 <div className="admin-grid-2">
-                  <AdminField label="Регион">
-                    <input className="admin-input" value={form.region} onChange={(e) => setField('region', e.target.value)} />
+                  <AdminField
+                    label="Район / регион"
+                    hint="Список районов: Админка → Районы"
+                  >
+                    {districts.length > 0 ? (
+                      <select
+                        className="admin-select"
+                        value={form.region}
+                        onChange={(e) => setField('region', e.target.value)}
+                      >
+                        <option value="">Выберите район</option>
+                        {districts.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                        {form.region && !districts.includes(form.region) && (
+                          <option value={form.region}>{form.region}</option>
+                        )}
+                      </select>
+                    ) : (
+                      <input
+                        className="admin-input"
+                        value={form.region}
+                        onChange={(e) => setField('region', e.target.value)}
+                        placeholder="Сначала добавьте районы в разделе «Районы»"
+                      />
+                    )}
                   </AdminField>
                   <AdminField label="Адрес">
                     <input className="admin-input" value={form.address} onChange={(e) => setField('address', e.target.value)} />
@@ -219,11 +255,11 @@ export default function AdminWatersSection() {
                 </div>
 
                 <div className="admin-grid-2">
-                  <AdminField label="Широта">
-                    <input className="admin-input" value={form.lat} onChange={(e) => setField('lat', e.target.value)} />
+                  <AdminField label="Широта (lat)" hint="Например 58.8333 — точка с запятой тоже ок">
+                    <input className="admin-input" value={form.lat} onChange={(e) => setField('lat', e.target.value)} placeholder="58.8333" />
                   </AdminField>
-                  <AdminField label="Долгота">
-                    <input className="admin-input" value={form.lng} onChange={(e) => setField('lng', e.target.value)} />
+                  <AdminField label="Долгота (lng)" hint="Например 57.8167">
+                    <input className="admin-input" value={form.lng} onChange={(e) => setField('lng', e.target.value)} placeholder="57.8167" />
                   </AdminField>
                 </div>
 

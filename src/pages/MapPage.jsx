@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { basesService } from '../services/basesService';
 import { catalogStats } from '../lib/catalogSeed';
+import { toYandexCoords } from '../lib/coords';
 import './MapPage.css';
 
 const FILTER_OPTIONS = [
@@ -195,8 +196,8 @@ export default function MapPage() {
     const BalloonContentLayout = ymaps.templateLayoutFactory.createClass('$[properties.balloonContent]');
 
     filteredPlaces.forEach((place) => {
-      const coords = place.coords?.split(',').map((c) => parseFloat(c.trim()));
-      if (!coords || coords.length !== 2 || Number.isNaN(coords[0]) || Number.isNaN(coords[1])) {
+      const coords = toYandexCoords(place);
+      if (!coords) {
         return;
       }
 

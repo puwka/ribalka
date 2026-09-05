@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { localAuthStore } from '../../../lib/localAuthStore';
-import { supabase, supabaseDataEnabled } from '../../../lib/supabase';
+import { api, apiDataEnabled } from '../../../lib/apiClient';
 import {
   AdminPageHead,
   AdminAlert,
@@ -12,36 +12,15 @@ import {
 } from '../AdminUI';
 
 async function listUsersForAdmin() {
-  if (supabaseDataEnabled && supabase) {
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('id, email, primary_role, status, created_at')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (error) throw new Error(error.message);
-    const ids = (users || []).map((u) => u.id);
-    let profiles = {};
-    if (ids.length) {
-      const { data: profileRows } = await supabase
-        .from('profiles')
-        .select('user_id, display_name')
-        .in('user_id', ids);
-      for (const p of profileRows || []) profiles[p.user_id] = p;
-    }
-    return (users || []).map((u) => ({
-      ...u,
-      display_name: profiles[u.id]?.display_name,
-      roles: [u.primary_role].filter(Boolean),
-    }));
+  if (apiDataEnabled) {
+    return api.get('/api/users');
   }
   return localAuthStore.listUsersForAdmin();
 }
 
 async function setUserStatusAdmin(adminId, targetId, status) {
-  if (supabaseDataEnabled && supabase) {
-    const { error } = await supabase.from('users').update({ status }).eq('id', targetId);
-    if (error) throw new Error(error.message);
-    return;
+  if (apiDataEnabled) {
+    return api.patch(`/api/users/${encodeURIComponent(targetId)}/status`, { status });
   }
   localAuthStore.setUserStatus(adminId, targetId, status);
 }

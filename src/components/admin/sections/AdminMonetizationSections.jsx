@@ -11,7 +11,9 @@ import '../../owner/ListingPayment.css';
 export function AdminPlansSection() {
   const { user } = useAuth();
   const [listing, setListing] = useState(null);
+  const [directory, setDirectory] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [savingDir, setSavingDir] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -21,6 +23,10 @@ export function AdminPlansSection() {
       .getPrice()
       .then(setListing)
       .catch((err) => setError(err.message));
+    listingPaymentService
+      .getDirectoryPrices()
+      .then(setDirectory)
+      .catch(() => setDirectory(null));
   }, []);
 
   const saveListing = async () => {
@@ -30,7 +36,7 @@ export function AdminPlansSection() {
     try {
       const saved = await listingPaymentService.savePrice(listing);
       setListing(saved);
-      setMessage('Цена размещения сохранена. Новые заказы будут с этой суммой.');
+      setMessage('Цена размещения базы сохранена.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -38,9 +44,30 @@ export function AdminPlansSection() {
     }
   };
 
+  const saveDirectoryKind = async (kind) => {
+    setSavingDir(kind);
+    setError('');
+    setMessage('');
+    try {
+      const saved = await listingPaymentService.saveDirectoryPrice(kind, directory[kind]);
+      setDirectory((d) => ({ ...d, [kind]: saved }));
+      setMessage(`Тариф справочника (${kind}) сохранён.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingDir('');
+    }
+  };
+
+  const dirLabels = {
+    shop: 'Магазины',
+    service: 'Сервисы',
+    guide: 'Гиды',
+  };
+
   return (
     <>
-      <AdminPageHead title="Тарифы" subtitle="Размещение базы и подписки" />
+      <AdminPageHead title="Тарифы" subtitle="Размещение базы и позиций справочника" />
       <AdminAlert type="error">{error}</AdminAlert>
       <AdminAlert type="success">{message}</AdminAlert>
 
@@ -94,9 +121,79 @@ export function AdminPlansSection() {
                 disabled={saving}
                 onClick={saveListing}
               >
-                {saving ? 'Сохранение…' : 'Сохранить цену'}
+                {saving ? 'Сохранение…' : 'Сохранить цену базы'}
               </button>
             </>
+          )}
+        </section>
+      )}
+
+      {apiDataEnabled && (
+        <section className="admin-panel" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Тарифы справочника</h3>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+            Цены размещения магазинов, сервисов и гидов в справочнике.
+          </p>
+          {!directory ? (
+            <AdminLoading />
+          ) : (
+            ['shop', 'service', 'guide'].map((kind) => (
+              <div key={kind} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
+                <h4 style={{ marginTop: 0 }}>{dirLabels[kind]}</h4>
+                <AdminField label="Название услуги">
+                  <input
+                    className="admin-input"
+                    value={directory[kind]?.title || ''}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        [kind]: { ...d[kind], title: e.target.value },
+                      }))
+                    }
+                  />
+                </AdminField>
+                <div className="admin-grid-2">
+                  <AdminField label="Цена (₽)">
+                    <input
+                      className="admin-input"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={directory[kind]?.amount ?? 0}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          [kind]: { ...d[kind], amount: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Статус">
+                    <select
+                      className="admin-select"
+                      value={directory[kind]?.enabled ? '1' : '0'}
+                      onChange={(e) =>
+                        setDirectory((d) => ({
+                          ...d,
+                          [kind]: { ...d[kind], enabled: e.target.value === '1' },
+                        }))
+                      }
+                    >
+                      <option value="1">Включено</option>
+                      <option value="0">Выключено</option>
+                    </select>
+                  </AdminField>
+                </div>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--primary"
+                  disabled={savingDir === kind}
+                  onClick={() => saveDirectoryKind(kind)}
+                >
+                  {savingDir === kind ? 'Сохранение…' : `Сохранить (${dirLabels[kind]})`}
+                </button>
+              </div>
+            ))
           )}
         </section>
       )}

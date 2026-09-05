@@ -73,6 +73,7 @@ export const api = {
   post: (path, body) => apiRequest(path, { method: 'POST', body }),
   put: (path, body) => apiRequest(path, { method: 'PUT', body }),
   patch: (path, body) => apiRequest(path, { method: 'PATCH', body }),
+  delete: (path) => apiRequest(path, { method: 'DELETE' }),
   upload: (bucket, file) => {
     const fd = new FormData();
     fd.append('file', file);

@@ -9,13 +9,16 @@ const DEFAULT_LISTING = {
   enabled: true,
 };
 
+const DIRECTORY_DEFAULTS = {
+  shop: { title: 'Размещение магазина в справочнике', amount: 3000, currency: 'RUB', enabled: true },
+  service: { title: 'Размещение сервиса в справочнике', amount: 3000, currency: 'RUB', enabled: true },
+  guide: { title: 'Размещение гида в справочнике', amount: 2500, currency: 'RUB', enabled: true },
+};
+
 const ORDER_TTL_HOURS = 24;
 
-export async function getListingPriceSettings() {
-  const { rows } = await pool.query(
-    'select value from public.site_settings where key = $1',
-    [SETTINGS_KEY]
-  );
+async function readSiteSetting(key, fallback) {
+  const { rows } = await pool.query('select value from public.site_settings where key = $1', [key]);
   let value = rows[0]?.value ?? {};
   if (typeof value === 'string') {
     try {
@@ -26,14 +29,14 @@ export async function getListingPriceSettings() {
   }
   const amount = Number(value.amount);
   return {
-    title: value.title || DEFAULT_LISTING.title,
-    amount: Number.isFinite(amount) ? amount : DEFAULT_LISTING.amount,
-    currency: value.currency || DEFAULT_LISTING.currency,
+    title: value.title || fallback.title,
+    amount: Number.isFinite(amount) ? amount : fallback.amount,
+    currency: value.currency || fallback.currency,
     enabled: value.enabled !== false,
   };
 }
 
-export async function saveListingPriceSettings(adminId, input) {
+async function writeSiteSetting(key, adminId, input, fallback) {
   const amount = Number(input.amount);
   if (!Number.isFinite(amount) || amount < 0) {
     const err = new Error('Некорректная цена');
@@ -41,12 +44,11 @@ export async function saveListingPriceSettings(adminId, input) {
     throw err;
   }
   const value = {
-    title: (input.title || DEFAULT_LISTING.title).trim() || DEFAULT_LISTING.title,
+    title: (input.title || fallback.title).trim() || fallback.title,
     amount,
     currency: 'RUB',
     enabled: input.enabled !== false && input.enabled !== '0' && input.enabled !== 0,
   };
-  // Pass object — node-pg serializes jsonb correctly (avoid double-encoding)
   await pool.query(
     `insert into public.site_settings (key, value, updated_by, updated_at)
      values ($1, $2::jsonb, $3, now())
@@ -54,9 +56,41 @@ export async function saveListingPriceSettings(adminId, input) {
        value = excluded.value,
        updated_by = excluded.updated_by,
        updated_at = now()`,
-    [SETTINGS_KEY, value, adminId]
+    [key, value, adminId]
   );
-  return getListingPriceSettings();
+  return readSiteSetting(key, fallback);
+}
+
+export async function getListingPriceSettings() {
+  return readSiteSetting(SETTINGS_KEY, DEFAULT_LISTING);
+}
+
+export async function saveListingPriceSettings(adminId, input) {
+  return writeSiteSetting(SETTINGS_KEY, adminId, input, DEFAULT_LISTING);
+}
+
+export async function getDirectoryListingPrices() {
+  const [shop, service, guide] = await Promise.all([
+    readSiteSetting('directory_listing_shop', DIRECTORY_DEFAULTS.shop),
+    readSiteSetting('directory_listing_service', DIRECTORY_DEFAULTS.service),
+    readSiteSetting('directory_listing_guide', DIRECTORY_DEFAULTS.guide),
+  ]);
+  return { shop, service, guide };
+}
+
+export async function saveDirectoryListingPrice(adminId, kind, input) {
+  const keyMap = {
+    shop: 'directory_listing_shop',
+    service: 'directory_listing_service',
+    guide: 'directory_listing_guide',
+  };
+  const key = keyMap[kind];
+  if (!key) {
+    const err = new Error('Неизвестный тип: shop | service | guide');
+    err.status = 400;
+    throw err;
+  }
+  return writeSiteSetting(key, adminId, input, DIRECTORY_DEFAULTS[kind]);
 }
 
 function mapOrder(row) {

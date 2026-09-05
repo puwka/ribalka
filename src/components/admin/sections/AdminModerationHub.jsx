@@ -4,7 +4,6 @@ import { useAuth } from '../../auth/AuthContext';
 import { basesService } from '../../../services/basesService';
 import { reportSocialService } from '../../../services/reportSocialService';
 import { forumService } from '../../../services/forumService';
-import { advertisingService } from '../../../services/advertisingService';
 import { AdminPageHead, AdminLoading, AdminStatus } from '../AdminUI';
 
 export default function AdminModerationHub() {
@@ -16,11 +15,10 @@ export default function AdminModerationHub() {
     (async () => {
       setLoading(true);
       try {
-        const [bases, reports, forum, ads] = await Promise.all([
+        const [bases, reports, forum] = await Promise.all([
           basesService.listForModeration('pending').catch(() => []),
           reportSocialService.listForModeration('pending').catch(() => []),
           forumService.listForModeration('pending').catch(() => []),
-          advertisingService.listForModeration('pending').catch(() => []),
         ]);
 
         const items = [
@@ -40,32 +38,19 @@ export default function AdminModerationHub() {
             title: r.place || 'Без места',
             author: r.author,
             status: r.status,
-            at: r.created_at || r.date,
+            at: r.createdAt || r.created_at || r.date,
             link: `/admin/reports?open=${encodeURIComponent(r.id)}`,
             priority: 2,
           })),
           ...forum.map((f) => ({
-            id: `forum-${f._type}-${f.id}`,
-            type: f._type === 'topic' ? 'Тема' : 'Сообщение',
+            id: `forum-${f.id}`,
+            type: 'Тема',
             title: f.title || (f.body || '').slice(0, 60),
             author: f.authorName,
             status: f.status,
-            at: f.created_at,
-            link:
-              f._type === 'topic'
-                ? `/forum/${encodeURIComponent(f.id)}`
-                : `/admin/forum?filter=pending`,
+            at: f.createdAt || f.created_at,
+            link: `/admin/forum?filter=pending`,
             priority: 3,
-          })),
-          ...ads.map((a) => ({
-            id: `ad-${a.id}`,
-            type: 'Реклама',
-            title: a.title || a.ad_type,
-            author: a.owner_id,
-            status: a.status,
-            at: a.created_at,
-            link: `/admin/ads?id=${encodeURIComponent(a.id)}`,
-            priority: 4,
           })),
         ];
 

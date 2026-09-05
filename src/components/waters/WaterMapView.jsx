@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { toYandexCoords } from '../../lib/coords';
 import './WaterMapView.css';
 
 export default function WaterMapView({ items }) {
@@ -23,8 +24,8 @@ export default function WaterMapView({ items }) {
       mapInstanceRef.current = map;
 
       items.forEach((place) => {
-        const coords = place.coords?.split(',').map((c) => parseFloat(c.trim()));
-        if (!coords || coords.length !== 2 || Number.isNaN(coords[0])) return;
+        const coords = toYandexCoords(place);
+        if (!coords) return;
 
         const placemark = new ymaps.Placemark(
           coords,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { resolveLatLng } from '../lib/coords';
 
 // Маппинг WMO кодов погоды на иконки и описания
 const weatherCodes = {
@@ -36,9 +37,10 @@ export const useWeather = (coords) => {
   useEffect(() => {
     if (!coords) return;
 
-    // Парсим координаты (формат: "58.8333, 57.8167")
-    const [lat, lon] = coords.split(',').map(c => parseFloat(c.trim()));
-    if (isNaN(lat) || isNaN(lon)) {
+    const { lat, lng: lon } = typeof coords === 'string'
+      ? resolveLatLng({ coords })
+      : resolveLatLng(coords);
+    if (lat == null || lon == null) {
       setError('Неверные координаты');
       return;
     }

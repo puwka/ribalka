@@ -5,7 +5,12 @@ import { AdminPageHead, AdminAlert, AdminField, AdminLoading } from '../AdminUI'
 import { ImageUploadField } from '../../media/ImageUpload';
 import { uploadService } from '../../../services/uploadService';
 
-const PAGE_PATHS = ['/', '/paid-waters', '/free-waters', '/map'];
+const PAGE_PATHS = [
+  { path: '/', label: 'Главная' },
+  { path: '/paid-waters', label: 'Платные' },
+  { path: '/free-waters', label: 'Бесплатные' },
+  { path: '/map', label: 'Карта' },
+];
 
 export default function AdminSeoSection() {
   const { user } = useAuth();
@@ -49,68 +54,110 @@ export default function AdminSeoSection() {
 
   if (loading || !seo) return <AdminLoading />;
 
+  const activeLabel = PAGE_PATHS.find((p) => p.path === activePath)?.label || activePath;
+
   return (
     <>
-      <AdminPageHead title="SEO" subtitle="Meta-теги и технические настройки" />
+      <AdminPageHead title="SEO" subtitle="Мета-теги и технические настройки для поисковиков" />
       <AdminAlert type="error">{error}</AdminAlert>
       <AdminAlert type="success">{message}</AdminAlert>
 
       <div className="admin-toolbar">
         {PAGE_PATHS.map((p) => (
           <button
-            key={p}
+            key={p.path}
             type="button"
-            className={`admin-btn ${activePath === p ? 'admin-btn--primary' : ''}`}
-            onClick={() => setActivePath(p)}
+            className={`admin-btn ${activePath === p.path ? 'admin-btn--primary' : ''}`}
+            onClick={() => setActivePath(p.path)}
           >
-            {p}
+            {p.label}
           </button>
         ))}
       </div>
 
       <section className="admin-panel">
-        <h3>Страница: {activePath}</h3>
-        <AdminField label="Title">
-          <input className="admin-input" value={page.title || ''} onChange={(e) => setPageField('title', e.target.value)} />
+        <h3>Страница: {activeLabel}</h3>
+        <AdminField label="Заголовок (title)" hint="Отображается во вкладке браузера и в поиске">
+          <input
+            className="admin-input"
+            value={page.title || ''}
+            onChange={(e) => setPageField('title', e.target.value)}
+          />
         </AdminField>
-        <AdminField label="Description">
-          <textarea className="admin-textarea" rows={2} value={page.description || ''} onChange={(e) => setPageField('description', e.target.value)} />
+        <AdminField label="Описание (description)" hint="Краткий текст в выдаче поиска">
+          <textarea
+            className="admin-textarea"
+            rows={2}
+            value={page.description || ''}
+            onChange={(e) => setPageField('description', e.target.value)}
+          />
         </AdminField>
         <div className="admin-grid-2">
-          <AdminField label="Keywords">
-            <input className="admin-input" value={page.keywords || ''} onChange={(e) => setPageField('keywords', e.target.value)} />
+          <AdminField label="Ключевые слова">
+            <input
+              className="admin-input"
+              value={page.keywords || ''}
+              onChange={(e) => setPageField('keywords', e.target.value)}
+            />
           </AdminField>
-          <AdminField label="Canonical">
-            <input className="admin-input" value={page.canonical || ''} onChange={(e) => setPageField('canonical', e.target.value)} />
+          <AdminField label="Канонический URL" hint="Основной адрес страницы">
+            <input
+              className="admin-input"
+              value={page.canonical || ''}
+              onChange={(e) => setPageField('canonical', e.target.value)}
+            />
           </AdminField>
         </div>
         <div className="admin-grid-2">
-          <AdminField label="OG Title">
-            <input className="admin-input" value={page.ogTitle || ''} onChange={(e) => setPageField('ogTitle', e.target.value)} />
+          <AdminField label="Заголовок для соцсетей (Open Graph)">
+            <input
+              className="admin-input"
+              value={page.ogTitle || ''}
+              onChange={(e) => setPageField('ogTitle', e.target.value)}
+            />
           </AdminField>
           <ImageUploadField
-            label="OG Image"
+            label="Картинка для соцсетей"
             value={page.ogImage || ''}
             onChange={(url) => setPageField('ogImage', url)}
             bucket={uploadService.buckets.site}
           />
         </div>
-        <AdminField label="OG Description">
-          <textarea className="admin-textarea" rows={2} value={page.ogDescription || ''} onChange={(e) => setPageField('ogDescription', e.target.value)} />
+        <AdminField label="Описание для соцсетей">
+          <textarea
+            className="admin-textarea"
+            rows={2}
+            value={page.ogDescription || ''}
+            onChange={(e) => setPageField('ogDescription', e.target.value)}
+          />
         </AdminField>
       </section>
 
       <section className="admin-panel">
-        <h3>Глобальные настройки</h3>
-        <AdminField label="robots.txt">
-          <textarea className="admin-textarea" rows={4} value={seo.robots || ''} onChange={(e) => setGlobal('robots', e.target.value)} />
+        <h3>Общие настройки</h3>
+        <AdminField label="Файл robots.txt">
+          <textarea
+            className="admin-textarea"
+            rows={4}
+            value={seo.robots || ''}
+            onChange={(e) => setGlobal('robots', e.target.value)}
+          />
         </AdminField>
         <label className="admin-check">
-          <input type="checkbox" checked={Boolean(seo.sitemapEnabled)} onChange={(e) => setGlobal('sitemapEnabled', e.target.checked)} />
-          Sitemap включён
+          <input
+            type="checkbox"
+            checked={Boolean(seo.sitemapEnabled)}
+            onChange={(e) => setGlobal('sitemapEnabled', e.target.checked)}
+          />
+          Карта сайта (sitemap) включена
         </label>
-        <AdminField label="Schema.org (JSON-LD)">
-          <textarea className="admin-textarea" rows={4} value={seo.schemaOrg || ''} onChange={(e) => setGlobal('schemaOrg', e.target.value)} />
+        <AdminField label="Разметка Schema.org (JSON-LD)">
+          <textarea
+            className="admin-textarea"
+            rows={4}
+            value={seo.schemaOrg || ''}
+            onChange={(e) => setGlobal('schemaOrg', e.target.value)}
+          />
         </AdminField>
       </section>
 

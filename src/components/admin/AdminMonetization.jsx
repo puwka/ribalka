@@ -193,8 +193,8 @@ export function AdminPlansTab({ adminId }) {
               value={form.target_role}
               onChange={(e) => setForm({ ...form, target_role: e.target.value })}
             >
-              <option value="owner">owner</option>
-              <option value="user">user</option>
+              <option value="owner">Владелец</option>
+              <option value="user">Пользователь</option>
             </select>
           </label>
         </div>
@@ -204,7 +204,7 @@ export function AdminPlansTab({ adminId }) {
             checked={form.featured}
             onChange={(e) => setForm({ ...form, featured: e.target.checked })}
           />{' '}
-          Featured
+          Рекомендуемое размещение
         </label>
         <label>
           <input
@@ -212,7 +212,7 @@ export function AdminPlansTab({ adminId }) {
             checked={form.search_boost}
             onChange={(e) => setForm({ ...form, search_boost: e.target.checked })}
           />{' '}
-          Search boost
+          Продвижение в поиске
         </label>
         <label>
           <input
@@ -220,7 +220,7 @@ export function AdminPlansTab({ adminId }) {
             checked={form.mailing}
             onChange={(e) => setForm({ ...form, mailing: e.target.checked })}
           />{' '}
-          Mailing
+          Рассылка
         </label>
         <label>
           <input
