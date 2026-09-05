@@ -167,6 +167,21 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
   }
 
   const idempotenceKey = yookassa.newIdempotenceKey();
+
+  const userRes = await pool.query(
+    `select u.email, p.phone
+     from public.users u
+     left join public.profiles p on p.user_id = u.id
+     where u.id = $1`,
+    [userId]
+  );
+  const buyer = userRes.rows[0] || {};
+  if (!buyer.email && !buyer.phone) {
+    const err = new Error('Укажите email в профиле — он нужен для чека оплаты');
+    err.status = 400;
+    throw err;
+  }
+
   const { payment } = await yookassa.createPayment({
     amount: order.amount,
     currency: order.currency,
@@ -177,6 +192,8 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
       base_id: baseId,
       user_id: userId,
     },
+    customerEmail: buyer.email,
+    customerPhone: buyer.phone,
     idempotenceKey,
   });
 

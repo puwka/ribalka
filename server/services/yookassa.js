@@ -1,6 +1,7 @@
 /**
  * YooKassa API client (server-only).
  * Docs: https://yookassa.ru/developers/payment-acceptance/getting-started/quick-start
+ * Receipts (54-FZ): https://yookassa.ru/developers/payment-acceptance/receipts/54fz/yoomoney/basics
  */
 import { randomUUID } from 'node:crypto';
 
@@ -55,7 +56,7 @@ async function yooRequest(method, path, { body, idempotenceKey } = {}) {
     const message =
       data?.description || data?.message || data?.error || `YooKassa HTTP ${res.status}`;
     const err = new Error(message);
-    err.status = res.status;
+    err.status = res.status >= 400 && res.status < 500 ? 400 : res.status;
     err.details = data;
     console.error('[yookassa]', method, path, res.status, message);
     throw err;
@@ -64,15 +65,60 @@ async function yooRequest(method, path, { body, idempotenceKey } = {}) {
 }
 
 /**
- * Create one-stage payment with redirect confirmation.
- * @param {{
- *   amount: number|string,
- *   currency?: string,
- *   description: string,
- *   returnUrl: string,
- *   metadata: Record<string, string>,
- *   idempotenceKey?: string,
- * }} opts
+ * Build 54-FZ receipt. Required when shop has fiscalization enabled.
+ * VAT: 1 = без НДС (most common for USN services)
+ */
+export function buildReceipt({
+  amount,
+  currency = 'RUB',
+  description,
+  customerEmail,
+  customerPhone,
+}) {
+  const email = (customerEmail || '').trim();
+  let phone = String(customerPhone || '').replace(/\D/g, '');
+  if (phone.startsWith('8') && phone.length === 11) phone = `7${phone.slice(1)}`;
+  if (!email && !phone) {
+    const err = new Error('Для чека нужен email или телефон покупателя');
+    err.status = 400;
+    throw err;
+  }
+
+  const vatCode = Number(process.env.YOOKASSA_VAT_CODE || 1);
+  const taxSystem = process.env.YOOKASSA_TAX_SYSTEM_CODE
+    ? Number(process.env.YOOKASSA_TAX_SYSTEM_CODE)
+    : undefined;
+
+  const customer = {};
+  if (email) customer.email = email;
+  if (phone) customer.phone = phone;
+
+  const receipt = {
+    customer,
+    items: [
+      {
+        description: (description || 'Размещение рыболовной базы').slice(0, 128),
+        quantity: '1.00',
+        amount: {
+          value: Number(amount).toFixed(2),
+          currency: currency || 'RUB',
+        },
+        vat_code: vatCode,
+        payment_mode: 'full_payment',
+        payment_subject: 'service',
+      },
+    ],
+  };
+
+  if (Number.isFinite(taxSystem) && taxSystem > 0) {
+    receipt.tax_system_code = taxSystem;
+  }
+
+  return receipt;
+}
+
+/**
+ * Create one-stage payment with redirect confirmation + receipt (54-FZ).
  */
 export async function createPayment(opts) {
   const idempotenceKey = opts.idempotenceKey || randomUUID();
@@ -90,6 +136,15 @@ export async function createPayment(opts) {
     },
     description: (opts.description || 'Оплата').slice(0, 128),
     metadata: opts.metadata || {},
+    receipt:
+      opts.receipt ||
+      buildReceipt({
+        amount: opts.amount,
+        currency: opts.currency,
+        description: opts.description,
+        customerEmail: opts.customerEmail,
+        customerPhone: opts.customerPhone,
+      }),
   };
 
   const payment = await yooRequest('POST', '/payments', {
