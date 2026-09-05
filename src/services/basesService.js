@@ -261,10 +261,18 @@ async function listLocalForModeration(statusFilter) {
     .map((r) => normalizeModerationRow(r));
 }
 
-async function listRemoteForModeration(_statusFilter) {
-  // Moderation API endpoints — next iteration
+async function listRemoteForModeration(statusFilter) {
   if (!isRemoteDb()) return [];
-  return [];
+  try {
+    const qs =
+      statusFilter && statusFilter !== 'all'
+        ? `?status=${encodeURIComponent(statusFilter)}`
+        : '?status=all';
+    const rows = await api.get(`/api/bases/moderation${qs}`);
+    return (rows || []).map((r) => normalizeModerationRow(enrichRemote(r)));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchRemoteById(id) {
@@ -445,7 +453,32 @@ export const basesService = {
   async saveDraft(ownerId, form, existingId) {
     validateForm(form);
     if (isRemoteDb()) {
-      throw new ApiError('Сохранение баз через API — в следующем обновлении');
+      const payload = {
+        ...form,
+        images: String(form.imagesText || '')
+          .split(/\n/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        videos: String(form.videosText || '')
+          .split(/\n/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        services: String(form.servicesText || '')
+          .split(/[,;\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        social_links: {
+          vk: form.social_vk?.trim() || null,
+          telegram: form.social_telegram?.trim() || null,
+          max: form.social_max?.trim() || null,
+          other: form.social_other?.trim() || null,
+        },
+      };
+      const row = existingId
+        ? await api.patch(`/api/bases/${existingId}`, payload)
+        : await api.post('/api/bases', payload);
+      const ui = enrichRemote(row);
+      return { ...row, ...ui, images: ui.images, videos: ui.videos, services: ui.services };
     }
 
     const existing = existingId ? await basesLocalDb.getById(existingId) : null;
@@ -469,9 +502,21 @@ export const basesService = {
     return { ...record, ...toUi(record) };
   },
 
+  /**
+   * Start paid placement: navigate to checkout (API) or free submit (local / zero price).
+   */
+  async startPlacement(ownerId, baseId) {
+    if (isRemoteDb()) {
+      const { listingPaymentService } = await import('./listingPaymentService.js');
+      return listingPaymentService.checkout(baseId);
+    }
+    return { order: null, localSubmit: true, base: await this.submitForReview(ownerId, baseId) };
+  },
+
   async submitForReview(ownerId, baseId) {
     if (isRemoteDb()) {
-      throw new ApiError('Модерация баз через API — в следующем обновлении');
+      // Remote: payment flow sets status to pending after paid verify
+      throw new ApiError('Для размещения базы нужна оплата — откройте экран оплаты');
     }
 
     const row = await basesLocalDb.getById(baseId);
@@ -509,7 +554,8 @@ export const basesService = {
     }
 
     if (isRemoteDb()) {
-      throw new ApiError('Модерация баз через API — в следующем обновлении');
+      const row = await api.post(`/api/bases/${baseId}/moderate`, { action, reason });
+      return enrichRemote(row);
     }
 
     const row = await basesLocalDb.getById(baseId);

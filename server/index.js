@@ -8,6 +8,8 @@ import authRoutes from './routes/auth.js';
 import basesRoutes from './routes/bases.js';
 import newsRoutes from './routes/news.js';
 import uploadRoutes from './routes/uploads.js';
+import paymentsRoutes from './routes/payments.js';
+import yookassaRoutes from './routes/yookassa.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -31,6 +33,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bases', basesRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/yookassa', yookassaRoutes);
 app.use('/uploads', express.static(uploadDir));
 
 app.use((err, _req, res, _next) => {

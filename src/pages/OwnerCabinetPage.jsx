@@ -17,6 +17,12 @@ import {
   OwnerAdvertisingPanel,
   OwnerPaymentReturnPage,
 } from '../components/owner/OwnerMonetization';
+import {
+  OwnerListingCheckoutPage,
+  OwnerListingPaymentResultPage,
+  OwnerListingOrdersPanel,
+} from '../components/owner/ListingPayment';
+import { apiDataEnabled } from '../lib/apiClient';
 import '../components/auth/AuthShared.css';
 import '../components/bases/BaseListingForm.css';
 import '../components/owner/OwnerCharts.css';
@@ -277,6 +283,10 @@ function OwnerBases() {
   const submit = async (id) => {
     setError('');
     try {
+      if (apiDataEnabled) {
+        window.location.assign(`/owner/payment/${id}`);
+        return;
+      }
       await basesService.submitForReview(user.id, id);
       await load();
     } catch (err) {
@@ -352,7 +362,7 @@ function OwnerBases() {
                         Редактировать
                       </Link>
                       <button type="button" className="btn-primary" onClick={() => submit(b.id)}>
-                        На модерацию
+                        {apiDataEnabled ? 'Разместить / оплатить' : 'На модерацию'}
                       </button>
                     </>
                   )}
@@ -394,12 +404,17 @@ function OwnerBaseCreate() {
       <p className="cabinet-panel__lead">Заполните карточку и отправьте на модерацию</p>
       <BaseListingForm
         submitLabel="Сохранить черновик"
+        sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
         onSubmit={async (form) => {
           const saved = await basesService.saveDraft(user.id, form);
           navigate(`/owner/bases/${saved.id}/edit`);
         }}
         onSubmitAndSend={async (form) => {
           const saved = await basesService.saveDraft(user.id, form);
+          if (apiDataEnabled) {
+            navigate(`/owner/payment/${saved.id}`);
+            return;
+          }
           await basesService.submitForReview(user.id, saved.id);
           navigate('/owner/bases');
         }}
@@ -491,6 +506,7 @@ function OwnerBaseEdit() {
           key={record.updated_at || record.id}
           initialForm={initial}
           submitLabel="Сохранить"
+          sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
           onSubmit={async (form) => {
             const saved = await basesService.saveDraft(user.id, form, baseId);
             setRecord(saved);
@@ -499,6 +515,10 @@ function OwnerBaseEdit() {
           }}
           onSubmitAndSend={async (form) => {
             const saved = await basesService.saveDraft(user.id, form, baseId);
+            if (apiDataEnabled) {
+              navigate(`/owner/payment/${saved.id}`);
+              return;
+            }
             await basesService.submitForReview(user.id, saved.id);
             setMessage('Отправлено на модерацию');
             await load();
@@ -593,6 +613,7 @@ function OwnerReviews() {
 }
 
 function OwnerPayments() {
+  if (apiDataEnabled) return <OwnerListingOrdersPanel />;
   return <OwnerPaymentsPanel />;
 }
 
@@ -628,6 +649,8 @@ export default function OwnerCabinetPage() {
           <Route path="reviews" element={<OwnerReviews />} />
           <Route path="payments" element={<OwnerPayments />} />
           <Route path="payments/return" element={<OwnerPaymentReturnPage />} />
+          <Route path="payment/result/:orderId" element={<OwnerListingPaymentResultPage />} />
+          <Route path="payment/:baseId" element={<OwnerListingCheckoutPage />} />
           <Route path="subscription" element={<OwnerSubscription />} />
           <Route path="advertising" element={<OwnerAdvertising />} />
           {/* legacy redirects */}

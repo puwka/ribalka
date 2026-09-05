@@ -1,0 +1,99 @@
+.listing-pay__card {
+  border: 1px solid var(--color-border, #e2e5e9);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 16px 0;
+  background: var(--color-surface, #fff);
+  max-width: 480px;
+}
+
+.listing-pay__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--color-border, #eef0f2);
+}
+
+.listing-pay__row:last-child {
+  border-bottom: none;
+}
+
+.listing-pay__row span {
+  color: var(--color-text-muted, #6b7280);
+}
+
+.listing-pay__row--total {
+  margin-top: 4px;
+  padding-top: 12px;
+  font-size: 1.1rem;
+}
+
+.listing-pay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.listing-pay__note {
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6b7280);
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.listing-pay__status {
+  font-size: 1.05rem;
+  margin: 12px 0;
+}
+
+.listing-pay__ok {
+  color: #067647;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 12px 0 8px;
+}
+
+.listing-pay__table-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.listing-pay__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.listing-pay__table th,
+.listing-pay__table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border, #e2e5e9);
+  vertical-align: top;
+}
+
+.listing-pay__table th {
+  color: var(--color-text-muted, #6b7280);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .listing-pay__row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .listing-pay__actions {
+    flex-direction: column;
+  }
+
+  .listing-pay__actions .btn-primary,
+  .listing-pay__actions .btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+}

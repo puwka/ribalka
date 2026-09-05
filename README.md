@@ -65,3 +65,57 @@ npm run dev
 | `true` | JWT API | REST API | пока IndexedDB (отчёты, CMS, admin CRUD — в roadmap) |
 
 Supabase удалён; миграции перенесены в `database/migrations/`.
+
+## Подключение ЮKassa
+
+Оплата размещения базы — только через сервер (`server/services/yookassa.js`). Секретный ключ **никогда** не попадает во frontend.
+
+### 1. Получить ключи
+
+1. [ЮKassa](https://yookassa.ru) → личный кабинет магазина.
+2. **Shop ID** и **Секретный ключ** (для теста — тестовый магазин).
+3. Не публикуйте ключи в Git / `VITE_*`.
+
+### 2. ENV на сервере API
+
+```env
+PAYMENT_MODE=test
+YOOKASSA_SHOP_ID=...
+YOOKASSA_SECRET_KEY=...
+PUBLIC_SITE_URL=https://aktiv59.ru
+```
+
+### 3. Return URL
+
+После оплаты пользователь возвращается на:
+
+`https://ваш-домен/owner/payment/result/:orderId`
+
+Страница **не** считает оплату успешной сама — backend запрашивает статус у ЮKassa (`POST /api/payments/listing-orders/:id/verify`).
+
+### 4. Webhook
+
+В кабинете ЮKassa укажите HTTP-уведомления:
+
+`https://ваш-домен/api/yookassa/webhook`
+
+События: `payment.succeeded`, `payment.canceled` (и др.). Сервер дополнительно перепроверяет платёж через API.
+
+### 5. Цена размещения
+
+Админка → **Тарифы** → «Стоимость размещения базы». Хранится в `site_settings` (`base_listing`). Новые заказы берут актуальную цену; старые заказы **не пересчитываются**.
+
+### 6. Тест → production
+
+1. `PAYMENT_MODE=test` + тестовые ключи → проверьте оплату тестовой картой ЮKassa.
+2. Для боя: ключи боевого магазина и `PAYMENT_MODE=production`.
+3. Перезапустите API (`pm2 restart rybalka-api`).
+
+### 7. Миграция
+
+```bash
+npm run db:migrate
+```
+
+Добавляет `listing_orders` и `site_settings`.
+
