@@ -374,7 +374,7 @@ export default function ReportsPage() {
                 </button>
                 {formData.videos.map((v, i) => (
                   <div key={i} className="video-preview-item">
-                    Видео {i + 1}
+                    <iframe src={v} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: '100%', height: '200px', borderRadius: '12px' }}></iframe>
                     <button
                       type="button"
                       onClick={() =>

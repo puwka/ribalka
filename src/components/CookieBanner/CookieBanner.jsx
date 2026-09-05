@@ -6,10 +6,12 @@ export default function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false);
   const { data: settings } = useCmsSettings();
 
+  // Show banner after 1s if not accepted
   useEffect(() => {
     const hasAccepted = localStorage.getItem('cookieAccepted');
     if (!hasAccepted) {
-      setTimeout(() => setIsVisible(true), 1000);
+      const timer = setTimeout(() => setIsVisible(true), 1000);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -18,7 +20,7 @@ export default function CookieBanner() {
     setIsVisible(false);
   };
 
-  const openPrivacyPolicy = (e) => {
+  const openPrivacyPolicy = e => {
     e.preventDefault();
     e.stopPropagation();
     const button = document.getElementById('openPrivacy');
@@ -32,10 +34,10 @@ export default function CookieBanner() {
     'Мы используем файлы cookie для улучшения работы сайта. Продолжая использовать сайт, вы соглашаетесь с нашей';
 
   return (
-    <div className="cookie-banner">
+    <div className="cookie-banner cookie-banner--visible" role="alert" aria-live="polite">
       <div className="cookie-banner__content">
         <div className="cookie-banner__text">
-          <span className="cookie-icon">🍪</span>
+          <span className="cookie-icon" aria-hidden="true">🍪</span>
           <p>
             {cookieText}{' '}
             <a href="#privacy" className="cookie-link" onClick={openPrivacyPolicy}>
