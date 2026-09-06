@@ -12,11 +12,11 @@ router.get('/', requireAuth, requireAdmin, async (_req, res, next) => {
       `select u.id, u.email, u.primary_role, u.status, u.created_at, u.last_seen_at,
               p.display_name, p.phone, p.city,
               coalesce(
-                (select array_agg(r.code order by r.code)
+                (select array_agg(r.code::text order by r.code)
                  from public.user_roles ur
                  join public.roles r on r.id = ur.role_id
                  where ur.user_id = u.id),
-                array[u.primary_role]::text[]
+                array[u.primary_role::text]
               ) as roles
        from public.users u
        left join public.profiles p on p.user_id = u.id
