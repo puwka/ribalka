@@ -56,13 +56,13 @@ function Overview() {
   const unread = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     gamificationService.getProgress(user.id).then(setProgress);
     reportSocialService
       .listByAuthor(user.id)
       .then((rows) => setReports((rows || []).slice(0, 5)))
       .catch(() => setReports([]));
-  }, [user]);
+  }, [user?.id]);
 
   const recentReports = (reports || []).slice(0, 5);
   const recentBadges = (progress?.badges || []).slice(0, 4);
@@ -309,21 +309,22 @@ function ProfilePanel() {
 
 function ReportsPanel() {
   const { user } = useAuth();
+  const userId = user?.id;
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return undefined;
     let alive = true;
     (async () => {
       setLoading(true);
       try {
         let rows = [];
         if (reportSocialService.listByAuthor) {
-          rows = await reportSocialService.listByAuthor(user.id);
+          rows = await reportSocialService.listByAuthor(userId);
         } else {
           const all = await reportSocialService.list({});
-          rows = (all || []).filter((r) => String(r.authorId) === String(user.id));
+          rows = (all || []).filter((r) => String(r.authorId) === String(userId));
         }
         if (alive) setReports(rows || []);
       } catch {
@@ -335,7 +336,7 @@ function ReportsPanel() {
     return () => {
       alive = false;
     };
-  }, [user]);
+  }, [userId]);
 
   return (
     <div className="cabinet-panel">
@@ -375,35 +376,42 @@ function ReportsPanel() {
 }
 
 function AchievementsPanel() {
-  const { user, refresh } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [progress, setProgress] = useState(null);
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return undefined;
     let alive = true;
     (async () => {
       setLoading(true);
-      await gamificationService.recompute(user.id);
-      const [p, board] = await Promise.all([
-        gamificationService.getProgress(user.id),
-        gamificationService.getLeaderboard(10),
-      ]);
-      if (!alive) return;
-      setProgress(p);
-      setLeaders(board);
-      setLoading(false);
-      await refresh();
+      try {
+        await gamificationService.recompute(userId);
+        const [p, board] = await Promise.all([
+          gamificationService.getProgress(userId),
+          gamificationService.getLeaderboard(10),
+        ]);
+        if (!alive) return;
+        setProgress(p);
+        setLeaders(board);
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
     return () => {
       alive = false;
     };
-  }, [user]);
+  }, [userId]);
 
-  if (loading || !progress) {
+  if (loading && !progress) {
     return <div className="cabinet-panel">Считаем прогресс…</div>;
+  }
+
+  if (!progress) {
+    return <div className="cabinet-panel">Не удалось загрузить достижения</div>;
   }
 
   const unlocked = progress.items.filter((a) => a.unlocked);
