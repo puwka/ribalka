@@ -1,6 +1,5 @@
 import { cmsDb } from '../lib/cmsDb';
-import { supabase, supabaseDataEnabled } from '../lib/supabase';
-import { unwrap } from '../lib/apiError';
+import { api, apiDataEnabled } from '../lib/apiClient';
 import { assertAdmin } from '../lib/assertAdmin';
 import { DIRECTORY_PAGE_DEFAULTS } from '../data/directorySeed';
 
@@ -17,10 +16,10 @@ const DEFAULT_SETTINGS = {
   tagline: 'Всё о рыбалке и отдыхе в Пермском крае. Найдите своё идеальное место для незабываемого отдыха на природе.',
   logoUrl: '',
   faviconUrl: '/favicon.ico',
-  contactEmail: 'info@rybalka-perm.ru',
+  contactEmail: 'info@aktiv59.ru',
   contactPhone: '',
-  legalOgrnip: 'ОГРНИП 123456789012345',
-  legalInn: 'ИНН 123456789012',
+  legalOgrnip: '326595800114060',
+  legalInn: '590415452100',
   sponsors: [
     { label: 'cash-boom.live', url: 'https://cash-boom.live' },
     { label: 'Енот-мани', url: 'https://енот-мани.рф' },
@@ -186,23 +185,18 @@ function deepMerge(base, patch) {
 }
 
 async function remoteGetKv(key) {
-  if (!supabaseDataEnabled || !supabase) return null;
-  const row = unwrap(
-    await supabase.from('cms_kv').select('value').eq('key', key).maybeSingle()
-  );
-  return row?.value ?? null;
+  if (!apiDataEnabled) return null;
+  try {
+    const data = await api.get(`/api/cms/kv/${encodeURIComponent(key)}`);
+    return data?.value ?? null;
+  } catch {
+    return null;
+  }
 }
 
-async function remoteSetKv(key, value, adminId) {
-  if (!supabaseDataEnabled || !supabase) return value;
-  unwrap(
-    await supabase.from('cms_kv').upsert({
-      key,
-      value,
-      updated_by: adminId || null,
-      updated_at: new Date().toISOString(),
-    })
-  );
+async function remoteSetKv(key, value) {
+  if (!apiDataEnabled) return value;
+  await api.put(`/api/cms/kv/${encodeURIComponent(key)}`, { value });
   return value;
 }
 
@@ -218,7 +212,7 @@ export const cmsService = {
     await assertAdmin(adminId);
     const current = await this.getSettings();
     const next = deepMerge(current, patch);
-    await remoteSetKv('settings', next, adminId);
+    await remoteSetKv('settings', next);
     await cmsDb.setKv('settings', next);
     return next;
   },
@@ -234,7 +228,7 @@ export const cmsService = {
     await assertAdmin(adminId);
     const current = await this.getPage(pageKey);
     const next = deepMerge(current, patch);
-    await remoteSetKv(`page:${pageKey}`, next, adminId);
+    await remoteSetKv(`page:${pageKey}`, next);
     await cmsDb.setKv(`page:${pageKey}`, next);
     return next;
   },
@@ -248,7 +242,7 @@ export const cmsService = {
     await assertAdmin(adminId);
     const current = await this.getFooter();
     const next = deepMerge(current, patch);
-    await remoteSetKv('footer', next, adminId);
+    await remoteSetKv('footer', next);
     await cmsDb.setKv('footer', next);
     return next;
   },
@@ -267,7 +261,7 @@ export const cmsService = {
     await assertAdmin(adminId);
     const current = await this.getSeo();
     const next = deepMerge(current, patch);
-    await remoteSetKv('seo', next, adminId);
+    await remoteSetKv('seo', next);
     await cmsDb.setKv('seo', next);
     return next;
   },
@@ -276,7 +270,7 @@ export const cmsService = {
     await assertAdmin(adminId);
     const all = await this.getSeo();
     const next = deepMerge(all, { [path]: deepMerge(all[path] || {}, patch) });
-    await remoteSetKv('seo', next, adminId);
+    await remoteSetKv('seo', next);
     await cmsDb.setKv('seo', next);
     return next;
   },

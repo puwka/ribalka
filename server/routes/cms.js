@@ -160,4 +160,31 @@ router.put('/districts', requireAuth, requireAdmin, async (req, res, next) => {
   }
 });
 
+/** Generic CMS KV (settings, footer, seo, pages) — public read, admin write */
+router.get('/kv/:key', async (req, res, next) => {
+  try {
+    const key = String(req.params.key || '').trim();
+    if (!key) return res.status(400).json({ error: 'key required' });
+    const value = await getKv(key);
+    res.json({ value });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/kv/:key', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const key = String(req.params.key || '').trim();
+    if (!key) return res.status(400).json({ error: 'key required' });
+    const value = req.body?.value !== undefined ? req.body.value : req.body;
+    if (value === undefined) {
+      return res.status(400).json({ error: 'value required' });
+    }
+    await setKv(key, value, req.user.sub);
+    res.json({ value });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

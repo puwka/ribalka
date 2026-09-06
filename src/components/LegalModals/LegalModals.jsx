@@ -5,7 +5,7 @@ import './LegalModals.css';
 export default function LegalModals() {
   const [activeModal, setActiveModal] = useState(null);
   const { data: settings } = useCmsSettings();
-  const contactEmail = settings?.contactEmail || 'info@rybalka-perm.ru';
+  const contactEmail = settings?.contactEmail || 'info@aktiv59.ru';
 
   const openModal = (modalType) => {
     setActiveModal(modalType);
