@@ -20,7 +20,7 @@ export const DEFAULT_CONSTRUCTOR = {
 };
 
 export const DEFAULT_SERVICE_TARIFF = {
-  title: 'Тариф для сервисов',
+  title: 'Тариф справочника',
   amountPerMonth: 590,
   addonFrame: 100,
   enabled: true,

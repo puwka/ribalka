@@ -11,7 +11,8 @@ function toClientStatus(dbStatus) {
 }
 
 function toDbStatus(clientStatus) {
-  if (clientStatus === 'approved') return 'published';
+  if (clientStatus === 'approved' || clientStatus === 'published') return 'published';
+  if (clientStatus === 'hidden') return 'rejected';
   return clientStatus;
 }
 
@@ -70,12 +71,16 @@ router.get('/topics', async (req, res, next) => {
     const status = req.query.status || 'approved';
     const dbStatus = status === 'all' ? null : toDbStatus(status);
     const { rows } = await pool.query(
-      dbStatus
-        ? `select * from public.forum_topics where status = $1::public.content_status
+      dbStatus === 'published'
+        ? `select * from public.forum_topics
+           where status in ('published'::public.content_status, 'approved'::public.content_status)
            order by is_pinned desc, coalesce(last_message_at, created_at) desc`
-        : `select * from public.forum_topics
-           order by is_pinned desc, coalesce(last_message_at, created_at) desc`,
-      dbStatus ? [dbStatus] : []
+        : dbStatus
+          ? `select * from public.forum_topics where status = $1::public.content_status
+             order by is_pinned desc, coalesce(last_message_at, created_at) desc`
+          : `select * from public.forum_topics
+             order by is_pinned desc, coalesce(last_message_at, created_at) desc`,
+      dbStatus && dbStatus !== 'published' ? [dbStatus] : []
     );
     const names = await authorNames(rows.map((r) => r.author_id));
     res.json(rows.map((r) => mapTopic(r, names[r.author_id])));
@@ -111,7 +116,8 @@ router.get('/topics/:id', async (req, res, next) => {
 
     const isAdmin = (req.user?.roles || []).includes('admin');
     const isAuthor = req.user?.sub === topic.author_id;
-    if (!isAdmin && topic.status !== 'published' && !isAuthor) {
+    const isPublic = topic.status === 'published' || topic.status === 'approved';
+    if (!isAdmin && !isPublic && !isAuthor) {
       return res.status(404).json({ error: 'Тема недоступна' });
     }
 
@@ -158,18 +164,56 @@ router.post('/topics', requireAuth, async (req, res, next) => {
 
 router.patch('/topics/:id/moderate', requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const status = toDbStatus(req.body?.status);
-    if (!['pending', 'published', 'rejected', 'archived', 'draft'].includes(status)) {
+    const action = req.body?.action;
+    let status = toDbStatus(req.body?.status);
+    const sets = ['updated_at = now()'];
+    const params = [req.params.id];
+
+    if (action === 'lock') {
+      sets.push('is_locked = true');
+      status = status || 'published';
+    } else if (action === 'unlock') {
+      sets.push('is_locked = false');
+    } else if (action === 'pin') {
+      sets.push('is_pinned = true');
+    } else if (action === 'unpin') {
+      sets.push('is_pinned = false');
+    }
+
+    if (status) {
+      if (!['pending', 'published', 'rejected', 'archived', 'draft', 'approved'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+      params.push(status);
+      sets.push(`status = $${params.length}::public.content_status`);
+    }
+
+    const { rows } = await pool.query(
+      `update public.forum_topics set ${sets.join(', ')} where id = $1 returning *`,
+      params
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    const names = await authorNames([rows[0].author_id]);
+    res.json(mapTopic(rows[0], names[rows[0].author_id]));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/messages/:id/moderate', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const status = req.body?.status;
+    if (!['pending', 'approved', 'rejected', 'hidden'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
     const { rows } = await pool.query(
-      `update public.forum_topics set status = $2::public.content_status, updated_at = now()
+      `update public.forum_messages set status = $2::public.moderation_status, updated_at = now()
        where id = $1 returning *`,
       [req.params.id, status]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
     const names = await authorNames([rows[0].author_id]);
-    res.json(mapTopic(rows[0], names[rows[0].author_id]));
+    res.json(mapMessage(rows[0], names[rows[0].author_id]));
   } catch (err) {
     next(err);
   }

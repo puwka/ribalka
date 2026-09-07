@@ -34,7 +34,11 @@ export function mapBaseToUi(row, rels = {}) {
     name: row.name,
     short: row.short_description ?? '',
     description: row.description ?? '',
-    price: row.price_label ?? null,
+    price: row.price_label
+      || (row.price_from != null && Number(row.price_from) > 0
+        ? `от ${Number(row.price_from).toLocaleString('ru-RU')} ₽`
+        : null),
+    price_from: row.price_from ?? null,
     services,
     fish: row.fish_species ?? '',
     address: row.address ?? '',

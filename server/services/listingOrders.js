@@ -2,9 +2,10 @@ import { pool } from '../db.js';
 import * as yookassa from './yookassa.js';
 
 const SETTINGS_KEY = 'base_listing';
+const BASE_CONSTRUCTOR_KEY = 'base_listing_constructor';
 const DEFAULT_LISTING = {
-  title: 'Размещение рыболовной базы',
-  amount: 5000,
+  title: 'Тариф Конструктор',
+  amount: 2900,
   currency: 'RUB',
   enabled: true,
 };
@@ -26,7 +27,7 @@ const DIRECTORY_DEFAULTS = {
     enabled: true,
   },
   service: {
-    title: 'Тариф для сервисов',
+    title: 'Тариф справочника',
     amountPerMonth: 590,
     addonFrame: 100,
     currency: 'RUB',
@@ -130,63 +131,89 @@ function normalizeServiceSettings(raw = {}) {
 }
 
 export async function getListingPriceSettings() {
-  return readSiteSetting(SETTINGS_KEY, DEFAULT_LISTING);
+  const [ctorRaw, legacyCtor, flat] = await Promise.all([
+    readSiteSettingRaw(BASE_CONSTRUCTOR_KEY),
+    readSiteSettingRaw('directory_listing_constructor'),
+    readSiteSettingRaw(SETTINGS_KEY),
+  ]);
+  const source =
+    Object.keys(ctorRaw).length > 0
+      ? ctorRaw
+      : Object.keys(legacyCtor).length > 0
+        ? legacyCtor
+        : Object.keys(flat).length > 0 && flat.baseAmount != null
+          ? flat
+          : null;
+
+  if (source) {
+    const ctor = normalizeConstructorSettings(source);
+    return {
+      ...ctor,
+      title: ctor.title,
+      amount: ctor.baseAmount,
+      currency: 'RUB',
+      enabled: ctor.enabled,
+      kind: 'constructor',
+    };
+  }
+
+  const simple = await readSiteSetting(SETTINGS_KEY, DEFAULT_LISTING);
+  return { ...simple, kind: 'flat' };
 }
 
 export async function saveListingPriceSettings(adminId, input) {
+  if (input?.baseAmount != null || input?.addonTop != null || input?.kind === 'constructor') {
+    const value = normalizeConstructorSettings(input);
+    await writeJsonSetting(BASE_CONSTRUCTOR_KEY, adminId, value);
+    await writeSiteSetting(
+      SETTINGS_KEY,
+      adminId,
+      { title: value.title, amount: value.baseAmount, enabled: value.enabled },
+      DEFAULT_LISTING
+    );
+    return getListingPriceSettings();
+  }
   return writeSiteSetting(SETTINGS_KEY, adminId, input, DEFAULT_LISTING);
 }
 
 export async function getDirectoryListingPrices() {
-  const [constructorRaw, serviceRaw, shopLegacy] = await Promise.all([
-    readSiteSettingRaw('directory_listing_constructor'),
-    readSiteSettingRaw('directory_listing_service'),
-    readSiteSettingRaw('directory_listing_shop'),
-  ]);
-
-  const constructor =
-    Object.keys(constructorRaw).length > 0
-      ? normalizeConstructorSettings(constructorRaw)
-      : normalizeConstructorSettings({
-          ...DIRECTORY_DEFAULTS.constructor,
-          baseAmount: Number(shopLegacy.amount) || DIRECTORY_DEFAULTS.constructor.baseAmount,
-          title: shopLegacy.title || DIRECTORY_DEFAULTS.constructor.title,
-        });
-
+  const serviceRaw = await readSiteSettingRaw('directory_listing_service');
   const service = normalizeServiceSettings(
     Object.keys(serviceRaw).length ? serviceRaw : DIRECTORY_DEFAULTS.service
   );
 
   return {
-    constructor,
     service,
+    directory: service,
     shop: {
-      title: constructor.title,
-      amount: constructor.baseAmount,
+      title: service.title,
+      amount: service.amountPerMonth,
       currency: 'RUB',
-      enabled: constructor.enabled,
+      enabled: service.enabled,
     },
     guide: {
-      title: constructor.title,
-      amount: constructor.baseAmount,
+      title: service.title,
+      amount: service.amountPerMonth,
       currency: 'RUB',
-      enabled: constructor.enabled,
+      enabled: service.enabled,
     },
+    constructor: null,
   };
 }
 
 export async function saveDirectoryListingPrice(adminId, kind, input) {
-  if (kind === 'constructor' || kind === 'shop' || kind === 'guide') {
-    const value = normalizeConstructorSettings(input);
-    await writeJsonSetting('directory_listing_constructor', adminId, value);
-    return value;
-  }
-  if (kind === 'service') {
-    const value = normalizeServiceSettings(input);
+  if (kind === 'service' || kind === 'directory' || kind === 'shop' || kind === 'guide') {
+    const value = normalizeServiceSettings({
+      ...input,
+      title: input.title || 'Тариф справочника',
+    });
     await writeJsonSetting('directory_listing_service', adminId, value);
     return value;
   }
-  const err = new Error('Неизвестный тип: constructor | service');
+  if (kind === 'constructor') {
+    return saveListingPriceSettings(adminId, { ...input, kind: 'constructor' });
+  }
+  const err = new Error('Неизвестный тип: service | constructor');
   err.status = 400;
   throw err;
 }

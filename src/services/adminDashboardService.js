@@ -1,6 +1,7 @@
 import { localAuthStore } from '../lib/localAuthStore';
 import { supabase, supabaseDataEnabled } from '../lib/supabase';
 import { unwrap } from '../lib/apiError';
+import { api, apiDataEnabled } from '../lib/apiClient';
 import { basesService } from './basesService';
 import { reportSocialService } from './reportSocialService';
 import { forumService } from './forumService';
@@ -10,8 +11,17 @@ import { plansService } from './plansService';
 import { bookingsDb } from '../lib/bookingsDb';
 import { catalogStats } from '../lib/catalogSeed';
 import { auditService } from './auditService';
+import { listingPaymentService } from './listingPaymentService';
 
 async function countUsers() {
+  if (apiDataEnabled) {
+    try {
+      const rows = await api.get('/api/users');
+      return Array.isArray(rows) ? rows.length : 0;
+    } catch {
+      return 0;
+    }
+  }
   if (supabaseDataEnabled && supabase) {
     const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
     return count || 0;
@@ -21,6 +31,14 @@ async function countUsers() {
 
 async function countNewUsers(days = 7) {
   const since = new Date(Date.now() - days * 86400000).toISOString();
+  if (apiDataEnabled) {
+    try {
+      const rows = await api.get('/api/users');
+      return (rows || []).filter((u) => String(u.created_at || '') >= since).length;
+    } catch {
+      return 0;
+    }
+  }
   if (supabaseDataEnabled && supabase) {
     const { count } = await supabase
       .from('users')
@@ -46,9 +64,36 @@ export const adminDashboardService = {
       ]);
 
     const waters = catalogStats();
-    const owners = supabaseDataEnabled
-      ? 0
-      : localAuthStore.listUsersForAdmin().filter((u) => u.primary_role === 'owner').length;
+    let owners = 0;
+    let revenue = 0;
+    let paymentsTotal = payments.length;
+
+    if (apiDataEnabled) {
+      try {
+        const users = await api.get('/api/users');
+        owners = (users || []).filter(
+          (u) => u.primary_role === 'owner' || (u.roles || []).includes('owner')
+        ).length;
+      } catch {
+        owners = 0;
+      }
+      try {
+        const orders = await listingPaymentService.listAdmin({});
+        paymentsTotal = orders.length;
+        revenue = orders
+          .filter((o) => o.status === 'paid')
+          .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+      } catch {
+        /* keep payments from paymentService */
+      }
+    } else {
+      owners = supabaseDataEnabled
+        ? 0
+        : localAuthStore.listUsersForAdmin().filter((u) => u.primary_role === 'owner').length;
+      revenue = payments
+        .filter((p) => p.status === 'succeeded')
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    }
 
     let bookings = [];
     try {
@@ -56,10 +101,6 @@ export const adminDashboardService = {
     } catch {
       bookings = [];
     }
-
-    const revenue = payments
-      .filter((p) => p.status === 'succeeded')
-      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
     const activePlans = plans.filter((p) => p.is_active).length;
 
@@ -76,7 +117,7 @@ export const adminDashboardService = {
       pendingAds: ads.length,
       bookingsTotal: bookings.length,
       bookingsPending: bookings.filter((b) => b.status === 'pending').length,
-      paymentsTotal: payments.length,
+      paymentsTotal,
       revenue,
       activePlans,
     };

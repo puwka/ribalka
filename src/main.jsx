@@ -7,10 +7,21 @@ import App from './App.jsx';
 registerSW({
   immediate: true,
   onNeedRefresh(updateSW) {
-    // Apply new build without asking user to reinstall the PWA
     updateSW(true);
   },
+  onOfflineReady() {
+    /* PWA ready */
+  },
 });
+
+if (typeof window !== 'undefined') {
+  let refreshing = false;
+  navigator.serviceWorker?.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

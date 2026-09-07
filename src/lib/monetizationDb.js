@@ -4,7 +4,7 @@
 
 const DB_NAME = 'rybalka_monetization_db';
 const DB_VERSION = 1;
-const SEEDED_KEY = 'rybalka_monetization_seeded_v1';
+const SEEDED_KEY = 'rybalka_monetization_seeded_v2';
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -65,76 +65,45 @@ async function withStore(name, mode, fn) {
 
 export const DEFAULT_PLANS = [
   {
-    id: 'plan_owner_basic',
-    code: 'owner_basic',
-    name: 'База — Старт',
-    description: 'Один объект и базовые бронирования',
-    price_month: 990,
-    price_year: 9900,
+    id: 'plan_owner_constructor',
+    code: 'owner_constructor',
+    name: 'Конструктор',
+    description:
+      'Размещение платной базы: 1 фото и 1 видео в базе тарифа, опции ТОП / рамка / доп. медиа',
+    price_month: 2900,
+    price_year: 24360,
     currency: 'RUB',
     period_days_month: 30,
     period_days_year: 365,
-    discount_year_percent: 17,
-    features: ['1 база', 'Бронирования', 'Базовая статистика', 'Ответы на отзывы'],
-    limits: { bases: 1, ads_active: 1, featured: false, search_boost: false, mailing: false },
+    discount_year_percent: 30,
+    features: [
+      'Размещение базы на сайте',
+      '1 фото и 1 видео в базе',
+      'Опции: ТОП, жёлтая рамка, доп. медиа',
+      'Скидки при оплате за 3 / 6 / 12 мес.',
+    ],
+    limits: { bases: 5, ads_active: 0, featured: false, search_boost: false, mailing: false },
     target_role: 'owner',
     is_active: true,
     sort_order: 10,
-  },
-  {
-    id: 'plan_owner_pro',
-    code: 'owner_pro',
-    name: 'База — Про',
-    description: 'Несколько баз, продвижение и расширенная аналитика',
-    price_month: 2490,
-    price_year: 23900,
-    currency: 'RUB',
-    period_days_month: 30,
-    period_days_year: 365,
-    discount_year_percent: 20,
-    features: [
-      'До 5 баз',
-      'Приоритет в поиске',
-      'Расширенная аналитика',
-      '2 активные рекламы',
-      'Featured-слот',
-    ],
-    limits: { bases: 5, ads_active: 2, featured: true, search_boost: true, mailing: true },
-    target_role: 'owner',
-    is_active: true,
-    sort_order: 20,
-  },
-  {
-    id: 'plan_user_plus',
-    code: 'user_plus',
-    name: 'Рыболов Plus',
-    description: 'Расширенные уведомления и дайджесты для пользователей',
-    price_month: 199,
-    price_year: 1990,
-    currency: 'RUB',
-    period_days_month: 30,
-    period_days_year: 365,
-    discount_year_percent: 16,
-    features: ['Email-дайджест', 'Приоритет поддержки', 'Бейдж Plus'],
-    limits: { bases: 0, ads_active: 0, featured: false, search_boost: false, mailing: false },
-    target_role: 'user',
-    is_active: true,
-    sort_order: 5,
   },
 ];
 
 async function ensureSeeded() {
   if (localStorage.getItem(SEEDED_KEY) === '1') return;
-  const count = await withStore('plans', 'readonly', (store) => reqToPromise(store.count()));
-  if (count === 0) {
-    const now = new Date().toISOString();
-    await withStore('plans', 'readwrite', async (store) => {
-      for (const p of DEFAULT_PLANS) {
-        store.put({ ...p, created_at: now, updated_at: now });
+  const now = new Date().toISOString();
+  await withStore('plans', 'readwrite', async (store) => {
+    const existing = await reqToPromise(store.getAll());
+    for (const old of existing) {
+      if (old.target_role === 'owner' || String(old.code || '').startsWith('owner_')) {
+        store.delete(old.id);
       }
-      return Promise.resolve();
-    });
-  }
+    }
+    for (const p of DEFAULT_PLANS) {
+      store.put({ ...p, created_at: now, updated_at: now });
+    }
+    return Promise.resolve();
+  });
   localStorage.setItem(SEEDED_KEY, '1');
 }
 

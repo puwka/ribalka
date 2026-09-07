@@ -87,6 +87,11 @@ export default function AdminDistrictsSection() {
     await persist(items.filter((d) => d.id !== id));
   };
 
+  const clearAll = async () => {
+    if (!window.confirm('Удалить все районы из списка? Фильтр на сайте очистится.')) return;
+    await persist([]);
+  };
+
   const toggle = async (id) => {
     await persist(items.map((d) => (d.id === id ? { ...d, active: !d.active } : d)));
   };
@@ -120,6 +125,11 @@ export default function AdminDistrictsSection() {
           <button type="button" className="admin-btn admin-btn--primary" disabled={saving} onClick={add}>
             Добавить
           </button>
+          {items.length > 0 && (
+            <button type="button" className="admin-btn admin-btn--danger" disabled={saving} onClick={clearAll}>
+              Удалить все
+            </button>
+          )}
         </div>
 
         {items.length === 0 ? (

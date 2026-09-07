@@ -102,7 +102,7 @@ export default function DirectoryCategoryPage() {
           </div>
         )}
 
-        <DirectoryPricingForm defaultKind={categoryMeta.id === 'service' ? 'service' : 'constructor'} />
+        <DirectoryPricingForm />
       </div>
     </div>
   );

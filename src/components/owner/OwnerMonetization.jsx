@@ -69,11 +69,10 @@ export function OwnerSubscriptionPanel() {
 
   return (
     <div className="cabinet-panel mon-panel">
-      <h2>Подписка и тарифы</h2>
+      <h2>Тарифы размещения</h2>
       <p className="cabinet-panel__lead">
-        Текущий тариф:{' '}
-        <strong>{sub?.plan_code || 'нет'}</strong>
-        {sub ? ` · ${sub.status} · до ${formatDate(sub.current_period_end)}` : ''}
+        Актуальный тариф для платных баз — <strong>Конструктор</strong> (от 2900 ₽/мес). Оплата
+        размещения конкретной базы — в карточке базы → «Оплатить размещение».
       </p>
       {error && <div className="auth-error">{error}</div>}
       {message && <div className="auth-success">{message}</div>}

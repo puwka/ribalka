@@ -215,8 +215,45 @@ export default function AdminWatersSection() {
                   </AdminField>
                 </div>
 
+                <AdminField label="Краткое описание (под названием в карточке)">
+                  <textarea
+                    className="admin-textarea"
+                    rows={2}
+                    value={form.short_description}
+                    onChange={(e) => setField('short_description', e.target.value)}
+                    placeholder="1–2 предложения для карточки в каталоге"
+                  />
+                </AdminField>
+
                 <AdminField label="Описание">
                   <textarea className="admin-textarea" rows={4} value={form.description} onChange={(e) => setField('description', e.target.value)} />
+                </AdminField>
+
+                <div className="admin-grid-2">
+                  <AdminField label="Телефон">
+                    <input className="admin-input" value={form.phone || ''} onChange={(e) => setField('phone', e.target.value)} placeholder="+7 …" />
+                  </AdminField>
+                  <AdminField label="Часы работы">
+                    <input className="admin-input" value={form.work_hours} onChange={(e) => setField('work_hours', e.target.value)} />
+                  </AdminField>
+                </div>
+
+                <AdminField label="Услуги и инфраструктура" hint="Через запятую">
+                  <textarea
+                    className="admin-textarea"
+                    rows={2}
+                    value={form.servicesText || ''}
+                    onChange={(e) => setField('servicesText', e.target.value)}
+                    placeholder="Баня, беседки, лодки…"
+                  />
+                </AdminField>
+
+                <AdminField label="Как добраться">
+                  <textarea className="admin-textarea" rows={3} value={form.conditions} onChange={(e) => setField('conditions', e.target.value)} />
+                </AdminField>
+
+                <AdminField label="Примечания">
+                  <textarea className="admin-textarea" rows={2} value={form.features} onChange={(e) => setField('features', e.target.value)} />
                 </AdminField>
 
                 <div className="admin-grid-2">
@@ -265,10 +302,10 @@ export default function AdminWatersSection() {
 
                 {form.type === 'paid' && (
                   <div className="admin-grid-2">
-                    <AdminField label="Цена (текст)">
+                    <AdminField label="Цена (текст на карточке)" hint="Например: от 1500 ₽/сутки">
                       <input className="admin-input" value={form.price_label} onChange={(e) => setField('price_label', e.target.value)} />
                     </AdminField>
-                    <AdminField label="Цена от (число)">
+                    <AdminField label="Цена от (число)" hint="Если текст пустой — на карточке будет «от N ₽»">
                       <input className="admin-input" type="number" value={form.price_from} onChange={(e) => setField('price_from', e.target.value)} />
                     </AdminField>
                   </div>

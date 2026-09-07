@@ -5,6 +5,7 @@
 
 import { localAuthStore } from '../lib/localAuthStore';
 import { supabase, supabaseDataEnabled } from '../lib/supabase';
+import { api, apiDataEnabled } from '../lib/apiClient';
 import { emailOutbox } from './email/emailOutbox';
 
 export const NOTIFICATION_TYPES = {
@@ -134,8 +135,14 @@ export const notificationService = {
     return item;
   },
 
-  markRead(userId, id) {
-    if (supabaseDataEnabled && supabase) {
+  async markRead(userId, id) {
+    if (apiDataEnabled) {
+      try {
+        await api.patch(`/api/notifications/${encodeURIComponent(id)}/read`, {});
+      } catch {
+        /* still update local mirror */
+      }
+    } else if (supabaseDataEnabled && supabase) {
       void supabase.from('notifications').update({ is_read: true }).eq('id', id).eq('user_id', userId);
     }
     try {
@@ -145,8 +152,14 @@ export const notificationService = {
     }
   },
 
-  markAllRead(userId) {
-    if (supabaseDataEnabled && supabase) {
+  async markAllRead(userId) {
+    if (apiDataEnabled) {
+      try {
+        await api.post('/api/notifications/read-all', {});
+      } catch {
+        /* still update local mirror */
+      }
+    } else if (supabaseDataEnabled && supabase) {
       void supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
     }
     try {

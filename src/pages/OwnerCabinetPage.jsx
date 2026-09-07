@@ -10,11 +10,9 @@ import {
 } from '../services/ownerDashboardService';
 import BaseListingForm, { statusLabel } from '../components/bases/BaseListingForm';
 import { LineChart, PeriodFilters } from '../components/owner/OwnerCharts';
-import OwnerBookingsPanel from './OwnerBookingsPanel';
 import {
   OwnerSubscriptionPanel,
   OwnerPaymentsPanel,
-  OwnerAdvertisingPanel,
   OwnerPaymentReturnPage,
 } from '../components/owner/OwnerMonetization';
 import {
@@ -40,16 +38,14 @@ const OWNER_NAV = [
     items: [
       { to: '/owner/bases', label: 'Мои базы' },
       { to: '/owner/bases/new', label: 'Добавить базу' },
-      { to: '/owner/bookings', label: 'Бронирования' },
       { to: '/owner/reviews', label: 'Отзывы' },
     ],
   },
   {
     title: 'Монетизация',
     items: [
-      { to: '/owner/subscription', label: 'Подписка' },
+      { to: '/owner/subscription', label: 'Тарифы' },
       { to: '/owner/payments', label: 'Платежи' },
-      { to: '/owner/advertising', label: 'Реклама' },
     ],
   },
 ];
@@ -621,15 +617,11 @@ function OwnerSubscription() {
   return <OwnerSubscriptionPanel />;
 }
 
-function OwnerAdvertising() {
-  return <OwnerAdvertisingPanel />;
-}
-
 function OwnerLayout() {
   return (
     <CabinetShell
       title="Кабинет владельца"
-      subtitle="Базы, бронирования и монетизация"
+      subtitle="Базы, тарифы и монетизация"
       navGroups={OWNER_NAV}
     />
   );
@@ -644,7 +636,7 @@ export default function OwnerCabinetPage() {
           <Route path="bases" element={<OwnerBases />} />
           <Route path="bases/new" element={<OwnerBaseCreate />} />
           <Route path="bases/:baseId/edit" element={<OwnerBaseEdit />} />
-          <Route path="bookings" element={<OwnerBookingsPanel />} />
+          <Route path="bookings" element={<Navigate to="/owner" replace />} />
           <Route path="analytics" element={<OwnerAnalytics />} />
           <Route path="reviews" element={<OwnerReviews />} />
           <Route path="payments" element={<OwnerPayments />} />
@@ -652,11 +644,11 @@ export default function OwnerCabinetPage() {
           <Route path="payment/result/:orderId" element={<OwnerListingPaymentResultPage />} />
           <Route path="payment/:baseId" element={<OwnerListingCheckoutPage />} />
           <Route path="subscription" element={<OwnerSubscription />} />
-          <Route path="advertising" element={<OwnerAdvertising />} />
+          <Route path="advertising" element={<Navigate to="/owner" replace />} />
           {/* legacy redirects */}
           <Route path="stats" element={<Navigate to="/owner/analytics" replace />} />
           <Route path="plan" element={<Navigate to="/owner/subscription" replace />} />
-          <Route path="ads" element={<Navigate to="/owner/advertising" replace />} />
+          <Route path="ads" element={<Navigate to="/owner" replace />} />
           <Route path="*" element={<Navigate to="/owner" replace />} />
         </Route>
       </Routes>

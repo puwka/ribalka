@@ -124,12 +124,14 @@ function emptyWaterForm() {
     type: 'paid',
     price_label: '',
     price_from: '',
+    phone: '',
     fish_species: '',
     conditions: '',
     features: '',
     work_hours: '',
     rules: '',
     access: '',
+    servicesText: '',
     imagesText: '',
     videosText: '',
     seo_title: '',
@@ -158,6 +160,10 @@ function formToRecord(form, existing) {
       .map((s) => s.trim())
       .filter(Boolean)
   );
+  const services = String(form.servicesText || '')
+    .split(/[,;\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   return {
     id: existing?.id || `water-${crypto.randomUUID().slice(0, 8)}`,
@@ -173,6 +179,7 @@ function formToRecord(form, existing) {
     address: form.address?.trim() || '',
     lat,
     lng,
+    phone: form.phone?.trim() || '',
     price_label: form.price_label?.trim() || null,
     price_from: form.price_from === '' ? null : Number(String(form.price_from).replace(',', '.')),
     fish_species: form.fish_species?.trim() || null,
@@ -181,6 +188,7 @@ function formToRecord(form, existing) {
     work_hours: form.work_hours?.trim() || null,
     rules: form.rules?.trim() || null,
     access: form.access?.trim() || null,
+    services,
     images,
     videos,
     seo_title: form.seo_title?.trim() || null,
@@ -194,6 +202,9 @@ function formToRecord(form, existing) {
 
 function recordToForm(record) {
   const { lat, lng } = resolveLatLng(record);
+  const services = Array.isArray(record.services)
+    ? record.services.map((s) => (typeof s === 'string' ? s : s?.name)).filter(Boolean)
+    : [];
   return {
     name: record.name || '',
     slug: record.slug || '',
@@ -206,12 +217,14 @@ function recordToForm(record) {
     type: record.type || 'paid',
     price_label: record.price_label || '',
     price_from: record.price_from ?? '',
+    phone: record.phone || '',
     fish_species: record.fish_species || '',
     conditions: record.conditions || '',
     features: record.features || '',
     work_hours: record.work_hours || '',
     rules: record.rules || '',
     access: record.access || '',
+    servicesText: services.join(', '),
     imagesText: (record.images || []).join('\n'),
     videosText: (record.videos || []).join('\n'),
     seo_title: record.seo_title || '',

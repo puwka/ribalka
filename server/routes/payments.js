@@ -47,9 +47,19 @@ router.put('/listing-price', requireAuth, requireAdmin, async (req, res, next) =
   }
 });
 
-router.get('/directory-prices', requireAuth, requireAdmin, async (_req, res, next) => {
+router.get('/directory-prices', async (_req, res, next) => {
   try {
     res.json(await listingOrders.getDirectoryListingPrices());
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Public constructor tariff for base owners (read) */
+router.get('/listing-price-public', async (_req, res, next) => {
+  try {
+    const settings = await listingOrders.getListingPriceSettings();
+    res.json(settings);
   } catch (err) {
     next(err);
   }

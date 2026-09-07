@@ -251,12 +251,11 @@ export const forumService = {
       if (!statusMap[action] && !['lock', 'unlock', 'pin', 'unpin'].includes(action)) {
         throw new ApiError('Неизвестное действие');
       }
-      const status = statusMap[action] || 'approved';
+      const payload = { note };
+      if (statusMap[action]) payload.status = statusMap[action];
+      if (['lock', 'unlock', 'pin', 'unpin'].includes(action)) payload.action = action;
       return publicTopic(
-        await api.patch(`/api/forum/topics/${encodeURIComponent(topicId)}/moderate`, {
-          status,
-          note,
-        }),
+        await api.patch(`/api/forum/topics/${encodeURIComponent(topicId)}/moderate`, payload),
         null
       );
     }
@@ -299,10 +298,32 @@ export const forumService = {
       const rows = await api.get(
         `/api/forum/topics/moderation?status=${encodeURIComponent(status || 'pending')}`
       );
-      return (rows || []).map((t) => publicTopic(t, null));
+      return (rows || []).map((t) => ({ ...publicTopic(t, null), _type: 'topic' }));
     }
     let rows = await socialDb.listTopics();
     if (status !== 'all') rows = rows.filter((t) => t.status === status);
-    return rows.map((t) => publicTopic(t, null));
+    return rows.map((t) => ({ ...publicTopic(t, null), _type: 'topic' }));
+  },
+
+  async moderateMessage(adminId, messageId, { action }) {
+    await assertAdmin(adminId);
+    if (apiDataEnabled) {
+      const statusMap = { approve: 'approved', reject: 'rejected', hide: 'hidden' };
+      const status = statusMap[action];
+      if (!status) throw new ApiError('Неизвестное действие');
+      return publicMessage(
+        await api.patch(`/api/forum/messages/${encodeURIComponent(messageId)}/moderate`, {
+          status,
+        }),
+        null
+      );
+    }
+    const msg = await socialDb.getMessage(messageId);
+    if (!msg) throw new ApiError('Сообщение не найдено');
+    if (action === 'approve') msg.status = CONTENT_STATUS.APPROVED;
+    else if (action === 'reject' || action === 'hide') msg.status = CONTENT_STATUS.HIDDEN;
+    else throw new ApiError('Неизвестное действие');
+    await socialDb.putMessage(msg);
+    return publicMessage(msg, null);
   },
 };

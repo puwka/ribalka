@@ -37,12 +37,12 @@ export default function NotificationCenter() {
   if (!isAuthenticated || !user) return null;
 
   const markOne = async (id) => {
-    notificationService.markRead(user.id, id);
+    await notificationService.markRead(user.id, id);
     await refresh();
   };
 
   const markAll = async () => {
-    notificationService.markAllRead(user.id);
+    await notificationService.markAllRead(user.id);
     await refresh();
   };
 

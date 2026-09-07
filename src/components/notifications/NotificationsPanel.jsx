@@ -58,13 +58,13 @@ export default function NotificationsPanel() {
   useEffect(load, [user]);
 
   const markOne = async (id) => {
-    notificationService.markRead(user.id, id);
+    await notificationService.markRead(user.id, id);
     load();
     await refresh();
   };
 
   const markAll = async () => {
-    notificationService.markAllRead(user.id);
+    await notificationService.markAllRead(user.id);
     load();
     await refresh();
   };

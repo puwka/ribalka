@@ -49,6 +49,9 @@ export default function BaseCard({ item, onClick, linkToDetail = true }) {
         </div>
 
         {item.price && <div className="base-card__price">{item.price}</div>}
+        {!item.price && item.price_from != null && Number(item.price_from) > 0 && (
+          <div className="base-card__price">от {Number(item.price_from).toLocaleString('ru-RU')} ₽</div>
+        )}
 
         {weather && (
           <div className="base-card__weather-mini">

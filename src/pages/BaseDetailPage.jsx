@@ -6,7 +6,6 @@ import { useAuth } from '../components/auth/AuthContext';
 import { favoritesService } from '../services/favoritesService';
 import { formatPaidPrice, enrichWaterItem } from '../lib/waterUtils';
 import { toYandexCoords } from '../lib/coords';
-import BookingForm from '../components/booking/BookingForm';
 import { useToast } from '../components/ui/ToastContext';
 import { normalizeVideoList } from '../lib/videoEmbed';
 import { reviewsService } from '../services/reviewsService';
@@ -401,13 +400,6 @@ export default function BaseDetailPage() {
                 </div>
               )}
             </div>
-
-            {item.type === 'paid' && item.ownerId && item.ownerId !== 'catalog-seed' && (
-              <div className="water-detail__booking">
-                <h3>Бронирование</h3>
-                <BookingForm base={item} />
-              </div>
-            )}
 
             <Link to="/map" className="btn btn--primary water-detail__map-btn">
               Смотреть на карте

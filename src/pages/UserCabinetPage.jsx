@@ -5,7 +5,6 @@ import { RequireAuth } from '../components/auth/RequireAuth';
 import { useAuth } from '../components/auth/AuthContext';
 import { gamificationService } from '../services/gamificationService';
 import { reportSocialService } from '../services/reportSocialService';
-import UserBookingsPanel from '../components/cabinet/UserBookingsPanel';
 import NotificationsPanel from '../components/notifications/NotificationsPanel';
 import FavoritesPage from './FavoritesPage';
 import '../components/auth/AuthShared.css';
@@ -21,7 +20,6 @@ function useUserNav() {
         items: [
           { to: '/cabinet', end: true, label: 'Обзор' },
           { to: '/cabinet/profile', label: 'Профиль' },
-          { to: '/cabinet/bookings', label: 'Бронирования' },
           { to: '/cabinet/favorites', label: 'Избранное' },
           { to: '/cabinet/reports', label: 'Отчёты' },
         ],
@@ -558,7 +556,7 @@ export default function UserCabinetPage() {
         <Route element={<CabinetLayout />}>
           <Route index element={<Overview />} />
           <Route path="profile" element={<ProfilePanel />} />
-          <Route path="bookings" element={<UserBookingsPanel />} />
+          <Route path="bookings" element={<Navigate to="/cabinet" replace />} />
           <Route path="favorites" element={<FavoritesEmbedded />} />
           <Route path="reports" element={<ReportsPanel />} />
           <Route path="achievements" element={<AchievementsPanel />} />

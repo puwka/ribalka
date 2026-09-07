@@ -174,6 +174,16 @@ async function resolveReport(id) {
   const key = String(id);
   if (!key) return null;
 
+  if (isApiReports()) {
+    try {
+      const row = await api.get(`/api/reports/${encodeURIComponent(key)}`);
+      if (row) return { ...row, id: key };
+    } catch (err) {
+      if (err?.status === 404) return null;
+      /* fall through to local */
+    }
+  }
+
   const local = await socialDb.getReport(key);
   const remote = await getRemoteReport(key);
   if (local || remote) {

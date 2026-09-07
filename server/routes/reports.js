@@ -191,6 +191,27 @@ router.post('/', requireAuth, async (req, res, next) => {
   }
 });
 
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`select * from public.fishing_reports where id = $1`, [
+      req.params.id,
+    ]);
+    const row = rows[0];
+    if (!row) return res.status(404).json({ error: 'Отчёт не найден' });
+
+    const isAdmin = (req.user?.roles || []).includes('admin');
+    const isAuthor = req.user?.sub && row.user_id === req.user.sub;
+    if (!isAdmin && !isAuthor && row.status !== 'approved') {
+      return res.status(404).json({ error: 'Отчёт недоступен' });
+    }
+
+    const media = await loadMedia(row.id);
+    res.json(mapReport(row, media.images, media.videos));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const status = req.body?.status;
