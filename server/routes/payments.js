@@ -78,6 +78,80 @@ router.put('/directory-prices/:kind', requireAuth, requireAdmin, async (req, res
   }
 });
 
+/** Public: apply + pay for directory listing (shop / service / guide) */
+router.post('/directory-checkout', requireAuth, async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    const origin =
+      process.env.PUBLIC_SITE_URL ||
+      (typeof req.headers.origin === 'string' ? req.headers.origin : '');
+    const returnUrl =
+      body.returnUrl ||
+      (origin
+        ? `${String(origin).replace(/\/$/, '')}/directory/payment/result/:orderId`
+        : null);
+    const directoryOrders = await import('../services/directoryOrders.js');
+    const result = await directoryOrders.createDirectoryCheckout({
+      userId: req.user.sub,
+      category: body.category,
+      months: body.months,
+      frame: Boolean(body.frame),
+      listing: body.listing || body,
+      returnUrl,
+    });
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/directory-orders/mine', requireAuth, async (req, res, next) => {
+  try {
+    const directoryOrders = await import('../services/directoryOrders.js');
+    res.json(await directoryOrders.listOrdersForUser(req.user.sub));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/directory-orders', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const directoryOrders = await import('../services/directoryOrders.js');
+    res.json(await directoryOrders.listOrdersAdmin({ status: req.query.status }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/directory-orders/:id', requireAuth, async (req, res, next) => {
+  try {
+    const directoryOrders = await import('../services/directoryOrders.js');
+    const isAdmin = (req.user.roles || []).includes('admin');
+    const order = await directoryOrders.getOrderById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Not found' });
+    if (!isAdmin && order.user_id !== req.user.sub) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    res.json(order);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/directory-orders/:id/verify', requireAuth, async (req, res, next) => {
+  try {
+    const directoryOrders = await import('../services/directoryOrders.js');
+    const isAdmin = (req.user.roles || []).includes('admin');
+    const result = await directoryOrders.verifyDirectoryOrderPayment(req.params.id, {
+      userId: req.user.sub,
+      isAdmin,
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Owner: create order + YooKassa payment for a base */
 router.post('/listing-checkout', requireAuth, async (req, res, next) => {
   try {

@@ -4,7 +4,7 @@ export function getCategoryLabel(category) {
   const labels = {
     shop: '🛒 Магазин',
     service: '🔧 Сервис',
-    guide: '👨‍🏫 Гид',
+    guide: '👨‍🏫 Гид / егерь',
   };
   return labels[category] || '';
 }

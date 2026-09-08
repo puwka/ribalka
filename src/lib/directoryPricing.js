@@ -30,7 +30,11 @@ export function normalizeConstructor(raw = {}) {
   return {
     ...DEFAULT_CONSTRUCTOR,
     ...raw,
-    baseAmount: Number(raw.baseAmount ?? DEFAULT_CONSTRUCTOR.baseAmount),
+    baseAmount: Number(
+      raw.baseAmount ?? raw.amount ?? DEFAULT_CONSTRUCTOR.baseAmount
+    ),
+    includedPhotos: Number(raw.includedPhotos ?? DEFAULT_CONSTRUCTOR.includedPhotos),
+    includedVideos: Number(raw.includedVideos ?? DEFAULT_CONSTRUCTOR.includedVideos),
     addonTop: Number(raw.addonTop ?? DEFAULT_CONSTRUCTOR.addonTop),
     addonFrame: Number(raw.addonFrame ?? DEFAULT_CONSTRUCTOR.addonFrame),
     addonPhoto: Number(raw.addonPhoto ?? DEFAULT_CONSTRUCTOR.addonPhoto),

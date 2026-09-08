@@ -196,3 +196,68 @@
   font-size: 0.85rem;
   color: var(--color-text-muted, #64748b);
 }
+
+.dir-pricing__fields {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.dir-pricing__fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.dir-pricing__fields .dir-pricing__full {
+  grid-column: 1 / -1;
+}
+
+.dir-pricing__fields input,
+.dir-pricing__fields textarea {
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 8px;
+  color: inherit;
+  background: #fff;
+}
+
+.dir-pricing__submit {
+  margin-top: 1.25rem;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-accent, #2563eb);
+  color: #fff;
+}
+
+.dir-pricing__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dir-pricing__error {
+  margin: 0.75rem 0 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.dir-pricing__ok {
+  margin: 0.75rem 0 0;
+  color: #15803d;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .dir-pricing__fields {
+    grid-template-columns: 1fr;
+  }
+}

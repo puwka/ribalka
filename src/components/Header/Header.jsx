@@ -15,6 +15,7 @@ const DESKTOP_NAV = [
   { to: '/reports', label: 'Отчёты' },
   { to: '/forum', label: 'Форум' },
   { to: '/directory', label: 'Справочник' },
+  { to: '/tariffs', label: 'Тарифы' },
 ];
 
 /** Основные разделы — в бургере на мобиле (на desktop уже в шапке) */
@@ -25,6 +26,7 @@ const DRAWER_PRIMARY = [
   { href: '/reports', label: 'Отчёты о рыбалке' },
   { href: '/forum', label: 'Форум' },
   { href: '/directory', label: 'Справочник' },
+  { href: '/tariffs', label: 'Тарифы' },
 ];
 
 /** Остальные пункты — всегда в бургере */

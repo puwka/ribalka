@@ -196,9 +196,10 @@ export function AdminPlansSection() {
 
       {apiDataEnabled && (
         <section className="admin-panel" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Тариф справочника (магазины, сервисы, гиды)</h3>
+          <h3 style={{ marginTop: 0 }}>Тариф справочника (магазины, сервисы, гиды / егеря)</h3>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            Один тариф для всех позиций справочника. Оплата от 3 / 6 / 12 месяцев без скидок.
+            Этот тариф управляет формой «Разместить в справочнике» на сайте. Пользователь оплачивает
+            через ЮKassa, заявка появляется здесь в разделе Справочник → Заявки.
           </p>
           {!directory ? (
             <AdminLoading />
@@ -245,6 +246,21 @@ export function AdminPlansSection() {
                     }
                   />
                 </AdminField>
+                <AdminField label="Приём заявок">
+                  <select
+                    className="admin-select"
+                    value={directory.service?.enabled !== false ? '1' : '0'}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        service: { ...d.service, enabled: e.target.value === '1' },
+                      }))
+                    }
+                  >
+                    <option value="1">Включено</option>
+                    <option value="0">Выключено</option>
+                  </select>
+                </AdminField>
               </div>
               <button
                 type="button"
@@ -268,6 +284,7 @@ export function AdminPlansSection() {
 
 export function AdminPaymentsSection() {
   const [items, setItems] = useState([]);
+  const [dirItems, setDirItems] = useState([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -281,10 +298,14 @@ export function AdminPaymentsSection() {
       }
       setLoading(true);
       try {
-        const rows = await listingPaymentService.listAdmin({
-          status: filter || undefined,
-        });
-        if (alive) setItems(rows);
+        const [rows, dirRows] = await Promise.all([
+          listingPaymentService.listAdmin({ status: filter || undefined }),
+          listingPaymentService.listDirectoryOrdersAdmin({ status: filter || undefined }).catch(() => []),
+        ]);
+        if (alive) {
+          setItems(rows);
+          setDirItems(dirRows);
+        }
       } catch (err) {
         if (alive) setError(err.message);
       } finally {
@@ -300,69 +321,110 @@ export function AdminPaymentsSection() {
     <>
       <AdminPageHead
         title="Платежи"
-        subtitle="Заказы на размещение баз (ЮKassa). Суммы зафиксированы в заказе."
+        subtitle="Заказы размещения баз и справочника (ЮKassa)"
       />
       <AdminAlert type="error">{error}</AdminAlert>
 
       {apiDataEnabled ? (
-        <section className="admin-panel">
-          <div className="admin-toolbar">
-            {['', 'waiting_for_payment', 'paid', 'cancelled', 'expired', 'failed'].map((s) => (
-              <button
-                key={s || 'all'}
-                type="button"
-                className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
-                onClick={() => setFilter(s)}
-              >
-                {s === '' ? 'Все' : ORDER_STATUS_RU[s] || s}
-              </button>
-            ))}
-          </div>
-          {loading ? (
-            <AdminLoading />
-          ) : items.length === 0 ? (
-            <div className="admin-empty">Нет заказов</div>
-          ) : (
-            <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Заказ</th>
-                    <th>Владелец</th>
-                    <th>База</th>
-                    <th>Сумма</th>
-                    <th>Статус</th>
-                    <th>Payment ID</th>
-                    <th>Создан</th>
-                    <th>Оплачен</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((o) => (
-                    <tr key={o.id}>
-                      <td>
-                        <code>{o.id.slice(0, 8)}</code>
-                      </td>
-                      <td>
-                        {o.user_name || o.user_email || o.user_id?.slice(0, 8)}
-                      </td>
-                      <td>{o.base_name || o.base_id?.slice(0, 8)}</td>
-                      <td>{formatMoney(o.amount, o.currency)}</td>
-                      <td>{ORDER_STATUS_RU[o.status] || o.status}</td>
-                      <td>
-                        <code>{o.provider_payment_id || '—'}</code>
-                      </td>
-                      <td>{new Date(o.created_at).toLocaleString('ru-RU')}</td>
-                      <td>
-                        {o.paid_at ? new Date(o.paid_at).toLocaleString('ru-RU') : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <>
+          <section className="admin-panel" style={{ marginBottom: 16 }}>
+            <div className="admin-toolbar">
+              {['', 'waiting_for_payment', 'paid', 'cancelled', 'expired', 'failed'].map((s) => (
+                <button
+                  key={s || 'all'}
+                  type="button"
+                  className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
+                  onClick={() => setFilter(s)}
+                >
+                  {s === '' ? 'Все' : ORDER_STATUS_RU[s] || s}
+                </button>
+              ))}
             </div>
-          )}
-        </section>
+            <h3 style={{ marginTop: 8 }}>Базы</h3>
+            {loading ? (
+              <AdminLoading />
+            ) : items.length === 0 ? (
+              <div className="admin-empty">Нет заказов баз</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Заказ</th>
+                      <th>Владелец</th>
+                      <th>База</th>
+                      <th>Сумма</th>
+                      <th>Статус</th>
+                      <th>Payment ID</th>
+                      <th>Создан</th>
+                      <th>Оплачен</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((o) => (
+                      <tr key={o.id}>
+                        <td>
+                          <code>{o.id.slice(0, 8)}</code>
+                        </td>
+                        <td>{o.user_name || o.user_email || o.user_id?.slice(0, 8)}</td>
+                        <td>{o.base_name || o.base_id?.slice(0, 8)}</td>
+                        <td>{formatMoney(o.amount, o.currency)}</td>
+                        <td>{ORDER_STATUS_RU[o.status] || o.status}</td>
+                        <td>
+                          <code>{o.provider_payment_id || '—'}</code>
+                        </td>
+                        <td>{new Date(o.created_at).toLocaleString('ru-RU')}</td>
+                        <td>{o.paid_at ? new Date(o.paid_at).toLocaleString('ru-RU') : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="admin-panel">
+            <h3 style={{ marginTop: 0 }}>Справочник (магазины / сервисы / гиды)</h3>
+            {loading ? (
+              <AdminLoading />
+            ) : dirItems.length === 0 ? (
+              <div className="admin-empty">Нет заказов справочника</div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Заказ</th>
+                      <th>Пользователь</th>
+                      <th>Категория</th>
+                      <th>Название</th>
+                      <th>Сумма</th>
+                      <th>Статус</th>
+                      <th>Создан</th>
+                      <th>Оплачен</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dirItems.map((o) => (
+                      <tr key={o.id}>
+                        <td>
+                          <code>{o.id.slice(0, 8)}</code>
+                        </td>
+                        <td>{o.user_name || o.user_email || o.user_id?.slice(0, 8)}</td>
+                        <td>{o.category}</td>
+                        <td>{o.payload?.name || o.description || '—'}</td>
+                        <td>{formatMoney(o.amount, o.currency)}</td>
+                        <td>{ORDER_STATUS_RU[o.status] || o.status}</td>
+                        <td>{new Date(o.created_at).toLocaleString('ru-RU')}</td>
+                        <td>{o.paid_at ? new Date(o.paid_at).toLocaleString('ru-RU') : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
       ) : (
         <section className="admin-panel">
           <AdminPaymentsTab />

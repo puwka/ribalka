@@ -6,13 +6,35 @@ export const listingPaymentService = {
   async getPrice() {
     if (!apiDataEnabled) {
       return {
-        title: 'Размещение рыболовной базы',
-        amount: 0,
+        title: 'Тариф Конструктор',
+        amount: 2900,
         currency: 'RUB',
         enabled: false,
       };
     }
     return api.get('/api/payments/listing-price');
+  },
+
+  /** Public read of base Constructor tariff (no auth) */
+  async getPublicListingPrice() {
+    if (!apiDataEnabled) {
+      return {
+        title: 'Тариф Конструктор',
+        baseAmount: 2900,
+        amount: 2900,
+        addonTop: 1000,
+        addonFrame: 390,
+        addonPhoto: 100,
+        addonVideo: 100,
+        discount3: 10,
+        discount6: 20,
+        discount12: 30,
+        includedPhotos: 1,
+        includedVideos: 1,
+        enabled: true,
+      };
+    }
+    return api.get('/api/payments/listing-price-public');
   },
 
   async getCheckoutPreview(baseId) {
@@ -66,5 +88,28 @@ export const listingPaymentService = {
 
   async saveDirectoryPrice(kind, payload) {
     return api.put(`/api/payments/directory-prices/${encodeURIComponent(kind)}`, payload);
+  },
+
+  async directoryCheckout(payload) {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return api.post('/api/payments/directory-checkout', {
+      ...payload,
+      returnUrl: `${origin}/directory/payment/result/:orderId`,
+    });
+  },
+
+  async getDirectoryOrder(orderId) {
+    return api.get(`/api/payments/directory-orders/${encodeURIComponent(orderId)}`);
+  },
+
+  async verifyDirectoryOrder(orderId) {
+    return api.post(`/api/payments/directory-orders/${encodeURIComponent(orderId)}/verify`, {});
+  },
+
+  async listDirectoryOrdersAdmin(filters = {}) {
+    const qs = new URLSearchParams();
+    if (filters.status) qs.set('status', filters.status);
+    const q = qs.toString();
+    return api.get(`/api/payments/directory-orders${q ? `?${q}` : ''}`);
   },
 };

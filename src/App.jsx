@@ -14,6 +14,8 @@ import AllNewsPage from './pages/AllNewsPage';
 import MapPage from './pages/MapPage';
 import DirectoryPage from './pages/DirectoryPage';
 import DirectoryCategoryPage from './pages/DirectoryCategoryPage';
+import DirectoryPaymentResultPage from './pages/DirectoryPaymentResultPage';
+import TariffsPage from './pages/TariffsPage';
 import ReportsPage from './pages/ReportsPage';
 import ReportDetailPage from './pages/ReportDetailPage';
 import ForumPage from './pages/ForumPage';
@@ -79,7 +81,12 @@ function App() {
                     <Route path="/free-places/all" element={<Navigate to="/free-waters" replace />} />
                     <Route path="/map" element={<MapPage />} />
                     <Route path="/directory" element={<DirectoryPage />} />
+                    <Route
+                      path="/directory/payment/result/:orderId"
+                      element={<DirectoryPaymentResultPage />}
+                    />
                     <Route path="/directory/:tab" element={<DirectoryCategoryPage />} />
+                    <Route path="/tariffs" element={<TariffsPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
                     <Route path="/reports/:id" element={<ReportDetailPage />} />
                     <Route path="/forum" element={<ForumPage />} />

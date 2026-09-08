@@ -253,7 +253,7 @@
   color: var(--color-text-secondary);
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1200px) {
   .site-header__nav {
     display: flex;
   }
@@ -269,7 +269,7 @@
   }
 }
 
-@media (max-width: 1099px) {
+@media (max-width: 1199px) {
   .site-header__drawer-label--more {
     display: none;
   }

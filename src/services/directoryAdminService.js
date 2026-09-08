@@ -22,6 +22,7 @@ export const directoryAdminService = {
       image: '',
       tags: '',
       status: 'published',
+      yellowFrame: false,
     };
   },
 
@@ -80,12 +81,13 @@ export const directoryAdminService = {
       image: form.image || '',
       tags,
       status: form.status || 'published',
+      yellowFrame: Boolean(form.yellowFrame),
     };
 
     if (!row.name) throw new Error('Укажите название');
 
     const idx = items.findIndex((i) => String(i.id) === String(row.id));
-    if (idx >= 0) items[idx] = row;
+    if (idx >= 0) items[idx] = { ...items[idx], ...row };
     else items.unshift(row);
 
     await cmsService.savePage(adminId, CMS_PAGES.DIRECTORY, {

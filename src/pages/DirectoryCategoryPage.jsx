@@ -102,7 +102,7 @@ export default function DirectoryCategoryPage() {
           </div>
         )}
 
-        <DirectoryPricingForm />
+        <DirectoryPricingForm defaultCategory={categoryMeta.id} />
       </div>
     </div>
   );

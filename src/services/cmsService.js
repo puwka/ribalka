@@ -140,6 +140,16 @@ const DEFAULT_SEO = {
     ogDescription: '',
     ogImage: '',
   },
+  '/tariffs': {
+    title: 'Тарифы размещения — Рыбалка в Прикамье',
+    description:
+      'Тариф Конструктор для платных баз и тариф справочника для магазинов, сервисов, гидов и егерей.',
+    keywords: '',
+    canonical: '',
+    ogTitle: '',
+    ogDescription: '',
+    ogImage: '',
+  },
   robots: 'User-agent: *\nAllow: /',
   sitemapEnabled: true,
   schemaOrg: '',
@@ -159,6 +169,7 @@ const DEFAULT_FOOTER = {
   ],
   serviceLinks: [
     { label: 'Справочник', url: '/directory' },
+    { label: 'Тарифы', url: '/tariffs' },
     { label: 'Лунный календарь', url: '/lunar' },
     { label: 'Форум', url: '/forum' },
   ],

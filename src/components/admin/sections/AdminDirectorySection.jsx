@@ -13,9 +13,10 @@ import { uploadService } from '../../../services/uploadService';
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
+  { id: 'pending', label: 'Заявки' },
   { id: 'shop', label: 'Магазины' },
   { id: 'service', label: 'Сервисы' },
-  { id: 'guide', label: 'Гиды' },
+  { id: 'guide', label: 'Гиды / егеря' },
 ];
 
 export default function AdminDirectorySection() {
@@ -67,6 +68,7 @@ export default function AdminDirectorySection() {
       image: item.image || '',
       tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
       status: item.status || 'published',
+      yellowFrame: Boolean(item.yellowFrame || item.highlight),
     });
   };
 
@@ -134,7 +136,7 @@ export default function AdminDirectorySection() {
     <>
       <AdminPageHead
         title="Справочник"
-        subtitle="Магазины, сервисы, гиды и егеря"
+        subtitle="Магазины, сервисы, гиды и егеря. Вкладка «Заявки» — оплаченные заявки с сайта"
         actions={
           <button type="button" className="admin-btn admin-btn--primary" onClick={startNew}>
             + Создать
@@ -242,12 +244,21 @@ export default function AdminDirectorySection() {
                       value={form.status}
                       onChange={(e) => setField('status', e.target.value)}
                     >
-                      <option value="published">published</option>
-                      <option value="draft">draft</option>
-                      <option value="hidden">hidden</option>
+                      <option value="pending">На модерации (заявка)</option>
+                      <option value="published">Опубликован</option>
+                      <option value="draft">Черновик</option>
+                      <option value="hidden">Скрыт</option>
                     </select>
                   </AdminField>
                 </div>
+                <label className="admin-check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.yellowFrame)}
+                    onChange={(e) => setField('yellowFrame', e.target.checked)}
+                  />
+                  Жёлтая рамка (опция тарифа)
+                </label>
                 <AdminField label="Описание">
                   <textarea
                     className="admin-textarea"
@@ -307,7 +318,15 @@ export default function AdminDirectorySection() {
                     disabled={saving}
                     onClick={() => save('published')}
                   >
-                    Сохранить
+                    {form.status === 'pending' ? 'Опубликовать' : 'Сохранить'}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    disabled={saving}
+                    onClick={() => save('pending')}
+                  >
+                    Оставить на модерации
                   </button>
                   <button
                     type="button"

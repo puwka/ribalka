@@ -660,6 +660,36 @@ export async function handleYooKassaWebhook(event) {
   }
 
   if (!order) {
+    const { findOrderByProviderPaymentId, finalizeDirectoryPaidFromYooKassa, getOrderById: getDirOrder } =
+      await import('./directoryOrders.js');
+    let dirOrder = await findOrderByProviderPaymentId(object.id);
+    if (!dirOrder && object.metadata?.order_kind === 'directory' && object.metadata?.order_id) {
+      dirOrder = await getDirOrder(object.metadata.order_id);
+    }
+    if (dirOrder) {
+      if (dirOrder.status === 'paid') {
+        return { ok: true, alreadyPaid: true, kind: 'directory', orderId: dirOrder.id };
+      }
+      let payment = object;
+      try {
+        payment = await yookassa.getPayment(object.id);
+      } catch (err) {
+        console.error('[yookassa webhook] getPayment failed', err.message);
+      }
+      if (payment.status === 'succeeded' && payment.paid) {
+        await finalizeDirectoryPaidFromYooKassa(dirOrder, payment);
+        return { ok: true, paid: true, kind: 'directory', orderId: dirOrder.id };
+      }
+      if (payment.status === 'canceled') {
+        await pool.query(
+          `update public.directory_listing_orders set status = 'cancelled', updated_at = now()
+           where id = $1 and status != 'paid'`,
+          [dirOrder.id]
+        );
+      }
+      return { ok: true, paid: false, kind: 'directory', orderId: dirOrder.id };
+    }
+
     console.warn('[yookassa webhook] order not found for payment', object.id);
     return { ok: true, ignored: true };
   }
