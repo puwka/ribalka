@@ -525,12 +525,11 @@ export const basesService = {
   },
 
   /**
-   * Start paid placement: navigate to checkout (API) or free submit (local / zero price).
+   * Start paid placement: return checkout path (options are chosen on payment screen).
    */
   async startPlacement(ownerId, baseId) {
     if (isRemoteDb()) {
-      const { listingPaymentService } = await import('./listingPaymentService.js');
-      return listingPaymentService.checkout(baseId);
+      return { checkoutPath: `/owner/payment/${baseId}` };
     }
     return { order: null, localSubmit: true, base: await this.submitForReview(ownerId, baseId) };
   },
