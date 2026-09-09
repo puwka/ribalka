@@ -73,7 +73,7 @@ export default function News() {
           <div className="news__show-more">
             <Link to="/news/all" className="show-more-btn">
               <span>Все новости ({newsData.length})</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
             </Link>

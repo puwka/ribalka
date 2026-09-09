@@ -43,12 +43,16 @@ body {
 }
 
 img,
-svg,
 video,
 canvas {
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+/* Do not force height:auto on all SVGs — icons without explicit size balloon to 100% width */
+svg {
+  max-width: 100%;
 }
 
 iframe {
