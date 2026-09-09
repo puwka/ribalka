@@ -45,7 +45,7 @@ export function OwnerListingCheckoutPage() {
   const [frame, setFrame] = useState(false);
   const [extraPhotos, setExtraPhotos] = useState(0);
   const [extraVideos, setExtraVideos] = useState(0);
-  const [frozenAmount, setFrozenAmount] = useState(null);
+  const [pendingPaymentUrl, setPendingPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
@@ -69,7 +69,19 @@ export function OwnerListingCheckoutPage() {
         if (!b || b.owner_id !== user.id) throw new Error('База не найдена');
         setBase(b);
         setTariff(normalizeConstructor(preview.settings || {}));
-        if (preview.frozen) setFrozenAmount(preview.displayAmount);
+
+        const opts = preview.activeOrder?.meta?.constructor_options || preview.quote?.options;
+        if (opts) {
+          if ([3, 6, 12].includes(Number(opts.months))) setMonths(Number(opts.months));
+          setTop(Boolean(opts.top));
+          setFrame(Boolean(opts.frame));
+          setExtraPhotos(Math.max(0, Number(opts.extraPhotos) || 0));
+          setExtraVideos(Math.max(0, Number(opts.extraVideos) || 0));
+        }
+
+        if (preview.frozen && preview.activeOrder?.confirmation_url) {
+          setPendingPaymentUrl(preview.activeOrder.confirmation_url);
+        }
       } catch (err) {
         if (alive) setError(err.message || 'Ошибка загрузки');
       } finally {
@@ -86,7 +98,7 @@ export function OwnerListingCheckoutPage() {
     return calcConstructorTotal(tariff, { months, top, frame, extraPhotos, extraVideos });
   }, [tariff, months, top, frame, extraPhotos, extraVideos]);
 
-  const amount = frozenAmount != null ? frozenAmount : quote?.total ?? 0;
+  const amount = quote?.total ?? 0;
 
   const pay = async () => {
     setPaying(true);
@@ -139,7 +151,7 @@ export function OwnerListingCheckoutPage() {
     <div className="cabinet-panel listing-pay">
       <h2>Размещение базы</h2>
       <p className="cabinet-panel__lead">
-        Тариф Конструктор: соберите опции и срок. Сумма считается на сервере и фиксируется в заказе.
+        Тариф Конструктор: выберите срок и дополнительные опции, затем оплатите через ЮKassa.
       </p>
 
       <div className="listing-pay__card">
@@ -148,85 +160,121 @@ export function OwnerListingCheckoutPage() {
           <strong>{base.name}</strong>
         </div>
         <div className="listing-pay__row">
-          <span>Тариф</span>
-          <strong>{ctor.title}</strong>
-        </div>
-        <div className="listing-pay__row">
-          <span>База тарифа</span>
+          <span>{ctor.title}</span>
           <strong>{formatRub(ctor.baseAmount)} / мес</strong>
+        </div>
+        <p className="listing-pay__note" style={{ marginTop: 8 }}>
+          В базе: {ctor.includedPhotos} фото и {ctor.includedVideos} видео
+        </p>
+      </div>
+
+      <div className="listing-pay__opts">
+        <p className="listing-pay__label">Срок оплаты</p>
+        <div className="listing-pay__period-btns">
+          {DIRECTORY_PERIODS.map((m) => {
+            const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
+            return (
+              <button
+                key={m}
+                type="button"
+                className={months === m ? 'is-active' : ''}
+                onClick={() => {
+                  setMonths(m);
+                  setPendingPaymentUrl(null);
+                }}
+              >
+                {m} мес.
+                {disc > 0 ? <small>−{disc}%</small> : null}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {!frozenAmount && (
-        <>
-          <div className="listing-pay__opts">
-            <p className="listing-pay__label">Срок оплаты</p>
-            <div className="listing-pay__period-btns">
-              {DIRECTORY_PERIODS.map((m) => {
-                const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    className={months === m ? 'is-active' : ''}
-                    onClick={() => setMonths(m)}
-                  >
-                    {m} мес.
-                    {disc > 0 ? <small>−{disc}%</small> : null}
-                  </button>
-                );
-              })}
-            </div>
+      <div className="listing-pay__opts">
+        <p className="listing-pay__label">Дополнительные опции</p>
+        <label className="listing-pay__check">
+          <input
+            type="checkbox"
+            checked={top}
+            onChange={(e) => {
+              setTop(e.target.checked);
+              setPendingPaymentUrl(null);
+            }}
+          />
+          <span>
+            Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
+          </span>
+        </label>
+        <label className="listing-pay__check">
+          <input
+            type="checkbox"
+            checked={frame}
+            onChange={(e) => {
+              setFrame(e.target.checked);
+              setPendingPaymentUrl(null);
+            }}
+          />
+          <span>
+            Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
+          </span>
+        </label>
+        <div className="listing-pay__counter">
+          <span>
+            + фото <em>+{formatRub(ctor.addonPhoto)} каждое</em>
+          </span>
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setExtraPhotos((n) => Math.max(0, n - 1));
+                setPendingPaymentUrl(null);
+              }}
+            >
+              −
+            </button>
+            <strong>{extraPhotos}</strong>
+            <button
+              type="button"
+              onClick={() => {
+                setExtraPhotos((n) => n + 1);
+                setPendingPaymentUrl(null);
+              }}
+            >
+              +
+            </button>
           </div>
-
-          <div className="listing-pay__opts">
-            <p className="listing-pay__label">Дополнительно</p>
-            <label className="listing-pay__check">
-              <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
-              <span>
-                Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
-              </span>
-            </label>
-            <label className="listing-pay__check">
-              <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
-              <span>
-                Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
-              </span>
-            </label>
-            <div className="listing-pay__counter">
-              <span>
-                + фото <em>+{formatRub(ctor.addonPhoto)} каждое</em>
-              </span>
-              <div>
-                <button type="button" onClick={() => setExtraPhotos((n) => Math.max(0, n - 1))}>
-                  −
-                </button>
-                <strong>{extraPhotos}</strong>
-                <button type="button" onClick={() => setExtraPhotos((n) => n + 1)}>
-                  +
-                </button>
-              </div>
-            </div>
-            <div className="listing-pay__counter">
-              <span>
-                + видео <em>+{formatRub(ctor.addonVideo)} каждое</em>
-              </span>
-              <div>
-                <button type="button" onClick={() => setExtraVideos((n) => Math.max(0, n - 1))}>
-                  −
-                </button>
-                <strong>{extraVideos}</strong>
-                <button type="button" onClick={() => setExtraVideos((n) => n + 1)}>
-                  +
-                </button>
-              </div>
-            </div>
+        </div>
+        <div className="listing-pay__counter">
+          <span>
+            + видео <em>+{formatRub(ctor.addonVideo)} каждое</em>
+          </span>
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setExtraVideos((n) => Math.max(0, n - 1));
+                setPendingPaymentUrl(null);
+              }}
+            >
+              −
+            </button>
+            <strong>{extraVideos}</strong>
+            <button
+              type="button"
+              onClick={() => {
+                setExtraVideos((n) => n + 1);
+                setPendingPaymentUrl(null);
+              }}
+            >
+              +
+            </button>
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
       <div className="listing-pay__card listing-pay__card--total">
-        {quote && !frozenAmount && (
+        {quote && (
           <>
             <div className="listing-pay__row">
               <span>В месяц</span>
@@ -241,14 +289,15 @@ export function OwnerListingCheckoutPage() {
           </>
         )}
         <div className="listing-pay__row listing-pay__row--total">
-          <span>Итого{quote && !frozenAmount ? ` за ${quote.months} мес.` : ''}</span>
+          <span>Итого{quote ? ` за ${quote.months} мес.` : ''}</span>
           <strong>{formatMoney(amount, 'RUB')}</strong>
         </div>
       </div>
 
-      {frozenAmount != null && (
+      {pendingPaymentUrl && (
         <p className="listing-pay__note">
-          Сумма зафиксирована в уже созданном платеже ЮKassa.
+          Есть незавершённый платёж с этими же опциями — можно продолжить его или изменить опции
+          выше и оплатить заново.
         </p>
       )}
 
@@ -271,6 +320,11 @@ export function OwnerListingCheckoutPage() {
               ? 'Разместить бесплатно'
               : `Оплатить ${formatMoney(amount, 'RUB')}`}
         </button>
+        {pendingPaymentUrl && (
+          <a className="btn-secondary" href={pendingPaymentUrl}>
+            Продолжить оплату
+          </a>
+        )}
         <Link className="btn-secondary" to={`/owner/bases/${baseId}/edit`}>
           Вернуться к карточке
         </Link>

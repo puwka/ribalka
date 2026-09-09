@@ -180,11 +180,6 @@ export default function TariffsPage() {
             </div>
           </article>
         </section>
-
-        <p className="tariffs-page__note">
-          Актуальные цены задаются в админке. При оформлении заказа сумма фиксируется по тарифу на
-          момент оплаты.
-        </p>
       </div>
     </div>
   );

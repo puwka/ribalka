@@ -11,6 +11,7 @@ import {
   formatRub,
   normalizeConstructor,
 } from '../../lib/directoryPricing';
+import { statusLabel } from '../bases/BaseListingForm';
 import '../auth/AuthShared.css';
 import './OwnerMonetization.css';
 import './ListingPayment.css';
@@ -130,7 +131,7 @@ export function OwnerSubscriptionPanel() {
           >
             {bases.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name} ({b.status})
+                {b.name} ({statusLabel(b.status)})
               </option>
             ))}
           </select>

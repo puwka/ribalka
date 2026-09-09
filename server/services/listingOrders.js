@@ -343,8 +343,13 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
     discountPct: quote.discountPct,
   };
 
-  // If unpaid order has no YooKassa payment yet — sync amount to current quote
-  if (order && !order.provider_payment_id && Number(order.amount) !== Number(amount)) {
+  const optionsKey = JSON.stringify(quote.options);
+  const existingOptionsKey = JSON.stringify(order?.meta?.constructor_options || null);
+  const optionsChanged = Boolean(order) && existingOptionsKey !== optionsKey;
+  const amountChanged = Boolean(order) && Number(order.amount) !== Number(amount);
+
+  // Pending order without YooKassa payment — sync amount + options
+  if (order && !order.provider_payment_id && (amountChanged || optionsChanged)) {
     const { rows: updated } = await pool.query(
       `update public.listing_orders
        set amount = $2, description = $3,
@@ -357,12 +362,12 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
     order = mapOrder(updated[0]);
   }
 
-  // If unpaid order already has YooKassa payment at old amount — cancel and create new
-  if (order && order.provider_payment_id && Number(order.amount) !== Number(amount)) {
+  // Already sent to YooKassa with different amount/options — cancel and create new
+  if (order && order.provider_payment_id && (amountChanged || optionsChanged)) {
     await pool.query(
       `update public.listing_orders
        set status = 'cancelled', updated_at = now(),
-           meta = coalesce(meta, '{}'::jsonb) || '{"reason":"price_changed"}'::jsonb
+           meta = coalesce(meta, '{}'::jsonb) || '{"reason":"options_or_price_changed"}'::jsonb
        where id = $1 and status in ('pending', 'waiting_for_payment')`,
       [order.id]
     );
