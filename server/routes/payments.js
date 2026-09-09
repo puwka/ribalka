@@ -16,21 +16,28 @@ router.get('/listing-price', requireAuth, async (_req, res, next) => {
   }
 });
 
-/** Preview amount for a base (settings + active order) */
+/** Preview amount for a base (settings + active order + constructor options) */
 router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
   try {
     const baseId = req.query.baseId;
     if (!baseId) return res.status(400).json({ error: 'baseId required' });
     const settings = await listingOrders.getListingPriceSettings();
     const activeOrder = await listingOrders.getActiveOrderForBase(req.user.sub, baseId);
+    const options = {
+      months: Number(req.query.months) || 3,
+      top: req.query.top === '1' || req.query.top === 'true',
+      frame: req.query.frame === '1' || req.query.frame === 'true',
+      extraPhotos: Number(req.query.extraPhotos) || 0,
+      extraVideos: Number(req.query.extraVideos) || 0,
+    };
+    const quote = listingOrders.quoteListingCheckout(settings, options);
+    const frozen = Boolean(activeOrder?.provider_payment_id);
     res.json({
       settings,
       activeOrder,
-      displayAmount:
-        activeOrder && activeOrder.provider_payment_id
-          ? Number(activeOrder.amount)
-          : Number(settings.amount),
-      frozen: Boolean(activeOrder?.provider_payment_id),
+      quote,
+      displayAmount: frozen ? Number(activeOrder.amount) : quote.total,
+      frozen,
     });
   } catch (err) {
     next(err);
@@ -155,7 +162,7 @@ router.post('/directory-orders/:id/verify', requireAuth, async (req, res, next) 
 /** Owner: create order + YooKassa payment for a base */
 router.post('/listing-checkout', requireAuth, async (req, res, next) => {
   try {
-    const { baseId, returnUrl } = req.body || {};
+    const { baseId, returnUrl, months, top, frame, extraPhotos, extraVideos } = req.body || {};
     if (!baseId) return res.status(400).json({ error: 'baseId required' });
 
     const site =
@@ -168,11 +175,11 @@ router.post('/listing-checkout', requireAuth, async (req, res, next) => {
         ? `${site.replace(/\/$/, '')}/owner/payment/result/:orderId`
         : null);
 
-    // Placeholder replaced after we know order id — service builds URL
     const result = await listingOrders.createListingCheckout({
       userId: req.user.sub,
       baseId,
       returnUrl: finalReturn,
+      options: { months, top, frame, extraPhotos, extraVideos },
     });
 
     // Fix return URL if placeholder used — recreate is heavy; patch return in create with order id

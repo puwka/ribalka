@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listingPaymentService } from '../../services/listingPaymentService';
 import { basesService } from '../../services/basesService';
 import { useAuth } from '../auth/AuthContext';
+import {
+  DIRECTORY_PERIODS,
+  calcConstructorTotal,
+  formatRub,
+  normalizeConstructor,
+} from '../../lib/directoryPricing';
 import './ListingPayment.css';
 
 function formatMoney(amount, currency = 'RUB') {
@@ -25,13 +31,21 @@ const ORDER_STATUS_RU = {
   expired: 'Истёк',
 };
 
+export { formatMoney, ORDER_STATUS_RU };
+
 /** Checkout page before redirect to YooKassa */
 export function OwnerListingCheckoutPage() {
   const { baseId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [base, setBase] = useState(null);
-  const [price, setPrice] = useState(null);
+  const [tariff, setTariff] = useState(null);
+  const [months, setMonths] = useState(3);
+  const [top, setTop] = useState(false);
+  const [frame, setFrame] = useState(false);
+  const [extraPhotos, setExtraPhotos] = useState(0);
+  const [extraVideos, setExtraVideos] = useState(0);
+  const [frozenAmount, setFrozenAmount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
@@ -44,19 +58,18 @@ export function OwnerListingCheckoutPage() {
       try {
         const [b, preview] = await Promise.all([
           basesService.getById(baseId, { ownerId: user.id }),
-          listingPaymentService.getCheckoutPreview(baseId).catch(async () => {
-            const p = await listingPaymentService.getPrice();
-            return { settings: p, displayAmount: p.amount, frozen: false };
+          listingPaymentService.getCheckoutPreview(baseId, { months: 3 }).catch(async () => {
+            const p = await listingPaymentService.getPublicListingPrice().catch(() =>
+              listingPaymentService.getPrice()
+            );
+            return { settings: p, displayAmount: p.baseAmount || p.amount, frozen: false };
           }),
         ]);
         if (!alive) return;
         if (!b || b.owner_id !== user.id) throw new Error('База не найдена');
         setBase(b);
-        setPrice({
-          ...(preview.settings || {}),
-          amount: preview.displayAmount ?? preview.settings?.amount,
-          frozen: preview.frozen,
-        });
+        setTariff(normalizeConstructor(preview.settings || {}));
+        if (preview.frozen) setFrozenAmount(preview.displayAmount);
       } catch (err) {
         if (alive) setError(err.message || 'Ошибка загрузки');
       } finally {
@@ -68,11 +81,24 @@ export function OwnerListingCheckoutPage() {
     };
   }, [baseId, user]);
 
+  const quote = useMemo(() => {
+    if (!tariff) return null;
+    return calcConstructorTotal(tariff, { months, top, frame, extraPhotos, extraVideos });
+  }, [tariff, months, top, frame, extraPhotos, extraVideos]);
+
+  const amount = frozenAmount != null ? frozenAmount : quote?.total ?? 0;
+
   const pay = async () => {
     setPaying(true);
     setError('');
     try {
-      const result = await listingPaymentService.checkout(baseId);
+      const result = await listingPaymentService.checkout(baseId, {
+        months,
+        top,
+        frame,
+        extraPhotos,
+        extraVideos,
+      });
       if (result.order?.status === 'paid') {
         navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
         return;
@@ -107,13 +133,13 @@ export function OwnerListingCheckoutPage() {
     );
   }
 
-  const amount = price?.amount ?? 0;
+  const ctor = tariff || normalizeConstructor({});
 
   return (
     <div className="cabinet-panel listing-pay">
       <h2>Размещение базы</h2>
       <p className="cabinet-panel__lead">
-        Оплата размещения на сайте. Сумма фиксируется в заказе и не меняется после создания.
+        Тариф Конструктор: соберите опции и срок. Сумма считается на сервере и фиксируется в заказе.
       </p>
 
       <div className="listing-pay__card">
@@ -122,25 +148,113 @@ export function OwnerListingCheckoutPage() {
           <strong>{base.name}</strong>
         </div>
         <div className="listing-pay__row">
-          <span>Услуга</span>
-          <strong>{price?.title || 'Размещение рыболовной базы'}</strong>
+          <span>Тариф</span>
+          <strong>{ctor.title}</strong>
         </div>
-        <div className="listing-pay__row listing-pay__row--total">
-          <span>Стоимость размещения</span>
-          <strong>{formatMoney(amount, price?.currency)}</strong>
+        <div className="listing-pay__row">
+          <span>База тарифа</span>
+          <strong>{formatRub(ctor.baseAmount)} / мес</strong>
         </div>
       </div>
 
-      {price?.frozen && (
-        <p className="listing-pay__note" style={{ marginTop: 0 }}>
-          Сумма зафиксирована в уже созданном платеже ЮKassa. Чтобы оплатить новую цену из
-          админки — дождитесь обновления сервера или создайте заказ заново после деплоя.
+      {!frozenAmount && (
+        <>
+          <div className="listing-pay__opts">
+            <p className="listing-pay__label">Срок оплаты</p>
+            <div className="listing-pay__period-btns">
+              {DIRECTORY_PERIODS.map((m) => {
+                const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className={months === m ? 'is-active' : ''}
+                    onClick={() => setMonths(m)}
+                  >
+                    {m} мес.
+                    {disc > 0 ? <small>−{disc}%</small> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="listing-pay__opts">
+            <p className="listing-pay__label">Дополнительно</p>
+            <label className="listing-pay__check">
+              <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
+              <span>
+                Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
+              </span>
+            </label>
+            <label className="listing-pay__check">
+              <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
+              <span>
+                Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
+              </span>
+            </label>
+            <div className="listing-pay__counter">
+              <span>
+                + фото <em>+{formatRub(ctor.addonPhoto)} каждое</em>
+              </span>
+              <div>
+                <button type="button" onClick={() => setExtraPhotos((n) => Math.max(0, n - 1))}>
+                  −
+                </button>
+                <strong>{extraPhotos}</strong>
+                <button type="button" onClick={() => setExtraPhotos((n) => n + 1)}>
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="listing-pay__counter">
+              <span>
+                + видео <em>+{formatRub(ctor.addonVideo)} каждое</em>
+              </span>
+              <div>
+                <button type="button" onClick={() => setExtraVideos((n) => Math.max(0, n - 1))}>
+                  −
+                </button>
+                <strong>{extraVideos}</strong>
+                <button type="button" onClick={() => setExtraVideos((n) => n + 1)}>
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="listing-pay__card listing-pay__card--total">
+        {quote && !frozenAmount && (
+          <>
+            <div className="listing-pay__row">
+              <span>В месяц</span>
+              <strong>{formatRub(quote.monthly)}</strong>
+            </div>
+            {quote.discountPct > 0 && (
+              <div className="listing-pay__row">
+                <span>Скидка {quote.discountPct}%</span>
+                <strong>−{formatRub(quote.discountAmount)}</strong>
+              </div>
+            )}
+          </>
+        )}
+        <div className="listing-pay__row listing-pay__row--total">
+          <span>Итого{quote && !frozenAmount ? ` за ${quote.months} мес.` : ''}</span>
+          <strong>{formatMoney(amount, 'RUB')}</strong>
+        </div>
+      </div>
+
+      {frozenAmount != null && (
+        <p className="listing-pay__note">
+          Сумма зафиксирована в уже созданном платеже ЮKassa.
         </p>
       )}
 
       {error && <div className="auth-error">{error}</div>}
 
-      {!price?.enabled && (
+      {!ctor.enabled && (
         <div className="auth-error">Размещение временно отключено администратором</div>
       )}
 
@@ -148,14 +262,14 @@ export function OwnerListingCheckoutPage() {
         <button
           type="button"
           className="btn-primary"
-          disabled={paying || !price?.enabled}
+          disabled={paying || !ctor.enabled}
           onClick={pay}
         >
           {paying
             ? 'Создаём платёж…'
             : amount === 0
               ? 'Разместить бесплатно'
-              : `Оплатить ${formatMoney(amount, price?.currency)}`}
+              : `Оплатить ${formatMoney(amount, 'RUB')}`}
         </button>
         <Link className="btn-secondary" to={`/owner/bases/${baseId}/edit`}>
           Вернуться к карточке
@@ -163,8 +277,7 @@ export function OwnerListingCheckoutPage() {
       </div>
 
       <p className="listing-pay__note">
-        После оплаты заявка уйдёт на модерацию. Статус оплаты подтверждается сервером через ЮKassa —
-        возврат на сайт сам по себе не означает успешную оплату.
+        После оплаты заявка уйдёт на модерацию. Статус подтверждается сервером через ЮKassa.
       </p>
     </div>
   );
@@ -197,11 +310,7 @@ export function OwnerListingPaymentResultPage() {
           setState({ phase: 'checking', order: result.order, error: '' });
           setTimeout(run, 2000);
         } else {
-          setState({
-            phase: 'pending',
-            order: result.order,
-            error: '',
-          });
+          setState({ phase: 'pending', order: result.order, error: '' });
         }
       } catch (err) {
         if (alive) setState({ phase: 'error', order: null, error: err.message });
@@ -216,30 +325,20 @@ export function OwnerListingPaymentResultPage() {
 
   const retry = async () => {
     const order = state.order;
-    if (order?.base_id) {
-      navigate(`/owner/payment/${order.base_id}`);
-    } else {
-      navigate('/owner/payments');
-    }
+    if (order?.base_id) navigate(`/owner/payment/${order.base_id}`);
+    else navigate('/owner/payments');
   };
 
   return (
     <div className="cabinet-panel listing-pay">
       <h2>Результат оплаты</h2>
-
-      {state.phase === 'checking' && (
-        <p className="listing-pay__status">Проверяем оплату…</p>
-      )}
-
+      {state.phase === 'checking' && <p className="listing-pay__status">Проверяем оплату…</p>}
       {state.phase === 'success' && (
         <>
           <div className="listing-pay__ok">Оплата прошла успешно</div>
           <p>Заявка на размещение базы отправлена на модерацию.</p>
           <div className="listing-pay__actions">
-            <Link
-              className="btn-primary"
-              to={`/owner/bases/${state.order?.base_id}/edit`}
-            >
+            <Link className="btn-primary" to={`/owner/bases/${state.order?.base_id}/edit`}>
               Перейти к моей базе
             </Link>
             <Link className="btn-secondary" to="/owner/bases">
@@ -248,20 +347,15 @@ export function OwnerListingPaymentResultPage() {
           </div>
         </>
       )}
-
       {state.phase === 'pending' && (
         <>
           <p className="listing-pay__status">Оплата ещё не подтверждена</p>
           <p>
-            Статус: {ORDER_STATUS_RU[state.order?.status] || state.order?.status}. Если вы только
-            что оплатили — подождите минуту и обновите страницу.
+            Статус: {ORDER_STATUS_RU[state.order?.status] || state.order?.status}. Если вы только что
+            оплатили — подождите минуту и обновите страницу.
           </p>
           <div className="listing-pay__actions">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => window.location.reload()}
-            >
+            <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
               Проверить снова
             </button>
             <button type="button" className="btn-secondary" onClick={retry}>
@@ -270,12 +364,9 @@ export function OwnerListingPaymentResultPage() {
           </div>
         </>
       )}
-
       {(state.phase === 'failed' || state.phase === 'error') && (
         <>
-          <div className="auth-error">
-            {state.error || 'Не удалось завершить оплату'}
-          </div>
+          <div className="auth-error">{state.error || 'Не удалось завершить оплату'}</div>
           <div className="listing-pay__actions">
             <button type="button" className="btn-primary" onClick={retry}>
               Попробовать снова
@@ -305,9 +396,7 @@ export function OwnerListingOrdersPanel() {
           setItems([]);
           return;
         }
-        const rows = await listingPaymentService.listMine({
-          status: filter || undefined,
-        });
+        const rows = await listingPaymentService.listMine({ status: filter || undefined });
         if (alive) setItems(rows);
       } catch (err) {
         if (alive) setError(err.message);
@@ -324,7 +413,6 @@ export function OwnerListingOrdersPanel() {
     <div className="cabinet-panel">
       <h2>Платежи за размещение</h2>
       <p className="cabinet-panel__lead">Заказы на размещение баз (сумма фиксируется при создании)</p>
-
       <div className="cabinet-actions" style={{ marginTop: 0 }}>
         {['', 'waiting_for_payment', 'paid', 'cancelled', 'expired'].map((s) => (
           <button
@@ -333,15 +421,10 @@ export function OwnerListingOrdersPanel() {
             className={`btn-secondary${filter === s ? ' is-active' : ''}`}
             onClick={() => setFilter(s)}
           >
-            {s === ''
-              ? 'Все'
-              : s === 'waiting_for_payment'
-                ? 'Ожидают'
-                : ORDER_STATUS_RU[s] || s}
+            {s === '' ? 'Все' : s === 'waiting_for_payment' ? 'Ожидают' : ORDER_STATUS_RU[s] || s}
           </button>
         ))}
       </div>
-
       {error && <div className="auth-error">{error}</div>}
       {loading ? (
         <p>Загрузка…</p>
@@ -378,9 +461,7 @@ export function OwnerListingOrdersPanel() {
                     {['pending', 'waiting_for_payment'].includes(o.status) && (
                       <Link to={`/owner/payment/${o.base_id}`}>Оплатить</Link>
                     )}
-                    {o.status === 'paid' && (
-                      <Link to={`/owner/payment/result/${o.id}`}>Открыть</Link>
-                    )}
+                    {o.status === 'paid' && <Link to={`/owner/payment/result/${o.id}`}>Открыть</Link>}
                   </td>
                 </tr>
               ))}
@@ -391,5 +472,3 @@ export function OwnerListingOrdersPanel() {
     </div>
   );
 }
-
-export { formatMoney, ORDER_STATUS_RU };

@@ -68,6 +68,20 @@ export default function DirectoryCategoryPage() {
       </div>
 
       <div className="directory-container">
+        <div className="directory-tabs" role="tablist" aria-label="Категории справочника">
+          {DIRECTORY_CATEGORIES.map((cat) => (
+            <Link
+              key={cat.id}
+              to={`/directory/${cat.tab}`}
+              role="tab"
+              aria-selected={cat.tab === tab}
+              className={`directory-tab ${cat.tab === tab ? 'is-active' : ''}`}
+            >
+              {cat.label}
+            </Link>
+          ))}
+        </div>
+
         <div className="directory-search">
           <input
             type="text"

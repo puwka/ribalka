@@ -513,16 +513,10 @@ export const basesService = {
     if (existing && existing.owner_id !== ownerId) {
       throw new ApiError('Нет доступа', { status: 403 });
     }
-    if (existing && ![BASE_STATUSES.DRAFT, BASE_STATUSES.REJECTED].includes(existing.status)) {
-      throw new ApiError('Редактирование доступно только для draft/rejected');
-    }
 
     const record = formToRecord(form, { ownerId, existing });
     record.id = existing?.id || crypto.randomUUID();
-    record.status =
-      existing?.status === BASE_STATUSES.REJECTED
-        ? BASE_STATUSES.REJECTED
-        : BASE_STATUSES.DRAFT;
+    record.status = existing?.status || BASE_STATUSES.DRAFT;
     if (record.status === BASE_STATUSES.DRAFT) {
       record.rejection_reason = null;
     }

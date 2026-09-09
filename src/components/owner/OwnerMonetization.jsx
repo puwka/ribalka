@@ -1,12 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { plansService } from '../../services/plansService';
 import { paymentService } from '../../services/paymentService';
 import { advertisingService } from '../../services/advertisingService';
 import { basesService } from '../../services/basesService';
+import { listingPaymentService } from '../../services/listingPaymentService';
+import {
+  DIRECTORY_PERIODS,
+  calcConstructorTotal,
+  formatRub,
+  normalizeConstructor,
+} from '../../lib/directoryPricing';
 import '../auth/AuthShared.css';
 import './OwnerMonetization.css';
+import './ListingPayment.css';
 
 function formatMoney(amount, currency = 'RUB') {
   return `${Number(amount || 0).toLocaleString('ru-RU')} ${currency}`;
@@ -18,116 +25,208 @@ function formatDate(iso) {
 }
 
 export function OwnerSubscriptionPanel() {
-  const { user, refresh } = useAuth();
-  const [plans, setPlans] = useState([]);
-  const [sub, setSub] = useState(null);
-  const [period, setPeriod] = useState('month');
-  const [provider, setProvider] = useState('yookassa');
-  const [message, setMessage] = useState('');
+  const { user } = useAuth();
+  const [bases, setBases] = useState([]);
+  const [tariff, setTariff] = useState(null);
+  const [baseId, setBaseId] = useState('');
+  const [months, setMonths] = useState(3);
+  const [top, setTop] = useState(false);
+  const [frame, setFrame] = useState(false);
+  const [extraPhotos, setExtraPhotos] = useState(0);
+  const [extraVideos, setExtraVideos] = useState(0);
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState('');
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const cfg = paymentService.getPublicConfig();
-
-  const load = async () => {
-    setPlans(await plansService.list({ activeOnly: true, role: 'owner' }));
-    setSub(await paymentService.getActiveSubscription(user.id));
-  };
 
   useEffect(() => {
-    load();
+    let alive = true;
+    (async () => {
+      try {
+        const [list, price] = await Promise.all([
+          basesService.listMine(user.id).catch(() => []),
+          listingPaymentService
+            .getPublicListingPrice()
+            .catch(() => listingPaymentService.getPrice().catch(() => null)),
+        ]);
+        if (!alive) return;
+        setBases(Array.isArray(list) ? list : []);
+        if (price) setTariff(normalizeConstructor(price));
+        if (list?.[0]?.id) setBaseId(String(list[0].id));
+      } catch (err) {
+        if (alive) setError(err.message);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [user]);
 
-  const pay = async (plan) => {
-    setBusy(plan.id);
+  const quote = useMemo(() => {
+    if (!tariff) return null;
+    return calcConstructorTotal(tariff, { months, top, frame, extraPhotos, extraVideos });
+  }, [tariff, months, top, frame, extraPhotos, extraVideos]);
+
+  const payNow = async () => {
+    setBusy(true);
     setError('');
-    setMessage('');
     try {
-      const payment = await paymentService.createPlanPayment({
-        userId: user.id,
-        planId: plan.id,
-        billingPeriod: period,
-        provider,
+      if (!baseId) throw new Error('Выберите базу');
+      const result = await listingPaymentService.checkout(baseId, {
+        months,
+        top,
+        frame,
+        extraPhotos,
+        extraVideos,
       });
-      await refresh();
-      if (payment.confirmation_url && !payment.needs_server) {
-        navigate(payment.confirmation_url);
+      if (result.order?.status === 'paid') {
+        navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
         return;
       }
-      setMessage(
-        payment.needs_server
-          ? `Платёж ${payment.id} создан (pending). Нужен Edge Function: ${payment.meta?.edge}`
-          : `Платёж создан: ${payment.status}`
-      );
-      navigate('/owner/payments');
+      if (result.confirmationUrl) {
+        window.location.href = result.confirmationUrl;
+        return;
+      }
+      throw new Error('Не удалось получить ссылку на оплату ЮKassa');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Ошибка оплаты');
     } finally {
-      setBusy('');
+      setBusy(false);
     }
   };
+
+  const ctor = tariff || normalizeConstructor({});
 
   return (
     <div className="cabinet-panel mon-panel">
       <h2>Тарифы размещения</h2>
       <p className="cabinet-panel__lead">
-        Актуальный тариф для платных баз — <strong>Конструктор</strong> (от 2900 ₽/мес). Оплата
-        размещения конкретной базы — в карточке базы → «Оплатить размещение».
+        Тариф <strong>Конструктор</strong> для платных баз. Оплата через ЮKassa (без ложной
+        «успешной» симуляции).
       </p>
       {error && <div className="auth-error">{error}</div>}
-      {message && <div className="auth-success">{message}</div>}
 
-      <div className="mon-controls">
-        <label>
-          Период
-          <select value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="month">Месяц</option>
-            <option value="year">Год (со скидкой)</option>
-          </select>
-        </label>
-        <label>
-          Провайдер
-          <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-            <option value="yookassa">ЮKassa {cfg.yookassa.enabled ? '' : '(симуляция)'}</option>
-            <option value="robokassa">Robokassa {cfg.robokassa.enabled ? '' : '(симуляция)'}</option>
-            <option value="manual">Вручную / симулятор</option>
-          </select>
-        </label>
+      <div className="listing-pay__card">
+        <div className="listing-pay__row">
+          <span>{ctor.title}</span>
+          <strong>{formatRub(ctor.baseAmount)} / мес</strong>
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: '#64748b' }}>
+          В базе: {ctor.includedPhotos} фото и {ctor.includedVideos} видео
+        </p>
       </div>
 
-      <div className="cabinet-list">
-        {plans.map((p) => {
-          const price = period === 'year' ? p.price_year : p.price_month;
-          return (
-            <div key={p.id} className="cabinet-item">
-              <div className="cabinet-item__title">
-                {p.name} — {formatMoney(price, p.currency)}/{period === 'year' ? 'год' : 'мес'}
-                {period === 'year' && p.discount_year_percent > 0
-                  ? ` · −${p.discount_year_percent}%`
-                  : ''}
-              </div>
-              <div className="cabinet-item__meta">
-                {p.description}
-                <br />
-                {p.features?.join(' · ')}
-                <br />
-                Лимиты: баз {p.limits?.bases ?? '—'}, реклам {p.limits?.ads_active ?? '—'}
-                {p.limits?.featured ? ', featured' : ''}
-                {p.limits?.search_boost ? ', поиск' : ''}
-              </div>
-              <div className="cabinet-actions">
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={Boolean(busy)}
-                  onClick={() => pay(p)}
-                >
-                  {busy === p.id ? 'Создание…' : 'Оплатить / продлить'}
-                </button>
-              </div>
+      <div className="listing-pay__opts">
+        <p className="listing-pay__label">База для размещения</p>
+        {bases.length === 0 ? (
+          <p>
+            Нет баз. <Link to="/owner/bases/new">Добавить базу</Link>
+          </p>
+        ) : (
+          <select
+            className="admin-select"
+            style={{ width: '100%', maxWidth: 420 }}
+            value={baseId}
+            onChange={(e) => setBaseId(e.target.value)}
+          >
+            {bases.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.status})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      <div className="listing-pay__opts">
+        <p className="listing-pay__label">Срок оплаты</p>
+        <div className="listing-pay__period-btns">
+          {DIRECTORY_PERIODS.map((m) => {
+            const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
+            return (
+              <button
+                key={m}
+                type="button"
+                className={months === m ? 'is-active' : ''}
+                onClick={() => setMonths(m)}
+              >
+                {m} мес.
+                {disc > 0 ? <small>−{disc}%</small> : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="listing-pay__opts">
+        <p className="listing-pay__label">Дополнительные опции</p>
+        <label className="listing-pay__check">
+          <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
+          <span>
+            Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
+          </span>
+        </label>
+        <label className="listing-pay__check">
+          <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
+          <span>
+            Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
+          </span>
+        </label>
+        <div className="listing-pay__counter">
+          <span>
+            + фото <em>+{formatRub(ctor.addonPhoto)}</em>
+          </span>
+          <div>
+            <button type="button" onClick={() => setExtraPhotos((n) => Math.max(0, n - 1))}>
+              −
+            </button>
+            <strong>{extraPhotos}</strong>
+            <button type="button" onClick={() => setExtraPhotos((n) => n + 1)}>
+              +
+            </button>
+          </div>
+        </div>
+        <div className="listing-pay__counter">
+          <span>
+            + видео <em>+{formatRub(ctor.addonVideo)}</em>
+          </span>
+          <div>
+            <button type="button" onClick={() => setExtraVideos((n) => Math.max(0, n - 1))}>
+              −
+            </button>
+            <strong>{extraVideos}</strong>
+            <button type="button" onClick={() => setExtraVideos((n) => n + 1)}>
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {quote && (
+        <div className="listing-pay__card listing-pay__card--total">
+          <div className="listing-pay__row">
+            <span>В месяц</span>
+            <strong>{formatRub(quote.monthly)}</strong>
+          </div>
+          {quote.discountPct > 0 && (
+            <div className="listing-pay__row">
+              <span>Скидка {quote.discountPct}%</span>
+              <strong>−{formatRub(quote.discountAmount)}</strong>
             </div>
-          );
-        })}
+          )}
+          <div className="listing-pay__row listing-pay__row--total">
+            <span>Итого за {quote.months} мес.</span>
+            <strong>{formatRub(quote.total)}</strong>
+          </div>
+        </div>
+      )}
+
+      <div className="cabinet-actions">
+        <button type="button" className="btn-primary" disabled={busy || !baseId} onClick={payNow}>
+          {busy ? 'Создаём платёж…' : `Оплатить ${quote ? formatRub(quote.total) : ''}`}
+        </button>
+        <Link className="btn-secondary" to="/owner/bases/new">
+          Добавить базу
+        </Link>
       </div>
     </div>
   );

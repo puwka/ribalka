@@ -10,6 +10,16 @@ export const reviewsService = {
     return rows.filter((r) => r.status === 'approved' || !r.status);
   },
 
+  async listMine(userId) {
+    if (apiDataEnabled) {
+      return api.get('/api/reviews/mine');
+    }
+    const rows = await platformDb.listAllReviews();
+    return rows
+      .filter((r) => userId && String(r.user_id) === String(userId))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  },
+
   async listForModeration(status = 'all') {
     if (apiDataEnabled) {
       return api.get(`/api/reviews/moderation?status=${encodeURIComponent(status)}`);

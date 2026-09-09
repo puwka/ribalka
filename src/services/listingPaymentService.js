@@ -37,21 +37,30 @@ export const listingPaymentService = {
     return api.get('/api/payments/listing-price-public');
   },
 
-  async getCheckoutPreview(baseId) {
-    return api.get(
-      `/api/payments/listing-checkout-preview?baseId=${encodeURIComponent(baseId)}`
-    );
+  async getCheckoutPreview(baseId, options = {}) {
+    const qs = new URLSearchParams({ baseId: String(baseId) });
+    if (options.months) qs.set('months', String(options.months));
+    if (options.top) qs.set('top', '1');
+    if (options.frame) qs.set('frame', '1');
+    if (options.extraPhotos) qs.set('extraPhotos', String(options.extraPhotos));
+    if (options.extraVideos) qs.set('extraVideos', String(options.extraVideos));
+    return api.get(`/api/payments/listing-checkout-preview?${qs}`);
   },
 
   async savePrice(payload) {
     return api.put('/api/payments/listing-price', payload);
   },
 
-  async checkout(baseId) {
+  async checkout(baseId, options = {}) {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     return api.post('/api/payments/listing-checkout', {
       baseId,
       returnUrl: `${origin}/owner/payment/result/:orderId`,
+      months: options.months,
+      top: options.top,
+      frame: options.frame,
+      extraPhotos: options.extraPhotos,
+      extraVideos: options.extraVideos,
     });
   },
 

@@ -284,7 +284,7 @@ router.post('/', requireAuth, async (req, res, next) => {
   }
 });
 
-/** Update draft/rejected */
+/** Update base (owner may edit regardless of status) */
 router.patch('/:id', requireAuth, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -296,9 +296,6 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
     const isAdmin = (req.user.roles || []).includes('admin');
     if (existing.owner_id !== req.user.sub && !isAdmin) {
       return res.status(403).json({ error: 'Forbidden' });
-    }
-    if (!isAdmin && !['draft', 'rejected'].includes(existing.status)) {
-      return res.status(400).json({ error: 'Редактирование доступно только для черновика/отклонённой' });
     }
 
     const data = parsePayload(req.body || {});

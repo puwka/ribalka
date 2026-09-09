@@ -439,7 +439,13 @@ export const reportSocialService = {
   async like(id, { userId = null, anonId = null }) {
     const key = voterKey(userId, anonId);
     if (!key) throw new ApiError('Не удалось определить голосующего');
-    const row = (await socialDb.getReport(id)) || (await getRemoteReport(id));
+
+    if (isApiReports()) {
+      const result = await api.post(`/api/reports/${encodeURIComponent(id)}/like`, { anonId });
+      return result;
+    }
+
+    const row = (await socialDb.getReport(id)) || (await getRemoteReport(id)) || (await resolveReport(id));
     if (!row || row.status !== CONTENT_STATUS.APPROVED) throw new ApiError('Отчёт не найден');
     const likedBy = Array.isArray(row.likedBy) ? [...row.likedBy] : [];
     if (likedBy.includes(key)) {
@@ -465,7 +471,12 @@ export const reportSocialService = {
     if (!Number.isFinite(value) || value < 1 || value > 5) {
       throw new ApiError('Оценка должна быть от 1 до 5');
     }
-    const row = (await socialDb.getReport(id)) || (await getRemoteReport(id));
+
+    if (isApiReports()) {
+      return api.post(`/api/reports/${encodeURIComponent(id)}/stars`, { stars: value, anonId });
+    }
+
+    const row = (await socialDb.getReport(id)) || (await getRemoteReport(id)) || (await resolveReport(id));
     if (!row || row.status !== CONTENT_STATUS.APPROVED) throw new ApiError('Отчёт не найден');
     const starBy = { ...(row.starBy || {}) };
     const prev = starBy[key];
@@ -483,7 +494,16 @@ export const reportSocialService = {
 
   async addComment(id, { author, authorUserId = null, text, parentId = null }) {
     if (!author?.trim() || !text?.trim()) throw new ApiError('Заполните имя и текст');
-    const row = (await socialDb.getReport(id)) || (await getRemoteReport(id));
+
+    if (isApiReports()) {
+      return api.post(`/api/reports/${encodeURIComponent(id)}/comments`, {
+        author,
+        text,
+        parentId,
+      });
+    }
+
+    const row = (await socialDb.getReport(id)) || (await getRemoteReport(id)) || (await resolveReport(id));
     if (!row || row.status !== CONTENT_STATUS.APPROVED) throw new ApiError('Отчёт не найден');
     const comment = {
       id: crypto.randomUUID(),

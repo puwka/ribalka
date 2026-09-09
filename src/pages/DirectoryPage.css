@@ -81,8 +81,40 @@
 
 .directory-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
+}
+
+.directory-grid--preview {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.directory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.directory-tab {
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.directory-tab.is-active {
+  border-color: var(--color-accent, #2563eb);
+  background: var(--color-accent, #2563eb);
+  color: #fff;
 }
 
 .directory-card {
@@ -244,8 +276,16 @@
   cursor: pointer;
 }
 
+@media (max-width: 1024px) {
+  .directory-grid,
+  .directory-grid--preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
-  .directory-grid {
+  .directory-grid,
+  .directory-grid--preview {
     grid-template-columns: 1fr;
   }
 

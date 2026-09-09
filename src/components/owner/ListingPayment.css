@@ -57,6 +57,88 @@
   margin: 12px 0 8px;
 }
 
+.listing-pay__opts {
+  margin: 1rem 0;
+  max-width: 520px;
+}
+
+.listing-pay__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.listing-pay__period-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.listing-pay__period-btns button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.listing-pay__period-btns button small {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.listing-pay__period-btns button.is-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.listing-pay__check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.listing-pay__check em {
+  color: #64748b;
+  font-style: normal;
+}
+
+.listing-pay__counter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.listing-pay__counter div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.listing-pay__counter button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.listing-pay__card--total {
+  background: #f8fafc;
+}
+
 .listing-pay__table-wrap {
   overflow-x: auto;
   margin-top: 12px;

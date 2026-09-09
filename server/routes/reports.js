@@ -10,7 +10,17 @@ function isUuid(v) {
   return typeof v === 'string' && UUID_RE.test(v);
 }
 
-function mapReport(row, images = [], videos = []) {
+function voterKeyFrom(req, body = {}) {
+  if (req.user?.sub) return String(req.user.sub);
+  const anon = String(body.anonId || body.anon_id || req.query.anonId || '').trim();
+  return anon ? `anon:${anon}` : null;
+}
+
+function mapReport(row, images = [], videos = [], social = {}) {
+  const likedBy = social.likedBy || [];
+  const starBy = social.starBy || {};
+  const starSum = social.starSum || 0;
+  const starCount = social.starCount || 0;
   return {
     id: String(row.id),
     author: row.author_name,
@@ -26,12 +36,12 @@ function mapReport(row, images = [], videos = []) {
     extra: '',
     images,
     videos,
-    rating: row.rating_score || 0,
-    likedBy: [],
-    starSum: 0,
-    starCount: 0,
-    starBy: {},
-    comments: [],
+    rating: likedBy.length || row.rating_score || 0,
+    likedBy,
+    starSum,
+    starCount,
+    starBy,
+    comments: social.comments || [],
     status: row.status,
     moderationNote: row.moderation_note || null,
     moderatedAt: row.moderated_at || null,
@@ -58,6 +68,66 @@ async function loadMedia(reportId) {
   return { images, videos };
 }
 
+async function loadSocial(reportId) {
+  try {
+    const [likes, stars, comments] = await Promise.all([
+      pool.query(`select voter_key from public.report_likes where report_id = $1`, [reportId]),
+      pool.query(`select voter_key, stars from public.report_stars where report_id = $1`, [reportId]),
+      pool.query(
+        `select id, author_name, user_id, body, parent_id, status, created_at
+         from public.report_comments
+         where report_id = $1 and status <> 'hidden'
+         order by created_at asc`,
+        [reportId]
+      ),
+    ]);
+    const likedBy = likes.rows.map((r) => r.voter_key);
+    const starBy = {};
+    let starSum = 0;
+    for (const r of stars.rows) {
+      starBy[r.voter_key] = Number(r.stars);
+      starSum += Number(r.stars);
+    }
+    return {
+      likedBy,
+      starBy,
+      starSum,
+      starCount: stars.rows.length,
+      comments: comments.rows.map((c) => ({
+        id: String(c.id),
+        author: c.author_name,
+        authorUserId: c.user_id || null,
+        text: c.body,
+        date: c.created_at,
+        parentId: c.parent_id ? String(c.parent_id) : null,
+        status: c.status || 'approved',
+      })),
+    };
+  } catch {
+    return { likedBy: [], starBy: {}, starSum: 0, starCount: 0, comments: [] };
+  }
+}
+
+async function buildReport(row) {
+  const media = await loadMedia(row.id);
+  const social = await loadSocial(row.id);
+  return mapReport(row, media.images, media.videos, social);
+}
+
+function publicWithViewer(report, viewerKey) {
+  const likedBy = Array.isArray(report.likedBy) ? report.likedBy : [];
+  const starCount = report.starCount || 0;
+  const starAvg =
+    starCount > 0 ? Math.round((report.starSum / starCount) * 10) / 10 : 0;
+  return {
+    ...report,
+    rating: likedBy.length,
+    starAvg,
+    hasLiked: viewerKey ? likedBy.includes(viewerKey) : false,
+    myStar: viewerKey && report.starBy ? report.starBy[viewerKey] || 0 : 0,
+  };
+}
+
 router.use(authMiddleware);
 
 router.get('/', async (req, res, next) => {
@@ -76,8 +146,7 @@ router.get('/', async (req, res, next) => {
     );
     const out = [];
     for (const row of rows) {
-      const media = await loadMedia(row.id);
-      out.push(mapReport(row, media.images, media.videos));
+      out.push(await buildReport(row));
     }
     res.json(out);
   } catch (err) {
@@ -95,8 +164,7 @@ router.get('/mine', requireAuth, async (req, res, next) => {
     );
     const out = [];
     for (const row of rows) {
-      const media = await loadMedia(row.id);
-      out.push(mapReport(row, media.images, media.videos));
+      out.push(await buildReport(row));
     }
     res.json(out);
   } catch (err) {
@@ -120,8 +188,7 @@ router.get('/moderation', requireAuth, requireAdmin, async (req, res, next) => {
     );
     const out = [];
     for (const row of rows) {
-      const media = await loadMedia(row.id);
-      out.push(mapReport(row, media.images, media.videos));
+      out.push(await buildReport(row));
     }
     res.json(out);
   } catch (err) {
@@ -182,7 +249,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       );
     }
     await client.query('commit');
-    res.status(201).json(mapReport(row, images, videos));
+    res.status(201).json(await buildReport(row));
   } catch (err) {
     await client.query('rollback');
     next(err);
@@ -205,8 +272,124 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Отчёт недоступен' });
     }
 
-    const media = await loadMedia(row.id);
-    res.json(mapReport(row, media.images, media.videos));
+    res.json(await buildReport(row));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/like', async (req, res, next) => {
+  try {
+    const key = voterKeyFrom(req, req.body || {});
+    if (!key) return res.status(400).json({ error: 'Не удалось определить голосующего' });
+
+    const { rows } = await pool.query(`select * from public.fishing_reports where id = $1`, [
+      req.params.id,
+    ]);
+    const row = rows[0];
+    if (!row || row.status !== 'approved') {
+      return res.status(404).json({ error: 'Отчёт не найден' });
+    }
+
+    const existing = await pool.query(
+      `select 1 from public.report_likes where report_id = $1 and voter_key = $2`,
+      [row.id, key]
+    );
+    if (existing.rows[0]) {
+      const report = publicWithViewer(await buildReport(row), key);
+      return res.json({ success: false, message: 'Вы уже поставили лайк', report });
+    }
+
+    await pool.query(
+      `insert into public.report_likes (report_id, voter_key, user_id)
+       values ($1,$2,$3)
+       on conflict do nothing`,
+      [row.id, key, req.user?.sub || null]
+    );
+    await pool.query(
+      `update public.fishing_reports set
+         rating_score = (select count(*)::int from public.report_likes where report_id = $1),
+         updated_at = now()
+       where id = $1`,
+      [row.id]
+    );
+
+    const report = publicWithViewer(await buildReport(row), key);
+    res.json({ success: true, message: 'Лайк учтён', report });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/stars', async (req, res, next) => {
+  try {
+    const key = voterKeyFrom(req, req.body || {});
+    if (!key) return res.status(400).json({ error: 'Войдите или обновите страницу' });
+    const value = Number(req.body?.stars ?? req.body?.rating);
+    if (!Number.isFinite(value) || value < 1 || value > 5) {
+      return res.status(400).json({ error: 'Оценка должна быть от 1 до 5' });
+    }
+
+    const { rows } = await pool.query(`select * from public.fishing_reports where id = $1`, [
+      req.params.id,
+    ]);
+    const row = rows[0];
+    if (!row || row.status !== 'approved') {
+      return res.status(404).json({ error: 'Отчёт не найден' });
+    }
+
+    await pool.query(
+      `insert into public.report_stars (report_id, voter_key, user_id, stars, updated_at)
+       values ($1,$2,$3,$4,now())
+       on conflict (report_id, voter_key) do update set
+         stars = excluded.stars,
+         user_id = coalesce(excluded.user_id, public.report_stars.user_id),
+         updated_at = now()`,
+      [row.id, key, req.user?.sub || null, value]
+    );
+
+    res.json(publicWithViewer(await buildReport(row), key));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/comments', async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    const author = String(body.author || body.author_name || '').trim();
+    const text = String(body.text || body.body || '').trim();
+    if (!author || !text) return res.status(400).json({ error: 'Заполните имя и текст' });
+
+    const { rows } = await pool.query(`select * from public.fishing_reports where id = $1`, [
+      req.params.id,
+    ]);
+    const row = rows[0];
+    if (!row || row.status !== 'approved') {
+      return res.status(404).json({ error: 'Отчёт не найден' });
+    }
+
+    const parentId = isUuid(body.parentId || body.parent_id) ? body.parentId || body.parent_id : null;
+    const { rows: inserted } = await pool.query(
+      `insert into public.report_comments (report_id, author_name, user_id, body, parent_id, status)
+       values ($1,$2,$3,$4,$5,'approved')
+       returning *`,
+      [row.id, author, req.user?.sub || null, text, parentId]
+    );
+    const c = inserted[0];
+    const comment = {
+      id: String(c.id),
+      author: c.author_name,
+      authorUserId: c.user_id || null,
+      text: c.body,
+      date: c.created_at,
+      parentId: c.parent_id ? String(c.parent_id) : null,
+      status: c.status,
+    };
+    res.status(201).json({
+      comment,
+      report: publicWithViewer(await buildReport(row), voterKeyFrom(req, body)),
+    });
   } catch (err) {
     next(err);
   }
@@ -230,8 +413,7 @@ router.patch('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) 
       [req.params.id, status, note]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
-    const media = await loadMedia(rows[0].id);
-    res.json(mapReport(rows[0], media.images, media.videos));
+    res.json(await buildReport(rows[0]));
   } catch (err) {
     next(err);
   }

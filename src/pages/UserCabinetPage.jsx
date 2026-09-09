@@ -5,6 +5,7 @@ import { RequireAuth } from '../components/auth/RequireAuth';
 import { useAuth } from '../components/auth/AuthContext';
 import { gamificationService } from '../services/gamificationService';
 import { reportSocialService } from '../services/reportSocialService';
+import { reviewsService } from '../services/reviewsService';
 import NotificationsPanel from '../components/notifications/NotificationsPanel';
 import FavoritesPage from './FavoritesPage';
 import '../components/auth/AuthShared.css';
@@ -22,6 +23,7 @@ function useUserNav() {
           { to: '/cabinet/profile', label: 'Профиль' },
           { to: '/cabinet/favorites', label: 'Избранное' },
           { to: '/cabinet/reports', label: 'Отчёты' },
+          { to: '/cabinet/reviews', label: 'Мои отзывы' },
         ],
       },
       {
@@ -538,6 +540,74 @@ function FavoritesEmbedded() {
   return <FavoritesPage embedded />;
 }
 
+function MyReviewsPanel() {
+  const { user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const rows = await reviewsService.listMine(user.id);
+        if (alive) setItems(Array.isArray(rows) ? rows : []);
+      } catch (err) {
+        if (alive) setError(err.message || 'Не удалось загрузить отзывы');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+
+  const statusLabel = (s) =>
+    ({ approved: 'Опубликован', pending: 'На модерации', rejected: 'Отклонён', hidden: 'Скрыт' }[s] ||
+    s ||
+    '—');
+
+  return (
+    <div className="cabinet-panel">
+      <h2>Мои отзывы</h2>
+      <p className="cabinet-panel__lead">Отзывы, которые вы оставляли о водоёмах и базах.</p>
+      {error && <div className="auth-error">{error}</div>}
+      {loading ? (
+        <p>Загрузка…</p>
+      ) : items.length === 0 ? (
+        <div className="empty-state">Пока нет отзывов</div>
+      ) : (
+        <div className="cabinet-list">
+          {items.map((r) => (
+            <div key={r.id} className="cabinet-item">
+              <div className="cabinet-item__title">
+                {r.target_name || r.base_name || 'Водоём'} · ★ {r.rating}
+              </div>
+              <div className="cabinet-item__meta">
+                {statusLabel(r.status)}
+                {r.created_at
+                  ? ` · ${new Date(r.created_at).toLocaleDateString('ru-RU')}`
+                  : ''}
+                <br />
+                {r.body}
+                {r.owner_reply ? (
+                  <>
+                    <br />
+                    <em>Ответ владельца: {r.owner_reply}</em>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CabinetLayout() {
   const navGroups = useUserNav();
   return (
@@ -559,6 +629,7 @@ export default function UserCabinetPage() {
           <Route path="bookings" element={<Navigate to="/cabinet" replace />} />
           <Route path="favorites" element={<FavoritesEmbedded />} />
           <Route path="reports" element={<ReportsPanel />} />
+          <Route path="reviews" element={<MyReviewsPanel />} />
           <Route path="achievements" element={<AchievementsPanel />} />
           <Route path="notifications" element={<NotificationsPanel />} />
           <Route path="*" element={<Navigate to="/cabinet" replace />} />

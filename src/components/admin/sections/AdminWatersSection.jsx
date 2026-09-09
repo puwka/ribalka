@@ -244,7 +244,17 @@ export default function AdminWatersSection() {
                     rows={2}
                     value={form.servicesText || ''}
                     onChange={(e) => setField('servicesText', e.target.value)}
-                    placeholder="Баня, беседки, лодки…"
+                    placeholder="Баня, беседки, лодки, мангал…"
+                  />
+                </AdminField>
+
+                <AdminField label="Транспорт" hint="Как добраться на каком транспорте">
+                  <textarea
+                    className="admin-textarea"
+                    rows={2}
+                    value={form.transport || ''}
+                    onChange={(e) => setField('transport', e.target.value)}
+                    placeholder="Легковой автомобиль, внедорожник, автобус…"
                   />
                 </AdminField>
 

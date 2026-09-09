@@ -3,6 +3,8 @@ import { basesService } from './basesService';
 import { localAuthStore } from '../lib/localAuthStore';
 import { paymentService } from './paymentService';
 import { plansService } from './plansService';
+import { reviewsService } from './reviewsService';
+import { apiDataEnabled } from '../lib/apiClient';
 
 export const PERIODS = [
   { id: '7d', label: '7 дней', days: 7 },
@@ -30,7 +32,7 @@ function inRange(iso, from) {
  */
 export const analyticsTracker = {
   async trackView(base) {
-    if (!base?.id || !base.ownerId && !base.owner_id) return;
+    if (!base?.id || (!base.ownerId && !base.owner_id)) return;
     const ownerId = base.ownerId || base.owner_id;
     await platformDb.addEvent({
       type: 'view',
@@ -87,6 +89,37 @@ function uniqueSessions(events, type, from) {
   return set.size;
 }
 
+async function loadOwnerReviews(ownerId, bases) {
+  const local = await platformDb.listReviewsByOwner(ownerId);
+  if (!apiDataEnabled || !bases?.length) return local;
+
+  const remote = [];
+  await Promise.all(
+    bases.map(async (b) => {
+      try {
+        const rows = await reviewsService.listByTarget(b.id);
+        for (const r of rows || []) {
+          remote.push({
+            ...r,
+            base_id: String(r.base_id || r.target_id || b.id),
+            owner_id: ownerId,
+            base_name: r.target_name || b.name,
+            created_at: r.created_at,
+          });
+        }
+      } catch {
+        /* optional */
+      }
+    })
+  );
+
+  const byId = new Map();
+  for (const r of [...local, ...remote]) {
+    byId.set(String(r.id), r);
+  }
+  return Array.from(byId.values());
+}
+
 export const ownerDashboardService = {
   periods: PERIODS,
 
@@ -94,10 +127,10 @@ export const ownerDashboardService = {
     const period = PERIODS.find((p) => p.id === periodId) || PERIODS[1];
     const from = new Date(Date.now() - period.days * 86400000);
 
-    const [bases, events, reviews] = await Promise.all([
-      basesService.listMine(ownerId),
+    const bases = await basesService.listMine(ownerId);
+    const [events, reviews] = await Promise.all([
       platformDb.listEventsByOwner(ownerId),
-      platformDb.listReviewsByOwner(ownerId),
+      loadOwnerReviews(ownerId, bases),
     ]);
 
     const periodEvents = events.filter((e) => inRange(e.created_at, from));
@@ -184,15 +217,13 @@ export const ownerDashboardService = {
   },
 
   async listReviews(ownerId) {
-    const [reviews, bases] = await Promise.all([
-      platformDb.listReviewsByOwner(ownerId),
-      basesService.listMine(ownerId),
-    ]);
+    const bases = await basesService.listMine(ownerId);
+    const reviews = await loadOwnerReviews(ownerId, bases);
     const names = Object.fromEntries(bases.map((b) => [String(b.id), b.name]));
     return reviews
       .map((r) => ({
         ...r,
-        base_name: names[String(r.base_id)] || r.base_name || 'База',
+        base_name: names[String(r.base_id)] || r.base_name || r.target_name || 'База',
       }))
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   },

@@ -103,7 +103,9 @@ function normalizeConstructorSettings(raw = {}) {
   const d = DIRECTORY_DEFAULTS.constructor;
   return {
     title: String(raw.title || d.title),
-    baseAmount: Number.isFinite(Number(raw.baseAmount)) ? Number(raw.baseAmount) : d.baseAmount,
+    baseAmount: Number.isFinite(Number(raw.baseAmount ?? raw.amount))
+      ? Number(raw.baseAmount ?? raw.amount)
+      : d.baseAmount,
     includedPhotos: Number(raw.includedPhotos ?? d.includedPhotos),
     includedVideos: Number(raw.includedVideos ?? d.includedVideos),
     addonTop: Number.isFinite(Number(raw.addonTop)) ? Number(raw.addonTop) : d.addonTop,
@@ -116,6 +118,42 @@ function normalizeConstructorSettings(raw = {}) {
     currency: 'RUB',
     enabled: raw.enabled !== false,
   };
+}
+
+function calcConstructorQuote(settings, options = {}) {
+  const t = normalizeConstructorSettings(settings);
+  const months = [3, 6, 12].includes(Number(options.months)) ? Number(options.months) : 3;
+  const top = Boolean(options.top);
+  const frame = Boolean(options.frame);
+  const extraPhotos = Math.max(0, Number(options.extraPhotos) || 0);
+  const extraVideos = Math.max(0, Number(options.extraVideos) || 0);
+  const monthly =
+    t.baseAmount +
+    (top ? t.addonTop : 0) +
+    (frame ? t.addonFrame : 0) +
+    extraPhotos * t.addonPhoto +
+    extraVideos * t.addonVideo;
+  const full = monthly * months;
+  const discountPct = months === 3 ? t.discount3 : months === 6 ? t.discount6 : t.discount12;
+  const discountAmount = Math.round((full * discountPct) / 100);
+  const total = Math.max(0, full - discountAmount);
+  return {
+    months,
+    top,
+    frame,
+    extraPhotos,
+    extraVideos,
+    monthly,
+    full,
+    discountPct,
+    discountAmount,
+    total,
+    options: { months, top, frame, extraPhotos, extraVideos },
+  };
+}
+
+export function quoteListingCheckout(settings, options) {
+  return calcConstructorQuote(settings, options);
 }
 
 function normalizeServiceSettings(raw = {}) {
@@ -265,8 +303,9 @@ async function getBaseOwned(baseId, userId) {
 /**
  * Create order with price frozen from site_settings (never from client).
  * Then create YooKassa payment (or mark paid if amount=0).
+ * options: { months, top, frame, extraPhotos, extraVideos }
  */
-export async function createListingCheckout({ userId, baseId, returnUrl }) {
+export async function createListingCheckout({ userId, baseId, returnUrl, options = {} }) {
   const settings = await getListingPriceSettings();
   if (!settings.enabled) {
     const err = new Error('Размещение временно отключено');
@@ -274,14 +313,18 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
     throw err;
   }
 
+  const quote = calcConstructorQuote(settings, options);
+  const amount = quote.total;
+
   const base = await getBaseOwned(baseId, userId);
-  if (!['draft', 'rejected'].includes(base.status)) {
-    const err = new Error('Оплата доступна только для черновика или отклонённой базы');
+  // Allow paying for draft/rejected, and renewing approved/pending
+  if (!['draft', 'rejected', 'pending', 'approved'].includes(base.status)) {
+    const err = new Error('Оплата недоступна для этого статуса базы');
     err.status = 400;
     throw err;
   }
 
-  // Reuse active unpaid order for this base
+  // Reuse active unpaid order for this base only if options match
   const { rows: existing } = await pool.query(
     `select * from public.listing_orders
      where base_id = $1 and user_id = $2
@@ -293,28 +336,29 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
   );
   let order = mapOrder(existing[0]);
 
-  // If unpaid order has no YooKassa payment yet — sync amount to current admin price
-  if (order && !order.provider_payment_id && Number(order.amount) !== Number(settings.amount)) {
+  const description = `${settings.title}: «${base.name}» (${quote.months} мес.)`.slice(0, 128);
+  const metaPatch = {
+    constructor_options: quote.options,
+    monthly: quote.monthly,
+    discountPct: quote.discountPct,
+  };
+
+  // If unpaid order has no YooKassa payment yet — sync amount to current quote
+  if (order && !order.provider_payment_id && Number(order.amount) !== Number(amount)) {
     const { rows: updated } = await pool.query(
       `update public.listing_orders
-       set amount = $2, description = $3, updated_at = now()
+       set amount = $2, description = $3,
+           meta = coalesce(meta, '{}'::jsonb) || $4::jsonb,
+           updated_at = now()
        where id = $1
        returning *`,
-      [
-        order.id,
-        settings.amount,
-        `${settings.title}: «${base.name}»`.slice(0, 128),
-      ]
+      [order.id, amount, description, JSON.stringify(metaPatch)]
     );
     order = mapOrder(updated[0]);
   }
 
   // If unpaid order already has YooKassa payment at old amount — cancel and create new
-  if (
-    order &&
-    order.provider_payment_id &&
-    Number(order.amount) !== Number(settings.amount)
-  ) {
+  if (order && order.provider_payment_id && Number(order.amount) !== Number(amount)) {
     await pool.query(
       `update public.listing_orders
        set status = 'cancelled', updated_at = now(),
@@ -327,13 +371,12 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
 
   if (!order) {
     const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
-    const description = `${settings.title}: «${base.name}»`.slice(0, 128);
     const { rows } = await pool.query(
       `insert into public.listing_orders
-        (user_id, base_id, amount, currency, status, description, expires_at, payment_provider)
-       values ($1, $2, $3, $4, 'pending', $5, $6, 'yookassa')
+        (user_id, base_id, amount, currency, status, description, expires_at, payment_provider, meta)
+       values ($1, $2, $3, $4, 'pending', $5, $6, 'yookassa', $7::jsonb)
        returning *`,
-      [userId, baseId, settings.amount, settings.currency, description, expiresAt]
+      [userId, baseId, amount, settings.currency || 'RUB', description, expiresAt, JSON.stringify(metaPatch)]
     );
     order = mapOrder(rows[0]);
   }
@@ -344,7 +387,7 @@ export async function createListingCheckout({ userId, baseId, returnUrl }) {
   }
 
   if (!yookassa.isYooKassaConfigured()) {
-    const err = new Error('Платёжная система не настроена на сервере');
+    const err = new Error('Платёжная система не настроена на сервере. Обратитесь к администратору.');
     err.status = 503;
     throw err;
   }

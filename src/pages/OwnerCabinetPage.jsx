@@ -459,8 +459,6 @@ function OwnerBaseEdit() {
     );
   }
 
-  const editable = ['draft', 'rejected'].includes(record.status);
-
   return (
     <div className="cabinet-panel">
       <h2>База: {record.name}</h2>
@@ -469,7 +467,7 @@ function OwnerBaseEdit() {
         <span className={`status-badge status-badge--${record.status}`}>
           {statusLabel(record.status)}
         </span>
-        {' · '}описание, цены, услуги, контакты, фото, видео
+        {' · '}можно править в любом статусе
       </p>
       {record.status === 'rejected' && record.rejection_reason && (
         <div className="auth-error" style={{ marginBottom: 12 }}>
@@ -477,50 +475,28 @@ function OwnerBaseEdit() {
         </div>
       )}
       {message && <div className="auth-success">{message}</div>}
-      {!editable ? (
-        <div>
-          <div className="empty-state" style={{ marginBottom: 12 }}>
-            Редактирование недоступно в статусе «{statusLabel(record.status)}».
-          </div>
-          <div className="cabinet-item">
-            <div className="cabinet-item__meta">
-              <strong>Описание:</strong> {record.description}
-              <br />
-              <strong>Цены:</strong> {record.price_label || record.price || '—'}
-              <br />
-              <strong>Услуги:</strong> {(record.services || []).join(', ') || '—'}
-              <br />
-              <strong>Контакты:</strong> {record.phone} {record.contacts || ''}
-              <br />
-              <strong>Фото:</strong> {(record.images || []).length} · <strong>Видео:</strong>{' '}
-              {(record.videos || []).length}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <BaseListingForm
-          key={record.updated_at || record.id}
-          initialForm={initial}
-          submitLabel="Сохранить"
-          sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
-          onSubmit={async (form) => {
-            const saved = await basesService.saveDraft(user.id, form, baseId);
-            setRecord(saved);
-            setInitial(basesService.recordToForm(saved));
-            setMessage('Сохранено');
-          }}
-          onSubmitAndSend={async (form) => {
-            const saved = await basesService.saveDraft(user.id, form, baseId);
-            if (apiDataEnabled) {
-              navigate(`/owner/payment/${saved.id}`);
-              return;
-            }
-            await basesService.submitForReview(user.id, saved.id);
-            setMessage('Отправлено на модерацию');
-            await load();
-          }}
-        />
-      )}
+      <BaseListingForm
+        key={record.updated_at || record.id}
+        initialForm={initial}
+        submitLabel="Сохранить"
+        sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
+        onSubmit={async (form) => {
+          const saved = await basesService.saveDraft(user.id, form, baseId);
+          setRecord(saved);
+          setInitial(basesService.recordToForm(saved));
+          setMessage('Сохранено');
+        }}
+        onSubmitAndSend={async (form) => {
+          const saved = await basesService.saveDraft(user.id, form, baseId);
+          if (apiDataEnabled) {
+            navigate(`/owner/payment/${saved.id}`);
+            return;
+          }
+          await basesService.submitForReview(user.id, saved.id);
+          setMessage('Отправлено на модерацию');
+          await load();
+        }}
+      />
       <div className="cabinet-actions" style={{ marginTop: 12 }}>
         <button type="button" className="btn-secondary" onClick={() => navigate('/owner/bases')}>
           К списку

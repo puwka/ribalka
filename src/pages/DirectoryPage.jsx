@@ -15,6 +15,7 @@ export default function DirectoryPage() {
   );
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(DIRECTORY_CATEGORIES[0].id);
 
   useEffect(() => {
     let alive = true;
@@ -45,6 +46,10 @@ export default function DirectoryPage() {
     return map;
   }, [items]);
 
+  const activeCat = DIRECTORY_CATEGORIES.find((c) => c.id === activeTab) || DIRECTORY_CATEGORIES[0];
+  const list = byCategory[activeCat.id] || [];
+  const preview = list.slice(0, PREVIEW_LIMIT);
+
   return (
     <div className="directory-page">
       <div className="directory-header">
@@ -53,45 +58,53 @@ export default function DirectoryPage() {
       </div>
 
       <div className="directory-container">
+        <div className="directory-tabs" role="tablist" aria-label="Категории справочника">
+          {DIRECTORY_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === cat.id}
+              className={`directory-tab ${activeTab === cat.id ? 'is-active' : ''}`}
+              onClick={() => setActiveTab(cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="no-results">
             <p>Загрузка…</p>
           </div>
         ) : (
-          DIRECTORY_CATEGORIES.map((cat) => {
-            const list = byCategory[cat.id] || [];
-            const preview = list.slice(0, PREVIEW_LIMIT);
-            return (
-              <section key={cat.id} className="directory-section">
-                <div className="directory-section__head">
-                  <h2>
-                    {cat.emoji} {cat.label}
-                  </h2>
-                  <Link to={`/directory/${cat.tab}`} className="btn btn--ghost">
-                    Смотреть все
-                  </Link>
-                </div>
-                {preview.length === 0 ? (
-                  <div className="no-results">
-                    <p>Пока нет записей</p>
-                  </div>
-                ) : (
-                  <div className="directory-grid">
-                    {preview.map((item) => (
-                      <DirectoryCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                )}
-                {list.length > PREVIEW_LIMIT && (
-                  <div className="directory-section__more">
-                    <Link to={`/directory/${cat.tab}`} className="btn btn--primary">
-                      Все {cat.label.toLowerCase()} ({list.length}) →
-                    </Link>
-                  </div>
-                )}
-              </section>
-            );
-          })
+          <section className="directory-section">
+            <div className="directory-section__head">
+              <h2>
+                {activeCat.emoji} {activeCat.label}
+              </h2>
+              <Link to={`/directory/${activeCat.tab}`} className="btn btn--ghost">
+                Смотреть все
+              </Link>
+            </div>
+            {preview.length === 0 ? (
+              <div className="no-results">
+                <p>Пока нет записей</p>
+              </div>
+            ) : (
+              <div className="directory-grid directory-grid--preview">
+                {preview.map((item) => (
+                  <DirectoryCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+            <div className="directory-section__more">
+              <Link to={`/directory/${activeCat.tab}`} className="btn btn--primary">
+                Все {activeCat.label.toLowerCase()}
+                {list.length ? ` (${list.length})` : ''} →
+              </Link>
+            </div>
+          </section>
         )}
 
         <DirectoryPricingForm />

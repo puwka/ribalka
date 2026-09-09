@@ -56,6 +56,21 @@ router.get('/moderation', requireAuth, requireAdmin, async (req, res, next) => {
   }
 });
 
+router.get('/mine', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `select * from public.site_reviews
+       where user_id = $1
+       order by created_at desc
+       limit 200`,
+      [req.user.sub]
+    );
+    res.json(rows.map(mapReview));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     const body = req.body || {};
