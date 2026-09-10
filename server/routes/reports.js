@@ -16,6 +16,16 @@ function voterKeyFrom(req, body = {}) {
   return anon ? `anon:${anon}` : null;
 }
 
+function parseWeightKg(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const s = String(raw).replace(',', '.').trim();
+  const m = s.match(/(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 function mapReport(row, images = [], videos = [], social = {}) {
   const likedBy = social.likedBy || [];
   const starBy = social.starBy || {};
@@ -32,6 +42,8 @@ function mapReport(row, images = [], videos = [], social = {}) {
     fish: row.fish_caught || '',
     bait: row.bait || '',
     weight: row.weight_label || '',
+    weightKg: row.weight_kg != null ? Number(row.weight_kg) : parseWeightKg(row.weight_label),
+    region: row.region || '',
     description: row.description || '',
     extra: '',
     images,
@@ -68,7 +80,22 @@ async function loadMedia(reportId) {
   return { images, videos };
 }
 
-async function loadSocial(reportId) {
+let promoColsEnsured = false;
+async function ensureReportExtraColumns() {
+  if (promoColsEnsured) return;
+  try {
+    await pool.query(`
+      alter table public.fishing_reports
+        add column if not exists weight_kg numeric(10, 2),
+        add column if not exists region text
+    `);
+    promoColsEnsured = true;
+  } catch {
+    promoColsEnsured = true;
+  }
+}
+
+async function loadSocial(reportId, { viewerUserId = null, isAdmin = false } = {}) {
   try {
     const [likes, stars, comments] = await Promise.all([
       pool.query(`select voter_key from public.report_likes where report_id = $1`, [reportId]),
@@ -76,7 +103,7 @@ async function loadSocial(reportId) {
       pool.query(
         `select id, author_name, user_id, body, parent_id, status, created_at
          from public.report_comments
-         where report_id = $1 and status <> 'hidden'
+         where report_id = $1 and status <> 'hidden' and status <> 'rejected'
          order by created_at asc`,
         [reportId]
       ),
@@ -88,12 +115,18 @@ async function loadSocial(reportId) {
       starBy[r.voter_key] = Number(r.stars);
       starSum += Number(r.stars);
     }
+    const visible = comments.rows.filter((c) => {
+      if (c.status === 'approved') return true;
+      if (isAdmin) return true;
+      if (viewerUserId && c.user_id && String(c.user_id) === String(viewerUserId)) return true;
+      return false;
+    });
     return {
       likedBy,
       starBy,
       starSum,
       starCount: stars.rows.length,
-      comments: comments.rows.map((c) => ({
+      comments: visible.map((c) => ({
         id: String(c.id),
         author: c.author_name,
         authorUserId: c.user_id || null,
@@ -108,9 +141,10 @@ async function loadSocial(reportId) {
   }
 }
 
-async function buildReport(row) {
+async function buildReport(row, opts = {}) {
+  await ensureReportExtraColumns();
   const media = await loadMedia(row.id);
-  const social = await loadSocial(row.id);
+  const social = await loadSocial(row.id, opts);
   return mapReport(row, media.images, media.videos, social);
 }
 
@@ -196,9 +230,73 @@ router.get('/moderation', requireAuth, requireAdmin, async (req, res, next) => {
   }
 });
 
+router.get('/comments/moderation', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const status = req.query.status || 'pending';
+    const { rows } = await pool.query(
+      status === 'all'
+        ? `select c.*, r.place_name, r.author_name as report_author
+           from public.report_comments c
+           join public.fishing_reports r on r.id = c.report_id
+           order by c.created_at desc
+           limit 300`
+        : `select c.*, r.place_name, r.author_name as report_author
+           from public.report_comments c
+           join public.fishing_reports r on r.id = c.report_id
+           where c.status = $1
+           order by c.created_at desc
+           limit 300`,
+      status === 'all' ? [] : [status]
+    );
+    res.json(
+      rows.map((c) => ({
+        id: String(c.id),
+        reportId: String(c.report_id),
+        placeName: c.place_name,
+        reportAuthor: c.report_author,
+        author: c.author_name,
+        authorUserId: c.user_id || null,
+        text: c.body,
+        status: c.status,
+        date: c.created_at,
+        parentId: c.parent_id ? String(c.parent_id) : null,
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/comments/:commentId/moderate', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const status = req.body?.status;
+    if (!['approved', 'rejected', 'hidden', 'pending'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    const { rows } = await pool.query(
+      `update public.report_comments set status = $2
+       where id = $1 returning *`,
+      [req.params.commentId, status]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    const c = rows[0];
+    res.json({
+      id: String(c.id),
+      reportId: String(c.report_id),
+      author: c.author_name,
+      text: c.body,
+      status: c.status,
+      date: c.created_at,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/', requireAuth, async (req, res, next) => {
   const client = await pool.connect();
   try {
+    await ensureReportExtraColumns();
     const body = req.body || {};
     const author = String(body.author || body.author_name || '').trim();
     const place = String(body.place || body.place_name || body.baseName || '').trim();
@@ -213,13 +311,23 @@ router.post('/', requireAuth, async (req, res, next) => {
     const tripDate = body.date || body.trip_date || new Date().toISOString().slice(0, 10);
     const images = Array.isArray(body.images) ? body.images.filter(Boolean).slice(0, 5) : [];
     const videos = Array.isArray(body.videos) ? body.videos.filter(Boolean).slice(0, 2) : [];
+    const weightLabel = String(body.weight || body.weight_label || '').trim() || null;
+    const weightKg =
+      body.weightKg != null && body.weightKg !== ''
+        ? Number(body.weightKg)
+        : parseWeightKg(weightLabel);
+    let region = String(body.region || '').trim() || null;
+    if (!region && baseId) {
+      const baseRes = await client.query(`select region from public.bases where id = $1`, [baseId]);
+      region = baseRes.rows[0]?.region || null;
+    }
 
     await client.query('begin');
     const { rows } = await client.query(
       `insert into public.fishing_reports (
          user_id, author_name, base_id, place_name, trip_date,
-         fish_caught, bait, weight_label, description, status
-       ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending')
+         fish_caught, bait, weight_label, weight_kg, region, description, status
+       ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'pending')
        returning *`,
       [
         req.user.sub,
@@ -229,7 +337,9 @@ router.post('/', requireAuth, async (req, res, next) => {
         tripDate,
         fish,
         String(body.bait || '').trim() || null,
-        String(body.weight || body.weight_label || '').trim() || null,
+        weightLabel,
+        Number.isFinite(weightKg) ? weightKg : null,
+        region,
         description,
       ]
     );
@@ -272,16 +382,144 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Отчёт недоступен' });
     }
 
-    res.json(await buildReport(row));
+    res.json(
+      await buildReport(row, {
+        viewerUserId: req.user?.sub || null,
+        isAdmin,
+      })
+    );
   } catch (err) {
     next(err);
   }
 });
 
-router.post('/:id/like', async (req, res, next) => {
+router.patch('/:id', requireAuth, async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    const key = voterKeyFrom(req, req.body || {});
-    if (!key) return res.status(400).json({ error: 'Не удалось определить голосующего' });
+    await ensureReportExtraColumns();
+    const { rows } = await client.query(`select * from public.fishing_reports where id = $1`, [
+      req.params.id,
+    ]);
+    const row = rows[0];
+    if (!row) return res.status(404).json({ error: 'Отчёт не найден' });
+
+    const isAdmin = (req.user?.roles || []).includes('admin');
+    const isAuthor = row.user_id === req.user.sub;
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Недостаточно прав' });
+    }
+
+    const body = req.body || {};
+    const place = String(body.place || body.place_name || body.baseName || row.place_name || '').trim();
+    const fish = String(body.fish || body.fish_caught || row.fish_caught || '').trim();
+    const description = String(body.description ?? row.description ?? '').trim();
+    if (!place) return res.status(400).json({ error: 'Укажите место' });
+    if (!fish) return res.status(400).json({ error: 'Укажите улов' });
+    if (!description) return res.status(400).json({ error: 'Добавьте описание' });
+
+    const baseId = isUuid(body.baseId || body.base_id)
+      ? body.baseId || body.base_id
+      : row.base_id;
+    const tripDate = body.date || body.trip_date || row.trip_date;
+    const bait =
+      body.bait !== undefined ? String(body.bait || '').trim() || null : row.bait;
+    const weightLabel =
+      body.weight !== undefined || body.weight_label !== undefined
+        ? String(body.weight || body.weight_label || '').trim() || null
+        : row.weight_label;
+    const weightKg =
+      body.weightKg != null && body.weightKg !== ''
+        ? Number(body.weightKg)
+        : parseWeightKg(weightLabel);
+    let region =
+      body.region !== undefined ? String(body.region || '').trim() || null : row.region;
+    if (!region && baseId) {
+      const baseRes = await client.query(`select region from public.bases where id = $1`, [baseId]);
+      region = baseRes.rows[0]?.region || region;
+    }
+
+    const images = Array.isArray(body.images) ? body.images.filter(Boolean).slice(0, 5) : null;
+    const videos = Array.isArray(body.videos) ? body.videos.filter(Boolean).slice(0, 2) : null;
+
+    let nextStatus = row.status;
+    if (!isAdmin) {
+      nextStatus = 'pending';
+    } else if (body.status && ['approved', 'pending', 'rejected', 'hidden'].includes(body.status)) {
+      nextStatus = body.status;
+    }
+
+    await client.query('begin');
+    const { rows: updated } = await client.query(
+      `update public.fishing_reports set
+         base_id = $2,
+         place_name = $3,
+         trip_date = $4,
+         fish_caught = $5,
+         bait = $6,
+         weight_label = $7,
+         weight_kg = $8,
+         region = $9,
+         description = $10,
+         status = $11::public.moderation_status,
+         moderation_note = case when $12::boolean then null else moderation_note end,
+         moderated_at = case when $12::boolean then null else moderated_at end,
+         updated_at = now()
+       where id = $1
+       returning *`,
+      [
+        row.id,
+        baseId || null,
+        place,
+        tripDate,
+        fish,
+        bait,
+        weightLabel,
+        Number.isFinite(weightKg) ? weightKg : null,
+        region,
+        description,
+        nextStatus,
+        !isAdmin,
+      ]
+    );
+
+    if (images) {
+      await client.query(`delete from public.report_images where report_id = $1`, [row.id]);
+      for (let i = 0; i < images.length; i++) {
+        await client.query(
+          `insert into public.report_images (report_id, external_url, provider, sort_order)
+           values ($1,$2,'external',$3)`,
+          [row.id, images[i], i]
+        );
+      }
+    }
+    if (videos) {
+      await client.query(`delete from public.report_videos where report_id = $1`, [row.id]);
+      for (let i = 0; i < videos.length; i++) {
+        await client.query(
+          `insert into public.report_videos (report_id, external_url, provider, sort_order)
+           values ($1,$2,'external',$3)`,
+          [row.id, videos[i], i]
+        );
+      }
+    }
+    await client.query('commit');
+    res.json(
+      await buildReport(updated[0], {
+        viewerUserId: req.user.sub,
+        isAdmin,
+      })
+    );
+  } catch (err) {
+    await client.query('rollback');
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/:id/like', requireAuth, async (req, res, next) => {
+  try {
+    const key = String(req.user.sub);
 
     const { rows } = await pool.query(`select * from public.fishing_reports where id = $1`, [
       req.params.id,
@@ -321,10 +559,9 @@ router.post('/:id/like', async (req, res, next) => {
   }
 });
 
-router.post('/:id/stars', async (req, res, next) => {
+router.post('/:id/stars', requireAuth, async (req, res, next) => {
   try {
-    const key = voterKeyFrom(req, req.body || {});
-    if (!key) return res.status(400).json({ error: 'Войдите или обновите страницу' });
+    const key = String(req.user.sub);
     const value = Number(req.body?.stars ?? req.body?.rating);
     if (!Number.isFinite(value) || value < 1 || value > 5) {
       return res.status(400).json({ error: 'Оценка должна быть от 1 до 5' });
@@ -354,12 +591,14 @@ router.post('/:id/stars', async (req, res, next) => {
   }
 });
 
-router.post('/:id/comments', async (req, res, next) => {
+router.post('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     const body = req.body || {};
-    const author = String(body.author || body.author_name || '').trim();
+    const author = String(
+      body.author || body.author_name || req.user?.name || req.user?.email || 'Рыболов'
+    ).trim();
     const text = String(body.text || body.body || '').trim();
-    if (!author || !text) return res.status(400).json({ error: 'Заполните имя и текст' });
+    if (!text) return res.status(400).json({ error: 'Заполните текст комментария' });
 
     const { rows } = await pool.query(`select * from public.fishing_reports where id = $1`, [
       req.params.id,
@@ -372,9 +611,9 @@ router.post('/:id/comments', async (req, res, next) => {
     const parentId = isUuid(body.parentId || body.parent_id) ? body.parentId || body.parent_id : null;
     const { rows: inserted } = await pool.query(
       `insert into public.report_comments (report_id, author_name, user_id, body, parent_id, status)
-       values ($1,$2,$3,$4,$5,'approved')
+       values ($1,$2,$3,$4,$5,'pending')
        returning *`,
-      [row.id, author, req.user?.sub || null, text, parentId]
+      [row.id, author, req.user.sub, text, parentId]
     );
     const c = inserted[0];
     const comment = {
@@ -386,9 +625,14 @@ router.post('/:id/comments', async (req, res, next) => {
       parentId: c.parent_id ? String(c.parent_id) : null,
       status: c.status,
     };
+    const isAdmin = (req.user?.roles || []).includes('admin');
     res.status(201).json({
       comment,
-      report: publicWithViewer(await buildReport(row), voterKeyFrom(req, body)),
+      message: 'Комментарий отправлен на модерацию',
+      report: publicWithViewer(
+        await buildReport(row, { viewerUserId: req.user.sub, isAdmin }),
+        voterKeyFrom(req, body)
+      ),
     });
   } catch (err) {
     next(err);

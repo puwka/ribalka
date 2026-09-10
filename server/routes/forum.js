@@ -128,15 +128,90 @@ router.get('/topics/:id', async (req, res, next) => {
     const names = await authorNames([topic.author_id, ...msgRes.rows.map((m) => m.author_id)]);
     let messages = msgRes.rows;
     if (!isAdmin) {
-      messages = messages.filter(
-        (m) =>
-          m.status === 'approved' || (isAuthor && m.author_id === req.user?.sub)
-      );
+      messages = messages.filter((m) => {
+        const ok = m.status === 'approved' || m.status === 'published';
+        if (ok) return true;
+        if (m.status === 'pending' && req.user?.sub && m.author_id === req.user.sub) return true;
+        return false;
+      });
     }
     res.json({
       topic: mapTopic(topic, names[topic.author_id]),
       messages: messages.map((m) => mapMessage(m, names[m.author_id])),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/topics/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`select * from public.forum_topics where id = $1`, [
+      req.params.id,
+    ]);
+    const topic = rows[0];
+    if (!topic) return res.status(404).json({ error: 'Тема не найдена' });
+
+    const isAdmin = (req.user?.roles || []).includes('admin');
+    const isAuthor = topic.author_id === req.user.sub;
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Недостаточно прав' });
+    }
+
+    const title = String(req.body?.title ?? topic.title ?? '').trim();
+    const body = String(req.body?.body ?? topic.body ?? '').trim();
+    if (!title) return res.status(400).json({ error: 'Укажите заголовок' });
+    if (!body) return res.status(400).json({ error: 'Напишите текст темы' });
+
+    let nextStatus = topic.status;
+    if (!isAdmin) {
+      nextStatus = 'pending';
+    } else if (req.body?.status) {
+      nextStatus = toDbStatus(req.body.status);
+    }
+
+    const { rows: updated } = await pool.query(
+      `update public.forum_topics set
+         title = $2,
+         body = $3,
+         status = $4::public.content_status,
+         updated_at = now()
+       where id = $1
+       returning *`,
+      [topic.id, title, body, nextStatus]
+    );
+    const names = await authorNames([updated[0].author_id]);
+    res.json(mapTopic(updated[0], names[updated[0].author_id]));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/messages/moderation', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const status = req.query.status || 'pending';
+    const { rows } = await pool.query(
+      status === 'all'
+        ? `select m.*, t.title as topic_title
+           from public.forum_messages m
+           join public.forum_topics t on t.id = m.topic_id
+           order by m.created_at desc
+           limit 300`
+        : `select m.*, t.title as topic_title
+           from public.forum_messages m
+           join public.forum_topics t on t.id = m.topic_id
+           where m.status = $1
+           order by m.created_at desc
+           limit 300`,
+      status === 'all' ? [] : [status]
+    );
+    const names = await authorNames(rows.map((r) => r.author_id));
+    res.json(
+      rows.map((m) => ({
+        ...mapMessage(m, names[m.author_id]),
+        topicTitle: m.topic_title,
+      }))
+    );
   } catch (err) {
     next(err);
   }
@@ -212,6 +287,19 @@ router.patch('/messages/:id/moderate', requireAuth, requireAdmin, async (req, re
       [req.params.id, status]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    if (status === 'approved') {
+      await pool.query(
+        `update public.forum_topics set
+           replies_count = (
+             select count(*)::int from public.forum_messages
+             where topic_id = $1 and status = 'approved'
+           ),
+           last_message_at = now(),
+           updated_at = now()
+         where id = $1`,
+        [rows[0].topic_id]
+      );
+    }
     const names = await authorNames([rows[0].author_id]);
     res.json(mapMessage(rows[0], names[rows[0].author_id]));
   } catch (err) {
@@ -231,20 +319,15 @@ router.post('/topics/:id/messages', requireAuth, async (req, res, next) => {
     }
     const { rows } = await pool.query(
       `insert into public.forum_messages (topic_id, author_id, body, status)
-       values ($1, $2, $3, 'approved')
+       values ($1, $2, $3, 'pending')
        returning *`,
       [req.params.id, req.user.sub, body]
     );
-    await pool.query(
-      `update public.forum_topics set
-         replies_count = replies_count + 1,
-         last_message_at = now(),
-         updated_at = now()
-       where id = $1`,
-      [req.params.id]
-    );
     const names = await authorNames([req.user.sub]);
-    res.status(201).json(mapMessage(rows[0], names[req.user.sub]));
+    res.status(201).json({
+      ...mapMessage(rows[0], names[req.user.sub]),
+      message: 'Сообщение отправлено на модерацию',
+    });
   } catch (err) {
     next(err);
   }

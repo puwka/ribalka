@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/auth/AuthContext';
 import { getAnonId } from '../hooks/useReports';
 import { forumService } from '../services/forumService';
@@ -8,6 +8,7 @@ import './ForumPage.css';
 
 export default function ForumPage() {
   const { user, profile, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const viewerKey = user?.id || `anon:${getAnonId()}`;
   const [topics, setTopics] = useState([]);
   const [bases, setBases] = useState([]);
@@ -80,7 +81,17 @@ export default function ForumPage() {
       <header className="forum-hero">
         <h1>Форум рыболовов</h1>
         <p>Темы, ответы и обсуждения мест Прикамья</p>
-        <button type="button" className="forum-btn" onClick={() => setShowForm((v) => !v)}>
+        <button
+          type="button"
+          className="forum-btn"
+          onClick={() => {
+            if (!isAuthenticated) {
+              navigate('/login', { state: { from: '/forum' } });
+              return;
+            }
+            setShowForm((v) => !v);
+          }}
+        >
           {showForm ? 'Закрыть' : 'Новая тема'}
         </button>
       </header>

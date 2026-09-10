@@ -32,6 +32,16 @@ function avgStars(report) {
   return Math.round((report.starSum / report.starCount) * 10) / 10;
 }
 
+function parseWeightKg(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const s = String(raw).replace(',', '.').trim();
+  const m = s.match(/(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
 function localShapeFromRemote(row, rels = {}) {
   const ui = mapReportToUi(row, rels);
   return {
@@ -296,9 +306,13 @@ export const reportSocialService = {
         description,
         images = [],
         videos = [],
-        requireAuth = false,
+        requireAuth = true,
+        region = '',
+        weightKg = null,
       } = payload;
       if (requireAuth && !authorUserId) throw new ApiError('Войдите, чтобы опубликовать отчёт');
+      const parsedKg =
+        weightKg != null && weightKg !== '' ? Number(weightKg) : parseWeightKg(weight);
       const created = await api.post('/api/reports', {
         author,
         place: baseName || place,
@@ -308,6 +322,8 @@ export const reportSocialService = {
         fish,
         bait,
         weight,
+        weightKg: Number.isFinite(parsedKg) ? parsedKg : undefined,
+        region: region || undefined,
         description,
         images,
         videos,
@@ -329,7 +345,8 @@ export const reportSocialService = {
       extra = '',
       images = [],
       videos = [],
-      requireAuth = false,
+      requireAuth = true,
+      region = '',
     } = payload;
 
     if (requireAuth && !authorUserId) throw new ApiError('Войдите, чтобы опубликовать отчёт');
@@ -351,6 +368,8 @@ export const reportSocialService = {
       fish: fish.trim(),
       bait: bait.trim(),
       weight: weight.trim(),
+      weightKg: parseWeightKg(weight),
+      region: (region || '').trim(),
       description: description.trim(),
       extra: (extra || '').trim(),
       images,
@@ -436,12 +455,86 @@ export const reportSocialService = {
     return publicReport(report, null);
   },
 
+  async update(id, payload = {}) {
+    const {
+      isAdmin = false,
+      authorUserId = null,
+      place,
+      baseId = null,
+      baseName = null,
+      date,
+      fish,
+      bait = '',
+      weight = '',
+      weightKg = null,
+      region = '',
+      description,
+      images,
+      videos,
+      status,
+    } = payload;
+
+    if (isApiReports()) {
+      const body = {};
+      if (place != null || baseName != null) body.place = baseName || place;
+      if (baseId != null) body.baseId = baseId;
+      if (baseName != null) body.baseName = baseName;
+      if (date != null) body.date = date;
+      if (fish != null) body.fish = fish;
+      if (bait != null) body.bait = bait;
+      if (weight != null) body.weight = weight;
+      if (weightKg != null) body.weightKg = weightKg;
+      if (region != null) body.region = region;
+      if (description != null) body.description = description;
+      if (images != null) body.images = images;
+      if (videos != null) body.videos = videos;
+      if (isAdmin && status) body.status = status;
+      const updated = await api.patch(`/api/reports/${encodeURIComponent(id)}`, body);
+      return publicReport(updated, authorUserId);
+    }
+
+    const row = await resolveReport(id);
+    if (!row) throw new ApiError('Отчёт не найден');
+
+    const isAuthor =
+      authorUserId && row.authorUserId != null && String(row.authorUserId) === String(authorUserId);
+    if (!isAdmin && !isAuthor) throw new ApiError('Недостаточно прав');
+
+    if (place != null || baseName != null) row.place = (baseName || place || '').trim();
+    if (baseId !== undefined) row.baseId = baseId ? String(baseId) : null;
+    if (baseName !== undefined) row.baseName = baseName || null;
+    if (date != null) row.date = date;
+    if (fish != null) row.fish = fish.trim();
+    if (bait != null) row.bait = bait.trim();
+    if (weight != null) {
+      row.weight = weight.trim();
+      row.weightKg = parseWeightKg(weight);
+    }
+    if (weightKg != null) row.weightKg = parseWeightKg(weightKg);
+    if (region != null) row.region = String(region).trim();
+    if (description != null) row.description = description.trim();
+    if (images != null) row.images = images;
+    if (videos != null) row.videos = videos;
+
+    if (!isAdmin) {
+      row.status = CONTENT_STATUS.PENDING;
+      row.moderationNote = null;
+      row.moderatedAt = null;
+    } else if (status) {
+      row.status = status;
+    }
+    row.updatedAt = new Date().toISOString();
+    await socialDb.putReport({ ...row, id: String(row.id) });
+    return publicReport(row, authorUserId);
+  },
+
   async like(id, { userId = null, anonId = null }) {
+    if (!userId) throw new ApiError('Войдите, чтобы поставить лайк');
     const key = voterKey(userId, anonId);
     if (!key) throw new ApiError('Не удалось определить голосующего');
 
     if (isApiReports()) {
-      const result = await api.post(`/api/reports/${encodeURIComponent(id)}/like`, { anonId });
+      const result = await api.post(`/api/reports/${encodeURIComponent(id)}/like`, {});
       return result;
     }
 
@@ -465,6 +558,7 @@ export const reportSocialService = {
   },
 
   async rateStars(id, stars, { userId = null, anonId = null }) {
+    if (!userId) throw new ApiError('Войдите, чтобы оценить отчёт');
     const key = voterKey(userId, anonId);
     if (!key) throw new ApiError('Войдите или обновите страницу');
     const value = Number(stars);
@@ -473,7 +567,7 @@ export const reportSocialService = {
     }
 
     if (isApiReports()) {
-      return api.post(`/api/reports/${encodeURIComponent(id)}/stars`, { stars: value, anonId });
+      return api.post(`/api/reports/${encodeURIComponent(id)}/stars`, { stars: value });
     }
 
     const row = (await socialDb.getReport(id)) || (await getRemoteReport(id)) || (await resolveReport(id));
@@ -492,7 +586,8 @@ export const reportSocialService = {
     return publicReport(row, key);
   },
 
-  async addComment(id, { author, authorUserId = null, text, parentId = null }) {
+  async addComment(id, { author, authorUserId = null, text, parentId = null, requireAuth = true }) {
+    if (requireAuth && !authorUserId) throw new ApiError('Войдите, чтобы комментировать');
     if (!author?.trim() || !text?.trim()) throw new ApiError('Заполните имя и текст');
 
     if (isApiReports()) {
@@ -512,7 +607,7 @@ export const reportSocialService = {
       text: text.trim(),
       date: new Date().toISOString(),
       parentId: parentId != null ? String(parentId) : null,
-      status: CONTENT_STATUS.APPROVED,
+      status: CONTENT_STATUS.PENDING,
     };
     row.comments = [...(row.comments || []), comment];
     await socialDb.putReport(row);
@@ -588,6 +683,59 @@ export const reportSocialService = {
       }
     }
     return row;
+  },
+
+  async listPendingComments(status = 'pending') {
+    if (isApiReports()) {
+      const rows = await api.get(
+        `/api/reports/comments/moderation?status=${encodeURIComponent(status || 'pending')}`
+      );
+      return rows || [];
+    }
+    const reports = await socialDb.listReports();
+    const out = [];
+    for (const r of reports) {
+      for (const c of r.comments || []) {
+        if (status === 'all' || c.status === status) {
+          out.push({
+            ...c,
+            reportId: String(r.id),
+            placeName: r.place,
+            reportAuthor: r.author,
+          });
+        }
+      }
+    }
+    return out.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  },
+
+  async moderateComment(adminId, commentId, { action, status: statusOverride }) {
+    await assertAdmin(adminId);
+    const statusMap = {
+      approve: 'approved',
+      reject: 'rejected',
+      hide: 'hidden',
+      pending: 'pending',
+    };
+    const status = statusOverride || statusMap[action];
+    if (!status) throw new ApiError('Неизвестное действие');
+
+    if (isApiReports()) {
+      return api.patch(`/api/reports/comments/${encodeURIComponent(commentId)}/moderate`, {
+        status,
+      });
+    }
+
+    const reports = await socialDb.listReports();
+    for (const r of reports) {
+      const idx = (r.comments || []).findIndex((c) => String(c.id) === String(commentId));
+      if (idx >= 0) {
+        r.comments[idx].status = status;
+        await socialDb.putReport(r);
+        return { ...r.comments[idx], reportId: String(r.id) };
+      }
+    }
+    throw new ApiError('Комментарий не найден');
   },
 
   async listForModeration(status = 'pending') {

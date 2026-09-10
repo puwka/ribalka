@@ -147,6 +147,35 @@ export const forumService = {
     return publicTopic(topic, authorId);
   },
 
+  async updateTopic(id, { title, body }, { authorId = null, isAdmin = false } = {}) {
+    if (!title?.trim()) throw new ApiError('Укажите заголовок');
+    if (!body?.trim()) throw new ApiError('Напишите текст темы');
+
+    if (apiDataEnabled) {
+      const topic = await api.patch(`/api/forum/topics/${encodeURIComponent(id)}`, {
+        title: title.trim(),
+        body: body.trim(),
+      });
+      return publicTopic(topic, authorId);
+    }
+
+    const topic = await socialDb.getTopic(id);
+    if (!topic) throw new ApiError('Тема не найдена');
+    const isAuthor = authorId && topic.authorId === authorId;
+    if (!isAdmin && !isAuthor) throw new ApiError('Недостаточно прав');
+
+    topic.title = title.trim();
+    topic.body = body.trim();
+    topic.updatedAt = new Date().toISOString();
+    if (!isAdmin) {
+      topic.status = CONTENT_STATUS.PENDING;
+      topic.moderationNote = null;
+      topic.moderatedAt = null;
+    }
+    await socialDb.putTopic(topic);
+    return publicTopic(topic, authorId);
+  },
+
   async addMessage({ topicId, authorId, authorName, body, parentId = null, kind = 'message' }) {
     if (!authorId) throw new ApiError('Войдите, чтобы ответить');
     if (!body?.trim()) throw new ApiError('Введите текст');
@@ -181,14 +210,16 @@ export const forumService = {
       parentId: parentId != null ? String(parentId) : null,
       kind: kind === 'comment' ? 'comment' : parentId ? 'reply' : 'message',
       likedBy: [],
-      status: CONTENT_STATUS.APPROVED,
+      status: CONTENT_STATUS.PENDING,
       createdAt: now,
       updatedAt: now,
       moderationNote: null,
     };
     await socialDb.putMessage(message);
 
-    topic.repliesCount = (topic.repliesCount || 0) + 1;
+    if (message.status === CONTENT_STATUS.APPROVED) {
+      topic.repliesCount = (topic.repliesCount || 0) + 1;
+    }
     topic.lastMessageAt = now;
     await socialDb.putTopic(topic);
 
@@ -293,6 +324,24 @@ export const forumService = {
     return publicTopic(topic, null);
   },
 
+  async listPendingMessages(status = 'pending') {
+    if (apiDataEnabled) {
+      const rows = await api.get(
+        `/api/forum/messages/moderation?status=${encodeURIComponent(status || 'pending')}`
+      );
+      return (rows || []).map((m) => ({ ...publicMessage(m, null), _type: 'message' }));
+    }
+    let rows = await socialDb.listAllMessages();
+    if (status !== 'all') rows = rows.filter((m) => m.status === status);
+    const topics = await socialDb.listTopics();
+    const topicById = Object.fromEntries(topics.map((t) => [String(t.id), t]));
+    return rows.map((m) => ({
+      ...publicMessage(m, null),
+      _type: 'message',
+      topicTitle: topicById[String(m.topicId)]?.title || '',
+    }));
+  },
+
   async listForModeration(status = 'pending') {
     if (apiDataEnabled) {
       const rows = await api.get(
@@ -320,8 +369,16 @@ export const forumService = {
     }
     const msg = await socialDb.getMessage(messageId);
     if (!msg) throw new ApiError('Сообщение не найдено');
-    if (action === 'approve') msg.status = CONTENT_STATUS.APPROVED;
-    else if (action === 'reject' || action === 'hide') msg.status = CONTENT_STATUS.HIDDEN;
+    if (action === 'approve') {
+      msg.status = CONTENT_STATUS.APPROVED;
+      const topic = await socialDb.getTopic(msg.topicId);
+      if (topic) {
+        const all = await socialDb.listMessagesByTopic(msg.topicId);
+        topic.repliesCount = all.filter((x) => x.status === CONTENT_STATUS.APPROVED).length;
+        topic.lastMessageAt = new Date().toISOString();
+        await socialDb.putTopic(topic);
+      }
+    } else if (action === 'reject' || action === 'hide') msg.status = CONTENT_STATUS.HIDDEN;
     else throw new ApiError('Неизвестное действие');
     await socialDb.putMessage(msg);
     return publicMessage(msg, null);

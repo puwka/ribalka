@@ -19,23 +19,25 @@ const emptyForm = () => ({
   videos: [],
 });
 
+function pickBestReports(reports, limit = 4) {
+  return [...reports]
+    .sort(
+      (a, b) =>
+        (b.rating || 0) - (a.rating || 0) ||
+        (b.comments?.length || 0) - (a.comments?.length || 0) ||
+        String(b.date).localeCompare(String(a.date))
+    )
+    .slice(0, limit);
+}
+
 export default function ReportsPage() {
   const { user, profile, isAuthenticated, refresh } = useAuth();
-  const {
-    loading,
-    addReport,
-    voteReport,
-    hasVoted,
-    sortBy,
-    setSortBy,
-    getSortedReports,
-    reload,
-  } = useReports({ userId: user?.id });
+  const { loading, addReport, voteReport, hasVoted, getSortedReports, reload } = useReports({
+    userId: user?.id,
+  });
 
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState(emptyForm);
   const [bases, setBases] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -48,26 +50,16 @@ export default function ReportsPage() {
   }, [profile]);
 
   useEffect(() => {
-    basesService.listPublic({ type: 'paid' }).then(setBases).catch(() => setBases([]));
+    // Платные базы и бесплатные места — для выбора места и района
+    basesService.listPublic().then(setBases).catch(() => setBases([]));
   }, []);
 
   const sortedReports = getSortedReports();
+  const bestReports = useMemo(() => pickBestReports(sortedReports, 4), [sortedReports]);
   const uniquePlaces = useMemo(
     () => [...new Set(sortedReports.map((r) => r.place).filter(Boolean))],
     [sortedReports]
   );
-
-  const filteredReports = sortedReports.filter((report) => {
-    const matchesFilter = filter === 'all' || report.place === filter;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      !q ||
-      report.author?.toLowerCase().includes(q) ||
-      report.fish?.toLowerCase().includes(q) ||
-      report.description?.toLowerCase().includes(q) ||
-      report.place?.toLowerCase().includes(q);
-    return matchesFilter && matchesSearch;
-  });
 
   const toEmbed = (url) => {
     if (url.includes('watch?v=')) {
@@ -81,8 +73,20 @@ export default function ReportsPage() {
     return url;
   };
 
+  const openCreateForm = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/reports' } });
+      return;
+    }
+    setShowForm((v) => !v);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated || !user) {
+      navigate('/login', { state: { from: '/reports' } });
+      return;
+    }
     setFormError('');
     setSubmitting(true);
     try {
@@ -92,12 +96,13 @@ export default function ReportsPage() {
         place: base?.name || formData.place,
         baseId: base?.id || null,
         baseName: base?.name || null,
-        authorUserId: user?.id || null,
+        region: base?.region || '',
+        authorUserId: user.id,
         author: formData.author || profile?.display_name || '',
-        requireAuth: false,
+        requireAuth: true,
       });
       await reload();
-      if (user?.id) await refresh();
+      await refresh();
       setFormData(emptyForm());
       setShowForm(false);
       navigate(`/reports/${created.id}`);
@@ -133,6 +138,10 @@ export default function ReportsPage() {
   const handleVote = async (e, reportId) => {
     e.stopPropagation();
     e.preventDefault();
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/reports' } });
+      return;
+    }
     const result = await voteReport(reportId);
     if (!result.success) alert(result.message);
     else if (user?.id) await refresh();
@@ -158,7 +167,7 @@ export default function ReportsPage() {
       <div className="reports-header" id="reports-top">
         <div className="reports-header__content">
           <h1>Отчёты о рыбалке</h1>
-          <p>Фото, видео, улов и места — делитесь и обсуждайте</p>
+          <p>Лучшие уловы и истории с водоёмов Прикамья</p>
           <div className="reports-stats">
             <div className="stat-item">
               <div className="stat-number">{sortedReports.length}</div>
@@ -181,47 +190,23 @@ export default function ReportsPage() {
       <div className="reports-container">
         <div className="reports-controls">
           <div className="reports-controls__left">
-            <input
-              type="text"
-              placeholder="Поиск…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="reports-search"
-            />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="reports-filter"
-            >
-              <option value="all">Все места</option>
-              {uniquePlaces.map((place) => (
-                <option key={place} value={place}>
-                  {place}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="reports-sort"
-            >
-              <option value="date">По дате</option>
-              <option value="rating">По лайкам</option>
-              <option value="stars">По рейтингу</option>
-              <option value="comments">По комментариям</option>
-            </select>
+            <h2 className="reports-section-title">Лучшие отчёты</h2>
           </div>
-          <button type="button" className="add-report-btn" onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Отмена' : 'Добавить отчёт'}
-          </button>
+          <div className="reports-controls__right">
+            <Link to="/reports/all" className="reports-view-all-btn">
+              Смотреть все
+            </Link>
+            <button type="button" className="add-report-btn" onClick={openCreateForm}>
+              {showForm ? 'Отмена' : 'Добавить отчёт'}
+            </button>
+          </div>
         </div>
 
-        {showForm && (
+        {showForm && isAuthenticated && (
           <div className="report-form">
             <h2>Новый отчёт</h2>
             <p className="report-form__hint">
               После отправки отчёт проходит модерацию администратором.
-              {!isAuthenticated && ' Войдите, чтобы привязать отчёт к профилю.'}
             </p>
             {formError && <div className="report-form__error">{formError}</div>}
             <form onSubmit={handleSubmit}>
@@ -374,7 +359,14 @@ export default function ReportsPage() {
                 </button>
                 {formData.videos.map((v, i) => (
                   <div key={i} className="video-preview-item">
-                    <iframe src={v} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ width: '100%', height: '200px', borderRadius: '12px' }}></iframe>
+                    <iframe
+                      src={v}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      style={{ width: '100%', height: '200px', borderRadius: '12px' }}
+                      title={`video-${i}`}
+                    />
                     <button
                       type="button"
                       onClick={() =>
@@ -399,18 +391,18 @@ export default function ReportsPage() {
           </div>
         )}
 
-        {filteredReports.length === 0 ? (
+        {bestReports.length === 0 ? (
           <div className="no-reports">
             <h3>Отчётов пока нет</h3>
             <p>Опубликуйте первый улов — после модерации он появится здесь</p>
           </div>
         ) : (
-          <div className="reports-grid">
-            {filteredReports.map((report) => (
+          <div className="reports-grid reports-grid--best">
+            {bestReports.map((report) => (
               <Link
                 key={report.id}
                 to={`/reports/${report.id}`}
-                className="report-card"
+                className="report-card report-card--best"
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
                 {report.images?.[0] && (

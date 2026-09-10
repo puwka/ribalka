@@ -66,6 +66,7 @@ export function useReports({ userId = null } = {}) {
     const result = await reportSocialService.addComment(reportId, {
       ...comment,
       authorUserId: comment.authorUserId || userId || null,
+      requireAuth: true,
     });
     await reload();
     return result.comment;

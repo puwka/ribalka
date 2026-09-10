@@ -17,6 +17,7 @@ import DirectoryCategoryPage from './pages/DirectoryCategoryPage';
 import DirectoryPaymentResultPage from './pages/DirectoryPaymentResultPage';
 import TariffsPage from './pages/TariffsPage';
 import ReportsPage from './pages/ReportsPage';
+import ReportsAllPage from './pages/ReportsAllPage';
 import ReportDetailPage from './pages/ReportDetailPage';
 import ForumPage from './pages/ForumPage';
 import ForumTopicPage from './pages/ForumTopicPage';
@@ -88,6 +89,7 @@ function App() {
                     <Route path="/directory/:tab" element={<DirectoryCategoryPage />} />
                     <Route path="/tariffs" element={<TariffsPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/reports/all" element={<ReportsAllPage />} />
                     <Route path="/reports/:id" element={<ReportDetailPage />} />
                     <Route path="/forum" element={<ForumPage />} />
                     <Route path="/forum/:id" element={<ForumTopicPage />} />
