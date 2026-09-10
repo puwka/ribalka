@@ -29,6 +29,7 @@ const DIRECTORY_DEFAULTS = {
   service: {
     title: 'Тариф справочника',
     amountPerMonth: 590,
+    addonTop: 500,
     addonFrame: 100,
     currency: 'RUB',
     enabled: true,
@@ -162,6 +163,7 @@ function normalizeServiceSettings(raw = {}) {
   return {
     title: String(raw.title || d.title),
     amountPerMonth: Number.isFinite(perMonth) ? perMonth : d.amountPerMonth,
+    addonTop: Number.isFinite(Number(raw.addonTop)) ? Number(raw.addonTop) : d.addonTop || 500,
     addonFrame: Number.isFinite(Number(raw.addonFrame)) ? Number(raw.addonFrame) : d.addonFrame,
     currency: 'RUB',
     enabled: raw.enabled !== false,
@@ -517,14 +519,31 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
 }
 
 async function applyPaidSideEffects(client, order) {
+  let meta = order.meta;
+  if (typeof meta === 'string') {
+    try {
+      meta = JSON.parse(meta);
+    } catch {
+      meta = {};
+    }
+  }
+  const opts = meta && typeof meta === 'object' ? meta.constructor_options || {} : {};
+  const isTop = Boolean(opts.top);
+  const yellowFrame = Boolean(opts.frame);
+
   await client.query(
     `update public.bases set
-       status = 'pending',
+       status = case
+         when status in ('draft', 'rejected', 'pending') then 'pending'
+         else status
+       end,
        submitted_at = coalesce(submitted_at, now()),
        rejection_reason = null,
+       is_top = $2,
+       yellow_frame = $3,
        updated_at = now()
-     where id = $1 and status in ('draft', 'rejected', 'pending')`,
-    [order.base_id]
+     where id = $1`,
+    [order.base_id, isTop, yellowFrame]
   );
 
   await client.query(
@@ -534,7 +553,12 @@ async function applyPaidSideEffects(client, order) {
       order.user_id,
       `Оплата размещения «заказ ${order.id.slice(0, 8)}» прошла успешно. База отправлена на модерацию.`,
       `/owner/bases/${order.base_id}/edit`,
-      JSON.stringify({ order_id: order.id, base_id: order.base_id }),
+      JSON.stringify({
+        order_id: order.id,
+        base_id: order.base_id,
+        is_top: isTop,
+        yellow_frame: yellowFrame,
+      }),
     ]
   );
 }

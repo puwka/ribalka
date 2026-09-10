@@ -69,20 +69,43 @@ export function filterWaters(items, { region, priceMin, priceMax, kind } = {}) {
 
 export function sortWaters(items, sortBy, type) {
   const list = [...items];
+  const isTop = (x) => Boolean(x.isTop || x.is_top || x.top);
+  const byTopThen = (cmp) => (a, b) => {
+    const ta = isTop(a) ? 0 : 1;
+    const tb = isTop(b) ? 0 : 1;
+    if (ta !== tb) return ta - tb;
+    return cmp(a, b);
+  };
   const byName = (a, b) => a.name.localeCompare(b.name, 'ru');
 
   switch (sortBy) {
     case 'price':
-      if (type !== WATER_TYPE.PAID) return list.sort(byName);
-      return list.sort((a, b) => {
-        const pa = parsePriceValue(a.price || a.price_label) ?? Infinity;
-        const pb = parsePriceValue(b.price || b.price_label) ?? Infinity;
-        return pa - pb;
-      });
+      if (type !== WATER_TYPE.PAID) return list.sort(byTopThen(byName));
+      return list.sort(
+        byTopThen((a, b) => {
+          const pa = parsePriceValue(a.price || a.price_label) ?? Infinity;
+          const pb = parsePriceValue(b.price || b.price_label) ?? Infinity;
+          return pa - pb;
+        })
+      );
     case 'region':
-      return list.sort((a, b) => (a.region || '').localeCompare(b.region || '', 'ru') || byName(a, b));
+      return list.sort(
+        byTopThen(
+          (a, b) => (a.region || '').localeCompare(b.region || '', 'ru') || byName(a, b)
+        )
+      );
   }
-  return list.sort(byName);
+  return list.sort(byTopThen(byName));
+}
+
+/** Sort directory / catalog items: TOP first, then original order / name */
+export function sortPromoFirst(items, nameKey = 'name') {
+  return [...items].sort((a, b) => {
+    const ta = a.isTop || a.is_top || a.top ? 0 : 1;
+    const tb = b.isTop || b.is_top || b.top ? 0 : 1;
+    if (ta !== tb) return ta - tb;
+    return String(a[nameKey] || '').localeCompare(String(b[nameKey] || ''), 'ru');
+  });
 }
 
 export function enrichWaterItem(item) {

@@ -6,6 +6,7 @@ import {
   FreeWaterCard,
   WaterCardGridSkeleton,
 } from '../waters/WaterCard';
+import { sortPromoFirst } from '../../lib/waterUtils';
 import './WatersHomeSection.css';
 
 export default function WatersHomeSection() {
@@ -33,7 +34,9 @@ export default function WatersHomeSection() {
             <WaterCardGridSkeleton count={4} />
           ) : (
             <div className="waters-home__grid">
-              {paid.slice(0, 4).map((item) => (
+              {sortPromoFirst(paid)
+                .slice(0, 4)
+                .map((item) => (
                 <PaidWaterCard key={item.id} item={item} />
               ))}
             </div>
@@ -51,7 +54,9 @@ export default function WatersHomeSection() {
             <WaterCardGridSkeleton count={4} />
           ) : (
             <div className="waters-home__grid">
-              {free.slice(0, 4).map((item) => (
+              {sortPromoFirst(free)
+                .slice(0, 4)
+                .map((item) => (
                 <FreeWaterCard key={item.id} item={item} />
               ))}
             </div>

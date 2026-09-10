@@ -69,6 +69,7 @@ export default function AdminDirectorySection() {
       tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
       status: item.status || 'published',
       yellowFrame: Boolean(item.yellowFrame || item.highlight),
+      isTop: Boolean(item.isTop || item.top),
     });
   };
 
@@ -251,6 +252,14 @@ export default function AdminDirectorySection() {
                     </select>
                   </AdminField>
                 </div>
+                <label className="admin-check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.isTop)}
+                    onChange={(e) => setField('isTop', e.target.checked)}
+                  />
+                  Размещение в ТОП
+                </label>
                 <label className="admin-check">
                   <input
                     type="checkbox"

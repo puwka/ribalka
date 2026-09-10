@@ -232,6 +232,20 @@ export function AdminPlansSection() {
                     }
                   />
                 </AdminField>
+                <AdminField label="ТОП ₽/мес">
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    value={directory.service?.addonTop ?? 500}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        service: { ...d.service, addonTop: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                </AdminField>
                 <AdminField label="Жёлтая рамка ₽/мес">
                   <input
                     className="admin-input"

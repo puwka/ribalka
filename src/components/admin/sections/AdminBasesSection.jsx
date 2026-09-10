@@ -356,6 +356,8 @@ export default function AdminBasesSection() {
 
                   submitLabel="Сохранить"
 
+                  showPromoOptions
+
                   onSubmit={async (form) => {
 
                     const updated = await basesService.adminUpdate(user.id, selected.id, form);

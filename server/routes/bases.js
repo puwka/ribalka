@@ -122,6 +122,12 @@ function parsePayload(body) {
     images,
     videos,
     services,
+    is_top: body.is_top === true || body.is_top === 'true' || body.isTop === true || body.isTop === 'true',
+    yellow_frame:
+      body.yellow_frame === true ||
+      body.yellow_frame === 'true' ||
+      body.yellowFrame === true ||
+      body.yellowFrame === 'true',
   };
 }
 
@@ -170,7 +176,7 @@ router.get('/', async (req, res, next) => {
       params.push(type);
       sql += ` and b.type = $${params.length}`;
     }
-    sql += ` group by b.id order by b.name`;
+    sql += ` group by b.id order by b.is_top desc, b.name`;
     const { rows } = await pool.query(sql, params);
     res.json(rows.map(mapRow));
   } catch (err) {
@@ -300,36 +306,72 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
 
     const data = parsePayload(req.body || {});
     await client.query('begin');
-    await client.query(
-      `update public.bases set
-         type=$2, name=$3, short_description=$4, description=$5,
-         region=$6, address=$7, lat=$8, lng=$9, phone=$10, contacts=$11,
-         website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
-         conditions=$16, features=$17, work_hours=$18, fish_species=$19,
-         updated_at=now()
-       where id=$1`,
-      [
-        existing.id,
-        data.type,
-        data.name,
-        data.short_description,
-        data.description,
-        data.region,
-        data.address,
-        data.lat,
-        data.lng,
-        data.phone,
-        data.contacts,
-        data.website_url,
-        JSON.stringify(data.social_links || {}),
-        data.price_label,
-        data.price_from,
-        data.conditions,
-        data.features,
-        data.work_hours,
-        data.fish_species,
-      ]
-    );
+    if (isAdmin) {
+      await client.query(
+        `update public.bases set
+           type=$2, name=$3, short_description=$4, description=$5,
+           region=$6, address=$7, lat=$8, lng=$9, phone=$10, contacts=$11,
+           website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
+           conditions=$16, features=$17, work_hours=$18, fish_species=$19,
+           is_top=$20, yellow_frame=$21,
+           updated_at=now()
+         where id=$1`,
+        [
+          existing.id,
+          data.type,
+          data.name,
+          data.short_description,
+          data.description,
+          data.region,
+          data.address,
+          data.lat,
+          data.lng,
+          data.phone,
+          data.contacts,
+          data.website_url,
+          JSON.stringify(data.social_links || {}),
+          data.price_label,
+          data.price_from,
+          data.conditions,
+          data.features,
+          data.work_hours,
+          data.fish_species,
+          Boolean(data.is_top),
+          Boolean(data.yellow_frame),
+        ]
+      );
+    } else {
+      await client.query(
+        `update public.bases set
+           type=$2, name=$3, short_description=$4, description=$5,
+           region=$6, address=$7, lat=$8, lng=$9, phone=$10, contacts=$11,
+           website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
+           conditions=$16, features=$17, work_hours=$18, fish_species=$19,
+           updated_at=now()
+         where id=$1`,
+        [
+          existing.id,
+          data.type,
+          data.name,
+          data.short_description,
+          data.description,
+          data.region,
+          data.address,
+          data.lat,
+          data.lng,
+          data.phone,
+          data.contacts,
+          data.website_url,
+          JSON.stringify(data.social_links || {}),
+          data.price_label,
+          data.price_from,
+          data.conditions,
+          data.features,
+          data.work_hours,
+          data.fish_species,
+        ]
+      );
+    }
     await replaceMedia(client, existing.id, data);
     await client.query('commit');
     res.json(await fetchBase(existing.id));

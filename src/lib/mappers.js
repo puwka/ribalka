@@ -56,6 +56,8 @@ export function mapBaseToUi(row, rels = {}) {
     region: row.region ?? '',
     conditions: row.conditions ?? '',
     features: row.features ?? '',
+    isTop: Boolean(row.is_top ?? row.isTop),
+    yellowFrame: Boolean(row.yellow_frame ?? row.yellowFrame),
     images,
     videos,
     video: videos[0] ?? null,

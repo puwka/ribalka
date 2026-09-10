@@ -13,6 +13,7 @@ import { catalogAdminService } from './catalogAdminService';
 import { localAuthStore } from '../lib/localAuthStore';
 import { normalizeVideoList } from '../lib/videoEmbed';
 import { parseCoordNumber, resolveLatLng } from '../lib/coords';
+import { sortPromoFirst } from '../lib/waterUtils';
 
 export const BASE_STATUSES = Object.freeze({
   DRAFT: 'draft',
@@ -63,6 +64,8 @@ function emptyForm() {
     type: 'paid',
     short_description: '',
     fish_species: '',
+    is_top: false,
+    yellow_frame: false,
   };
 }
 
@@ -118,6 +121,8 @@ function formToRecord(form, { ownerId, existing }) {
     conditions: form.conditions.trim() || null,
     features: form.features.trim() || null,
     work_hours: form.work_hours.trim() || null,
+    is_top: Boolean(form.is_top),
+    yellow_frame: Boolean(form.yellow_frame),
     services,
     images,
     videos,
@@ -173,6 +178,8 @@ function recordToForm(record) {
     type: record.type || 'paid',
     short_description: record.short_description || '',
     fish_species: record.fish_species || '',
+    is_top: Boolean(record.is_top ?? record.isTop),
+    yellow_frame: Boolean(record.yellow_frame ?? record.yellowFrame),
   };
 }
 
@@ -230,6 +237,10 @@ function enrichRemote(row) {
     owner_id: row.owner_id,
     price_from: row.price_from,
     updated_at: row.updated_at,
+    is_top: Boolean(row.is_top ?? mapped.isTop),
+    yellow_frame: Boolean(row.yellow_frame ?? mapped.yellowFrame),
+    isTop: Boolean(row.is_top ?? mapped.isTop),
+    yellowFrame: Boolean(row.yellow_frame ?? mapped.yellowFrame),
     raw: row,
   };
 }
@@ -363,7 +374,8 @@ export const basesService = {
       const qs = filters.type ? `?type=${encodeURIComponent(filters.type)}` : '';
       const rows = await api.get(`/api/bases${qs}`);
       const remote = (rows ?? []).map(enrichRemote);
-      return catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
+      const list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
+      return sortPromoFirst(list);
     }
 
     const rows = await basesLocalDb.listApproved(filters.type);
@@ -375,9 +387,12 @@ export const basesService = {
         rejection_reason: r.rejection_reason,
         owner_id: r.owner_id,
         price_from: r.price_from,
+        isTop: Boolean(r.is_top || r.isTop),
+        yellowFrame: Boolean(r.yellow_frame || r.yellowFrame),
       }));
 
-    return catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, ownerItems));
+    const list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, ownerItems));
+    return sortPromoFirst(list);
   },
 
   async listMine(ownerId) {
@@ -556,7 +571,32 @@ export const basesService = {
   async adminUpdate(adminId, baseId, form) {
     validateForm(form);
     if (isRemoteDb()) {
-      throw new ApiError('Редактирование баз через API — в следующем обновлении');
+      const payload = {
+        ...form,
+        images: String(form.imagesText || '')
+          .split(/\n/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        videos: String(form.videosText || '')
+          .split(/\n/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        services: String(form.servicesText || '')
+          .split(/[,;\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        social_links: {
+          vk: form.social_vk?.trim() || null,
+          telegram: form.social_telegram?.trim() || null,
+          max: form.social_max?.trim() || null,
+          other: form.social_other?.trim() || null,
+        },
+        is_top: Boolean(form.is_top),
+        yellow_frame: Boolean(form.yellow_frame),
+      };
+      const row = await api.patch(`/api/bases/${baseId}`, payload);
+      const ui = enrichRemote(row);
+      return { ...row, ...ui, images: ui.images, videos: ui.videos, services: ui.services };
     }
 
     const existing = await basesLocalDb.getById(baseId);
@@ -564,6 +604,8 @@ export const basesService = {
     const record = formToRecord(form, { ownerId: existing.owner_id, existing });
     record.id = existing.id;
     record.status = existing.status;
+    record.is_top = Boolean(form.is_top);
+    record.yellow_frame = Boolean(form.yellow_frame);
     record.updated_at = nowIso();
     await basesLocalDb.put(record);
     return { ...record, ...toUi(record) };

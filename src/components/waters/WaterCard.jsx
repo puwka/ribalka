@@ -96,13 +96,25 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
 
   const favLabel = favorited ? 'В избранном' : 'В избранное';
   const favClass = `water-card__text-link${favorited ? ' is-favorited' : ''}`;
+  const isTop = Boolean(item.isTop || item.is_top || item.top);
+  const hasFrame = Boolean(item.yellowFrame || item.yellow_frame);
+  const cardClass = [
+    'water-card',
+    `water-card--${variant}`,
+    layout === 'row' ? 'water-card--row' : '',
+    isTop ? 'water-card--top' : '',
+    hasFrame ? 'water-card--frame' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   if (layout === 'row') {
     return (
-      <article className={`water-card water-card--row water-card--${variant}`}>
+      <article className={cardClass}>
         <Link to={detailPath} className="water-card__row-link">
           <div className="water-card__media water-card__media--sm">
             <WaterCardImage images={item.images} alt="" />
+            {isTop && <span className="water-card__badge-top">ТОП</span>}
           </div>
 
           <div className="water-card__row-body">
@@ -136,10 +148,11 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
   }
 
   return (
-    <article className={`water-card water-card--${variant}`}>
+    <article className={cardClass}>
       <Link to={detailPath} className="water-card__link">
         <div className="water-card__media">
           <WaterCardImage images={item.images} alt={item.name} />
+          {isTop && <span className="water-card__badge-top">ТОП</span>}
         </div>
 
         <div className="water-card__body">

@@ -103,6 +103,7 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
       category: body.category,
       months: body.months,
       frame: Boolean(body.frame),
+      top: Boolean(body.top),
       listing: body.listing || body,
       returnUrl,
     });

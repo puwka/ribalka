@@ -15,6 +15,8 @@ export default function BaseCard({ item, onClick, linkToDetail = true }) {
   const { weather } = useWeather(item.coords);
   const detailPath = `/waters/${item.id}`;
   const typeLabel = item.type === 'free' ? 'Бесплатно' : 'Платная база';
+  const isTop = Boolean(item.isTop || item.is_top || item.top);
+  const hasFrame = Boolean(item.yellowFrame || item.yellow_frame);
 
   const handleClick = (e) => {
     if (onClick) {
@@ -25,7 +27,7 @@ export default function BaseCard({ item, onClick, linkToDetail = true }) {
 
   const inner = (
     <>
-      <div className="base-card__image">
+      <div className={`base-card__image${hasFrame ? ' base-card__image--frame' : ''}`}>
         {item.images?.[0] ? (
           <img
             src={item.images[0]}
@@ -40,6 +42,7 @@ export default function BaseCard({ item, onClick, linkToDetail = true }) {
         <PlaceholderImage name={item.name} />
 
         <div className="base-card__badges">
+          {isTop && <span className="badge badge--top">ТОП</span>}
           <span className={`badge badge--${item.type === 'free' ? 'free' : 'paid'}`}>
             {typeLabel}
           </span>
@@ -85,15 +88,19 @@ export default function BaseCard({ item, onClick, linkToDetail = true }) {
 
   if (linkToDetail && !onClick) {
     return (
-      <Link to={detailPath} className="base-card">
+      <Link
+        to={detailPath}
+        className={`base-card${hasFrame ? ' base-card--frame' : ''}${isTop ? ' base-card--top' : ''}`}
+      >
         {inner}
       </Link>
     );
   }
 
   return (
-    <article className="base-card base-card--clickable">
-      {linkToDetail ? (
+    <article
+      className={`base-card base-card--clickable${hasFrame ? ' base-card--frame' : ''}${isTop ? ' base-card--top' : ''}`}
+    >      {linkToDetail ? (
         <Link to={detailPath} className="base-card__link" onClick={handleClick}>
           {inner}
         </Link>

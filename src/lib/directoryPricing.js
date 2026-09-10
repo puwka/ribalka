@@ -22,6 +22,7 @@ export const DEFAULT_CONSTRUCTOR = {
 export const DEFAULT_SERVICE_TARIFF = {
   title: 'Тариф справочника',
   amountPerMonth: 590,
+  addonTop: 500,
   addonFrame: 100,
   enabled: true,
 };
@@ -51,6 +52,7 @@ export function normalizeServiceTariff(raw = {}) {
     ...DEFAULT_SERVICE_TARIFF,
     ...raw,
     amountPerMonth: Number(raw.amountPerMonth ?? DEFAULT_SERVICE_TARIFF.amountPerMonth),
+    addonTop: Number(raw.addonTop ?? DEFAULT_SERVICE_TARIFF.addonTop),
     addonFrame: Number(raw.addonFrame ?? DEFAULT_SERVICE_TARIFF.addonFrame),
     enabled: raw.enabled !== false,
   };
@@ -99,7 +101,10 @@ export function calcConstructorTotal(tariff, options = {}) {
 export function calcServiceTotal(tariff, options = {}) {
   const t = normalizeServiceTariff(tariff);
   const months = Number(options.months) || 3;
-  const monthly = t.amountPerMonth + (options.frame ? t.addonFrame : 0);
+  const monthly =
+    t.amountPerMonth +
+    (options.top ? t.addonTop : 0) +
+    (options.frame ? t.addonFrame : 0);
   const total = monthly * months;
   return { months, monthly, full: total, discountPct: 0, discountAmount: 0, total };
 }

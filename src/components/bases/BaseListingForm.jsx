@@ -11,12 +11,14 @@ export default function BaseListingForm({
   submitLabel = 'Сохранить',
   sendLabel = 'Сохранить и отправить на модерацию',
   disabled = false,
+  showPromoOptions = false,
 }) {
   const [form, setForm] = useState(initialForm || basesService.emptyForm());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const setBool = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.checked }));
 
   const run = async (handler) => {
     setSaving(true);
@@ -187,6 +189,30 @@ export default function BaseListingForm({
           />
         </label>
       </div>
+
+      {showPromoOptions && (
+        <div className="base-form__promo">
+          <p className="base-form__promo-title">Опции размещения</p>
+          <label className="base-form__check">
+            <input
+              type="checkbox"
+              checked={Boolean(form.is_top)}
+              onChange={setBool('is_top')}
+              disabled={disabled}
+            />
+            Размещение в ТОП (показывать первыми в каталоге)
+          </label>
+          <label className="base-form__check">
+            <input
+              type="checkbox"
+              checked={Boolean(form.yellow_frame)}
+              onChange={setBool('yellow_frame')}
+              disabled={disabled}
+            />
+            Выделение жёлтой рамкой
+          </label>
+        </div>
+      )}
 
       {error && <div className="auth-error">{error}</div>}
 

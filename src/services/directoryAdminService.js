@@ -23,6 +23,7 @@ export const directoryAdminService = {
       tags: '',
       status: 'published',
       yellowFrame: false,
+      isTop: false,
     };
   },
 
@@ -33,7 +34,13 @@ export const directoryAdminService = {
   async listPublic() {
     const page = await this.getPage();
     const items = Array.isArray(page.items) ? page.items : [];
-    return items.filter((i) => (i.status || 'published') === 'published');
+    const published = items.filter((i) => (i.status || 'published') === 'published');
+    return published.sort((a, b) => {
+      const ta = a.isTop || a.top ? 0 : 1;
+      const tb = b.isTop || b.top ? 0 : 1;
+      if (ta !== tb) return ta - tb;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'ru');
+    });
   },
 
   async listAdmin(adminId, filter = 'all') {
@@ -82,6 +89,7 @@ export const directoryAdminService = {
       tags,
       status: form.status || 'published',
       yellowFrame: Boolean(form.yellowFrame),
+      isTop: Boolean(form.isTop),
     };
 
     if (!row.name) throw new Error('Укажите название');

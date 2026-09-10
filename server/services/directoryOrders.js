@@ -13,13 +13,17 @@ function mapOrder(row) {
     amount: Number(row.amount),
     months: Number(row.months),
     addon_frame: Boolean(row.addon_frame),
+    addon_top: Boolean(row.addon_top),
     kind: 'directory',
   };
 }
 
-function calcAmount(tariff, { months, frame }) {
+function calcAmount(tariff, { months, frame, top }) {
   const m = Number(months) || 3;
-  const monthly = Number(tariff.amountPerMonth || 0) + (frame ? Number(tariff.addonFrame || 0) : 0);
+  const monthly =
+    Number(tariff.amountPerMonth || 0) +
+    (top ? Number(tariff.addonTop || 0) : 0) +
+    (frame ? Number(tariff.addonFrame || 0) : 0);
   return Math.max(0, Math.round(monthly * m));
 }
 
@@ -97,6 +101,7 @@ export async function createDirectoryCheckout({
   category,
   months = 3,
   frame = false,
+  top = false,
   listing = {},
   returnUrl,
 }) {
@@ -139,7 +144,9 @@ export async function createDirectoryCheckout({
     throw err;
   }
 
-  const amount = calcAmount(tariff, { months: m, frame: Boolean(frame) });
+  const wantTop = Boolean(top);
+  const wantFrame = Boolean(frame);
+  const amount = calcAmount(tariff, { months: m, frame: wantFrame, top: wantTop });
   const payload = {
     name,
     category,
@@ -155,7 +162,8 @@ export async function createDirectoryCheckout({
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
-    yellowFrame: Boolean(frame),
+    yellowFrame: wantFrame,
+    isTop: wantTop,
     months: m,
   };
 
@@ -168,8 +176,8 @@ export async function createDirectoryCheckout({
   const { rows } = await pool.query(
     `insert into public.directory_listing_orders
       (user_id, category, amount, currency, status, description, expires_at,
-       payment_provider, months, addon_frame, payload)
-     values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',$6,$7,$8::jsonb)
+       payment_provider, months, addon_frame, addon_top, payload)
+     values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',$6,$7,$8,$9::jsonb)
      returning *`,
     [
       userId,
@@ -178,7 +186,8 @@ export async function createDirectoryCheckout({
       orderDescription,
       expiresAt,
       m,
-      Boolean(frame),
+      wantFrame,
+      wantTop,
       JSON.stringify(payload),
     ]
   );
@@ -329,6 +338,7 @@ async function publishDirectoryItem(client, order) {
     tags: Array.isArray(payload.tags) ? payload.tags : [],
     status: 'pending',
     yellowFrame: Boolean(order.addon_frame || payload.yellowFrame),
+    isTop: Boolean(order.addon_top || payload.isTop),
     ownerUserId: order.user_id,
     orderId: order.id,
     paidUntil: paidUntil.toISOString(),

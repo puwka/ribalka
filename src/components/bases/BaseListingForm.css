@@ -38,6 +38,34 @@
   gap: 8px;
 }
 
+.base-form__promo {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+  background: #fffbeb;
+}
+
+.base-form__promo-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.base-form__check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500 !important;
+  cursor: pointer;
+}
+
+.base-form__check input {
+  width: auto;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

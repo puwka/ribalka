@@ -258,6 +258,25 @@ export default function AdminWatersSection() {
                   />
                 </AdminField>
 
+                <div className="admin-grid-2">
+                  <label className="admin-check">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.isTop)}
+                      onChange={(e) => setField('isTop', e.target.checked)}
+                    />
+                    Размещение в ТОП
+                  </label>
+                  <label className="admin-check">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.yellowFrame)}
+                      onChange={(e) => setField('yellowFrame', e.target.checked)}
+                    />
+                    Выделение жёлтой рамкой
+                  </label>
+                </div>
+
                 <AdminField label="Как добраться">
                   <textarea className="admin-textarea" rows={3} value={form.conditions} onChange={(e) => setField('conditions', e.target.value)} />
                 </AdminField>

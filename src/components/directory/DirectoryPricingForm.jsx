@@ -25,6 +25,7 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
   const [tariff, setTariff] = useState(DEFAULT_SERVICE_TARIFF);
   const [category, setCategory] = useState(defaultCategory);
   const [months, setMonths] = useState(3);
+  const [top, setTop] = useState(false);
   const [frame, setFrame] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -55,8 +56,8 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
   }, []);
 
   const quote = useMemo(
-    () => calcServiceTotal(tariff, { months, frame }),
-    [tariff, months, frame]
+    () => calcServiceTotal(tariff, { months, frame, top }),
+    [tariff, months, frame, top]
   );
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -82,6 +83,7 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
       const result = await listingPaymentService.directoryCheckout({
         category,
         months,
+        top,
         frame,
         listing: form,
       });
@@ -138,6 +140,12 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
           </div>
           <div className="dir-pricing__addons">
             <p className="dir-pricing__label">Добавить:</p>
+            <label className="dir-pricing__check">
+              <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
+              <span>
+                Размещение в ТОП <em>+{formatRub(tariff.addonTop)}/мес</em>
+              </span>
+            </label>
             <label className="dir-pricing__check">
               <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
               <span>

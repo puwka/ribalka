@@ -16,6 +16,17 @@
   transform: translateY(-2px);
 }
 
+.base-card--frame,
+.base-card--frame .base-card__link {
+  border: 2px solid #eab308;
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.22);
+}
+
+.badge--top {
+  background: #2563eb;
+  color: #fff;
+}
+
 .base-card--clickable {
   padding: 0;
   border: none;

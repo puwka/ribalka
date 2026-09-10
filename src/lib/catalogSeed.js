@@ -94,13 +94,22 @@ export function recordToUi(record) {
     source: record.source,
     transport: record.transport || '',
     price_from: record.price_from,
+    isTop: Boolean(record.isTop || record.is_top),
+    yellowFrame: Boolean(record.yellowFrame || record.yellow_frame),
+    is_top: Boolean(record.isTop || record.is_top),
+    yellow_frame: Boolean(record.yellowFrame || record.yellow_frame),
   };
 }
 
 export function getCatalogUiList(filters = {}) {
   let list = getCatalogRecords().map(recordToUi);
   if (filters.type) list = list.filter((b) => b.type === filters.type);
-  return list.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  return list.sort((a, b) => {
+    const ta = a.isTop ? 0 : 1;
+    const tb = b.isTop ? 0 : 1;
+    if (ta !== tb) return ta - tb;
+    return a.name.localeCompare(b.name, 'ru');
+  });
 }
 
 export function findCatalogById(id) {
