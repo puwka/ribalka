@@ -681,7 +681,13 @@ export const basesService = {
     const key = String(baseId);
 
     if (isRemoteDb()) {
-      throw new ApiError('Удаление баз через API — в следующем обновлении');
+      await api.delete(`/api/bases/${encodeURIComponent(key)}`);
+      try {
+        await basesLocalDb.delete(key);
+      } catch {
+        /* optional local mirror */
+      }
+      return true;
     }
 
     const existing = await basesLocalDb.getById(key);

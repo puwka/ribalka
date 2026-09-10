@@ -6,8 +6,6 @@ import { useAuth } from '../../auth/AuthContext';
 
 import { basesService } from '../../../services/basesService';
 
-import { catalogAdminService } from '../../../services/catalogAdminService';
-
 import BaseListingForm, { statusLabel } from '../../bases/BaseListingForm';
 
 import {
@@ -28,7 +26,7 @@ import '../../bases/BaseListingForm.css';
 
 export default function AdminBasesSection() {
 
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   const [searchParams] = useSearchParams();
 
@@ -212,7 +210,7 @@ export default function AdminBasesSection() {
 
     try {
 
-      await catalogAdminService.remove(user.id, selected.id, profile?.display_name);
+      await basesService.adminDelete(user.id, selected.id);
 
       setSelected(null);
 

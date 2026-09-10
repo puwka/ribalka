@@ -39,6 +39,30 @@ export default function BaseListingForm({
 
   return (
     <form className="base-form" onSubmit={handleSubmit}>
+      {showPromoOptions && (
+        <div className="base-form__promo">
+          <p className="base-form__promo-title">Опции размещения</p>
+          <label className="base-form__check">
+            <input
+              type="checkbox"
+              checked={Boolean(form.is_top)}
+              onChange={setBool('is_top')}
+              disabled={disabled}
+            />
+            Размещение в ТОП (показывать первыми в каталоге)
+          </label>
+          <label className="base-form__check">
+            <input
+              type="checkbox"
+              checked={Boolean(form.yellow_frame)}
+              onChange={setBool('yellow_frame')}
+              disabled={disabled}
+            />
+            Выделение жёлтой рамкой
+          </label>
+        </div>
+      )}
+
       <div className="base-form__grid">
         <label>
           Название *
@@ -189,30 +213,6 @@ export default function BaseListingForm({
           />
         </label>
       </div>
-
-      {showPromoOptions && (
-        <div className="base-form__promo">
-          <p className="base-form__promo-title">Опции размещения</p>
-          <label className="base-form__check">
-            <input
-              type="checkbox"
-              checked={Boolean(form.is_top)}
-              onChange={setBool('is_top')}
-              disabled={disabled}
-            />
-            Размещение в ТОП (показывать первыми в каталоге)
-          </label>
-          <label className="base-form__check">
-            <input
-              type="checkbox"
-              checked={Boolean(form.yellow_frame)}
-              onChange={setBool('yellow_frame')}
-              disabled={disabled}
-            />
-            Выделение жёлтой рамкой
-          </label>
-        </div>
-      )}
 
       {error && <div className="auth-error">{error}</div>}
 

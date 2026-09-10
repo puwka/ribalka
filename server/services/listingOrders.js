@@ -519,6 +519,12 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
 }
 
 async function applyPaidSideEffects(client, order) {
+  await client.query(`
+    alter table public.bases
+      add column if not exists is_top boolean not null default false,
+      add column if not exists yellow_frame boolean not null default false
+  `);
+
   let meta = order.meta;
   if (typeof meta === 'string') {
     try {

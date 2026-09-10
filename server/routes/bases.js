@@ -6,6 +6,17 @@ const router = Router();
 
 router.use(authMiddleware);
 
+let promoColumnsReady = false;
+async function ensurePromoColumns() {
+  if (promoColumnsReady) return;
+  await pool.query(`
+    alter table public.bases
+      add column if not exists is_top boolean not null default false,
+      add column if not exists yellow_frame boolean not null default false
+  `);
+  promoColumnsReady = true;
+}
+
 const BASE_SELECT = `
   b.*,
   coalesce(
@@ -162,6 +173,7 @@ async function replaceMedia(client, baseId, { images, videos, services }) {
 
 router.get('/', async (req, res, next) => {
   try {
+    await ensurePromoColumns();
     const { type } = req.query;
     const params = ['approved'];
     let sql = `
@@ -305,6 +317,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
     }
 
     const data = parsePayload(req.body || {});
+    await ensurePromoColumns();
     await client.query('begin');
     if (isAdmin) {
       await client.query(
@@ -413,6 +426,19 @@ router.post('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) =
       return res.status(400).json({ error: 'Unknown action' });
     }
     res.json(await fetchBase(base.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: permanently delete a base */
+router.delete('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rowCount } = await pool.query('delete from public.bases where id = $1', [
+      req.params.id,
+    ]);
+    if (!rowCount) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true, deleted: true });
   } catch (err) {
     next(err);
   }
