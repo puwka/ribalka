@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { findCatalogById } from '../../lib/catalogSeed';
 import { cmsService } from '../../services/cmsService';
+import { basesService } from '../../services/basesService';
 
 const ROUTE_META = {
   '/': {
@@ -62,22 +63,28 @@ function setCanonical(href) {
   el.setAttribute('href', href);
 }
 
+function waterMetaFromItem(water) {
+  if (!water) return null;
+  const kind = water.type === 'free' ? 'Бесплатный водоём' : 'Платный водоём';
+  const name = water.name || 'Водоём';
+  return {
+    title: water.seo_title || `${name} — ${kind} | Рыбалка в Прикамье`,
+    description:
+      water.seo_description || water.short || water.description?.slice(0, 160) || '',
+  };
+}
+
 function matchMeta(pathname) {
   if (ROUTE_META[pathname]) return ROUTE_META[pathname];
   if (pathname.startsWith('/waters/')) {
     const id = pathname.split('/')[2];
     const water = findCatalogById(id);
-    if (water) {
-      const kind = water.type === 'free' ? 'Бесплатный водоём' : 'Платный водоём';
-      return {
-        title: water.seo_title || `${water.name} — ${kind} | Рыбалка в Прикамье`,
-        description: water.seo_description || water.short || water.description?.slice(0, 160) || '',
-      };
-    }
-    return {
-      title: 'Водоём — Рыбалка в Прикамье',
-      description: 'Описание водоёма Пермского края.',
-    };
+    return (
+      waterMetaFromItem(water) || {
+        title: 'Водоём — Рыбалка в Прикамье',
+        description: 'Описание водоёма Пермского края.',
+      }
+    );
   }
   if (pathname.startsWith('/reports/')) {
     return {
@@ -100,16 +107,38 @@ export default function DocumentTitle() {
 
     (async () => {
       const cmsSeo = await cmsService.getSeoForPath(pathname);
-      const fallback = matchMeta(pathname);
+      let fallback = matchMeta(pathname);
+
+      // Актуальное имя базы/водоёма (CMS/API), а не только сид каталога
+      if (pathname.startsWith('/waters/')) {
+        const id = pathname.split('/')[2] || params.id;
+        if (id) {
+          try {
+            const live = await basesService.getPublic(id);
+            const liveMeta = waterMetaFromItem(live);
+            if (liveMeta) fallback = liveMeta;
+          } catch {
+            /* keep seed/fallback */
+          }
+        }
+      }
+
       if (cancelled) return;
 
+      // Для водоёмов приоритет у актуального названия; SEO-страница из админки
+      // не должна оставлять старое имя после переименования базы.
+      const isWaterPage = pathname.startsWith('/waters/');
+      const useCmsTitle = !isWaterPage && Boolean(cmsSeo?.title?.trim());
+      const useCmsDesc = !isWaterPage && Boolean(cmsSeo?.description?.trim());
+
       const meta = {
-        title: cmsSeo?.title || fallback.title,
-        description: cmsSeo?.description || fallback.description,
+        title: useCmsTitle ? cmsSeo.title : fallback.title,
+        description: useCmsDesc ? cmsSeo.description : fallback.description,
         keywords: cmsSeo?.keywords || '',
         canonical: cmsSeo?.canonical || '',
-        ogTitle: cmsSeo?.ogTitle || cmsSeo?.title || fallback.title,
-        ogDescription: cmsSeo?.ogDescription || cmsSeo?.description || fallback.description,
+        ogTitle: cmsSeo?.ogTitle || (useCmsTitle ? cmsSeo.title : fallback.title),
+        ogDescription:
+          cmsSeo?.ogDescription || (useCmsDesc ? cmsSeo.description : fallback.description),
         ogImage: cmsSeo?.ogImage || '',
       };
 
