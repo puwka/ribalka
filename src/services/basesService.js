@@ -241,6 +241,8 @@ function enrichRemote(row) {
     yellow_frame: Boolean(row.yellow_frame ?? mapped.yellowFrame),
     isTop: Boolean(row.is_top ?? mapped.isTop),
     yellowFrame: Boolean(row.yellow_frame ?? mapped.yellowFrame),
+    paid_extra_photos: Number(row.paid_extra_photos) || 0,
+    paid_extra_videos: Number(row.paid_extra_videos) || 0,
     raw: row,
   };
 }

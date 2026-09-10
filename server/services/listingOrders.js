@@ -522,7 +522,9 @@ async function applyPaidSideEffects(client, order) {
   await client.query(`
     alter table public.bases
       add column if not exists is_top boolean not null default false,
-      add column if not exists yellow_frame boolean not null default false
+      add column if not exists yellow_frame boolean not null default false,
+      add column if not exists paid_extra_photos int not null default 0,
+      add column if not exists paid_extra_videos int not null default 0
   `);
 
   let meta = order.meta;
@@ -536,6 +538,8 @@ async function applyPaidSideEffects(client, order) {
   const opts = meta && typeof meta === 'object' ? meta.constructor_options || {} : {};
   const isTop = Boolean(opts.top);
   const yellowFrame = Boolean(opts.frame);
+  const extraPhotos = Math.max(0, Number(opts.extraPhotos) || 0);
+  const extraVideos = Math.max(0, Number(opts.extraVideos) || 0);
 
   await client.query(
     `update public.bases set
@@ -547,9 +551,11 @@ async function applyPaidSideEffects(client, order) {
        rejection_reason = null,
        is_top = $2,
        yellow_frame = $3,
+       paid_extra_photos = greatest(coalesce(paid_extra_photos, 0), $4::int),
+       paid_extra_videos = greatest(coalesce(paid_extra_videos, 0), $5::int),
        updated_at = now()
      where id = $1`,
-    [order.base_id, isTop, yellowFrame]
+    [order.base_id, isTop, yellowFrame, extraPhotos, extraVideos]
   );
 
   await client.query(
@@ -564,6 +570,8 @@ async function applyPaidSideEffects(client, order) {
         base_id: order.base_id,
         is_top: isTop,
         yellow_frame: yellowFrame,
+        paid_extra_photos: extraPhotos,
+        paid_extra_videos: extraVideos,
       }),
     ]
   );

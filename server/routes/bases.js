@@ -12,9 +12,42 @@ async function ensurePromoColumns() {
   await pool.query(`
     alter table public.bases
       add column if not exists is_top boolean not null default false,
-      add column if not exists yellow_frame boolean not null default false
+      add column if not exists yellow_frame boolean not null default false,
+      add column if not exists paid_extra_photos int not null default 0,
+      add column if not exists paid_extra_videos int not null default 0
   `);
   promoColumnsReady = true;
+}
+
+const INCLUDED_PHOTOS = 1;
+const INCLUDED_VIDEOS = 1;
+
+function mediaQuotaForBase(row = {}) {
+  const extraPhotos = Math.max(0, Number(row.paid_extra_photos) || 0);
+  const extraVideos = Math.max(0, Number(row.paid_extra_videos) || 0);
+  return {
+    maxPhotos: INCLUDED_PHOTOS + extraPhotos,
+    maxVideos: INCLUDED_VIDEOS + extraVideos,
+  };
+}
+
+function assertOwnerMediaLimits(data, baseRow, isAdmin) {
+  if (isAdmin) return;
+  const { maxPhotos, maxVideos } = mediaQuotaForBase(baseRow || {});
+  if ((data.images || []).length > maxPhotos) {
+    const err = new Error(
+      `В тарифе доступно ${maxPhotos} фото (1 бесплатно + оплаченные). Доплатите +100 ₽ за каждое доп. фото.`
+    );
+    err.status = 400;
+    throw err;
+  }
+  if ((data.videos || []).length > maxVideos) {
+    const err = new Error(
+      `В тарифе доступно ${maxVideos} видео (1 бесплатно + оплаченные). Доплатите +100 ₽ за каждое доп. видео.`
+    );
+    err.status = 400;
+    throw err;
+  }
 }
 
 const BASE_SELECT = `
@@ -259,6 +292,9 @@ router.post('/', requireAuth, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const data = parsePayload(req.body || {});
+    const isAdmin = (req.user.roles || []).includes('admin');
+    assertOwnerMediaLimits(data, { paid_extra_photos: 0, paid_extra_videos: 0 }, isAdmin);
+    await ensurePromoColumns();
     await client.query('begin');
     const { rows } = await client.query(
       `insert into public.bases (
@@ -318,6 +354,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
 
     const data = parsePayload(req.body || {});
     await ensurePromoColumns();
+    assertOwnerMediaLimits(data, existing, isAdmin);
     await client.query('begin');
     if (isAdmin) {
       await client.query(
@@ -431,16 +468,37 @@ router.post('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) =
   }
 });
 
-/** Admin: permanently delete a base */
+/** Admin: permanently delete a base (and dependent listing orders / bookings) */
 router.delete('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    const { rowCount } = await pool.query('delete from public.bases where id = $1', [
-      req.params.id,
-    ]);
+    const baseId = req.params.id;
+    await client.query('begin');
+
+    const exists = await client.query(`select id from public.bases where id = $1`, [baseId]);
+    if (!exists.rows[0]) {
+      await client.query('rollback');
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    // Clear restrict FKs even if migration cascade not applied yet
+    await client.query(`delete from public.listing_orders where base_id = $1`, [baseId]);
+    await client.query(`delete from public.bookings where base_id = $1`, [baseId]);
+
+    const { rowCount } = await client.query(`delete from public.bases where id = $1`, [baseId]);
+    await client.query('commit');
+
     if (!rowCount) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true, deleted: true });
   } catch (err) {
+    try {
+      await client.query('rollback');
+    } catch {
+      /* ignore */
+    }
     next(err);
+  } finally {
+    client.release();
   }
 });
 

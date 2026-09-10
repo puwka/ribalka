@@ -31,23 +31,35 @@
 
 .footer__social {
   display: flex;
-  gap: var(--space-2);
+  gap: 10px;
   margin-top: var(--space-5);
+  align-items: center;
 }
 
 .social-link {
-  width: var(--touch-min);
-  height: var(--touch-min);
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: transparent;
+  padding: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .social-link:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
+  transform: translateY(-2px);
+  opacity: 0.92;
+}
+
+.social-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .social-link svg {

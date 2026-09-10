@@ -115,11 +115,14 @@ export default function AdminSettingsSection() {
             <input type="checkbox" checked={footer.showSocial} onChange={(e) => setFooter((f) => ({ ...f, showSocial: e.target.checked }))} />
             Показывать соцсети
           </label>
-          <AdminField label="VK URL">
-            <input className="admin-input" value={settings.social?.vk || ''} onChange={(e) => setSettings((s) => ({ ...s, social: { ...s.social, vk: e.target.value } }))} />
+          <AdminField label="MAX URL">
+            <input className="admin-input" value={settings.social?.max || ''} onChange={(e) => setSettings((s) => ({ ...s, social: { ...s.social, max: e.target.value } }))} />
           </AdminField>
           <AdminField label="Telegram URL">
             <input className="admin-input" value={settings.social?.telegram || ''} onChange={(e) => setSettings((s) => ({ ...s, social: { ...s.social, telegram: e.target.value } }))} />
+          </AdminField>
+          <AdminField label="VK URL">
+            <input className="admin-input" value={settings.social?.vk || ''} onChange={(e) => setSettings((s) => ({ ...s, social: { ...s.social, vk: e.target.value } }))} />
           </AdminField>
         </section>
       )}

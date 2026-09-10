@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { uploadService } from '../../services/uploadService';
 import { AdminField } from '../admin/AdminUI';
@@ -78,6 +79,8 @@ export function ImageUploadListField({
   disabled = false,
   max = 20,
   hint,
+  upgradeHint = null,
+  upgradeHref = null,
 }) {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -118,6 +121,8 @@ export function ImageUploadListField({
     update(urls.filter((_, i) => i !== index));
   };
 
+  const atLimit = urls.length >= max;
+
   return (
     <AdminField label={label} hint={hint || `До ${max} фото · JPG, PNG, WebP`}>
       <div className="image-upload-list">
@@ -140,18 +145,32 @@ export function ImageUploadListField({
             ))}
           </div>
         )}
-        {!disabled && urls.length < max && (
+        {!disabled && !atLimit && (
           <label className={`image-upload__btn${uploading ? ' is-disabled' : ''}`}>
             {uploading ? 'Загрузка…' : 'Добавить фото'}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
-              multiple
+              multiple={max - urls.length > 1}
               hidden
               disabled={uploading}
               onChange={onFiles}
             />
           </label>
+        )}
+        {!disabled && atLimit && upgradeHint && (
+          <div className="media-upgrade-hint">
+            <p>{upgradeHint}</p>
+            {upgradeHref ? (
+              <Link to={upgradeHref} className="media-upgrade-hint__link">
+                Оплатить доп. фото
+              </Link>
+            ) : (
+              <p style={{ fontWeight: 500, color: '#a16207' }}>
+                Сначала сохраните базу, затем оплатите доп. фото в разделе оплаты размещения.
+              </p>
+            )}
+          </div>
         )}
         {error && <div className="image-upload__error">{error}</div>}
       </div>

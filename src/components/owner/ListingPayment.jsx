@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listingPaymentService } from '../../services/listingPaymentService';
 import { basesService } from '../../services/basesService';
 import { useAuth } from '../auth/AuthContext';
@@ -36,6 +36,7 @@ export { formatMoney, ORDER_STATUS_RU };
 /** Checkout page before redirect to YooKassa */
 export function OwnerListingCheckoutPage() {
   const { baseId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [base, setBase] = useState(null);
@@ -43,8 +44,12 @@ export function OwnerListingCheckoutPage() {
   const [months, setMonths] = useState(3);
   const [top, setTop] = useState(false);
   const [frame, setFrame] = useState(false);
-  const [extraPhotos, setExtraPhotos] = useState(0);
-  const [extraVideos, setExtraVideos] = useState(0);
+  const [extraPhotos, setExtraPhotos] = useState(() =>
+    Math.max(0, Number(searchParams.get('extraPhotos')) || 0)
+  );
+  const [extraVideos, setExtraVideos] = useState(() =>
+    Math.max(0, Number(searchParams.get('extraVideos')) || 0)
+  );
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -71,12 +76,17 @@ export function OwnerListingCheckoutPage() {
         setTariff(normalizeConstructor(preview.settings || {}));
 
         const opts = preview.activeOrder?.meta?.constructor_options || preview.quote?.options;
+        const qPhotos = Math.max(0, Number(searchParams.get('extraPhotos')) || 0);
+        const qVideos = Math.max(0, Number(searchParams.get('extraVideos')) || 0);
         if (opts) {
           if ([3, 6, 12].includes(Number(opts.months))) setMonths(Number(opts.months));
           setTop(Boolean(opts.top));
           setFrame(Boolean(opts.frame));
-          setExtraPhotos(Math.max(0, Number(opts.extraPhotos) || 0));
-          setExtraVideos(Math.max(0, Number(opts.extraVideos) || 0));
+          setExtraPhotos(Math.max(qPhotos, Number(opts.extraPhotos) || 0));
+          setExtraVideos(Math.max(qVideos, Number(opts.extraVideos) || 0));
+        } else {
+          if (qPhotos) setExtraPhotos(qPhotos);
+          if (qVideos) setExtraVideos(qVideos);
         }
 
         if (preview.frozen && preview.activeOrder?.confirmation_url) {
@@ -91,7 +101,7 @@ export function OwnerListingCheckoutPage() {
     return () => {
       alive = false;
     };
-  }, [baseId, user]);
+  }, [baseId, user, searchParams]);
 
   const quote = useMemo(() => {
     if (!tariff) return null;

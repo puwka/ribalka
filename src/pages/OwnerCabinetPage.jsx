@@ -401,6 +401,15 @@ function OwnerBaseCreate() {
       <BaseListingForm
         submitLabel="Сохранить черновик"
         sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
+        mediaQuota={{
+          includedPhotos: 1,
+          includedVideos: 1,
+          extraPhotos: 0,
+          extraVideos: 0,
+          addonPhoto: 100,
+          addonVideo: 100,
+          payHref: null,
+        }}
         onSubmit={async (form) => {
           const saved = await basesService.saveDraft(user.id, form);
           navigate(`/owner/bases/${saved.id}/edit`);
@@ -480,6 +489,20 @@ function OwnerBaseEdit() {
         initialForm={initial}
         submitLabel="Сохранить"
         sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
+        mediaQuota={{
+          includedPhotos: 1,
+          includedVideos: 1,
+          extraPhotos: Number(record.paid_extra_photos) || 0,
+          extraVideos: Number(record.paid_extra_videos) || 0,
+          addonPhoto: 100,
+          addonVideo: 100,
+          payHrefPhotos: `/owner/payment/${record.id}?extraPhotos=${
+            (Number(record.paid_extra_photos) || 0) + 1
+          }`,
+          payHrefVideos: `/owner/payment/${record.id}?extraVideos=${
+            (Number(record.paid_extra_videos) || 0) + 1
+          }`,
+        }}
         onSubmit={async (form) => {
           const saved = await basesService.saveDraft(user.id, form, baseId);
           setRecord(saved);

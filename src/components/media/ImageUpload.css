@@ -132,3 +132,35 @@
 .base-form .admin-field {
   margin-bottom: 0;
 }
+
+.media-upgrade-hint {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px dashed #f59e0b;
+  background: #fffbeb;
+  display: grid;
+  gap: 8px;
+}
+
+.media-upgrade-hint p {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.media-upgrade-hint__link {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f59e0b;
+  color: #fff !important;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.media-upgrade-hint__link:hover {
+  background: #d97706;
+}

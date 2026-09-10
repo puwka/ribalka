@@ -22,12 +22,12 @@ const DEFAULT_SETTINGS = {
   legalInn: '590415452100',
   sponsors: [
     { label: 'cash-boom.live', url: 'https://cash-boom.live' },
-    { label: 'Енот-мани', url: 'https://енот-мани.рф' },
+    { label: 'Енот-мани.рф', url: 'https://енот-мани.рф' },
   ],
   social: {
-    max: 'https://max.ru',
-    telegram: 'https://t.me/',
-    vk: 'https://vk.com',
+    max: 'https://max.ru/channel_aktiv59',
+    telegram: 'https://t.me/aktiv59ru',
+    vk: 'https://vk.ru/aktiv59ru',
   },
   cookieText:
     'Мы используем файлы cookie, чтобы сайт работал стабильнее: запоминаем настройки, улучшаем карту и каталог водоёмов.',

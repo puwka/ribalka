@@ -1,8 +1,17 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { basesService } from '../../services/basesService';
 import { ImageUploadListField } from '../media/ImageUpload';
 import { uploadService } from '../../services/uploadService';
+import { DEFAULT_CONSTRUCTOR, formatRub } from '../../lib/directoryPricing';
 import './BaseListingForm.css';
+
+function parseLines(text) {
+  return String(text || '')
+    .split(/\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export default function BaseListingForm({
   initialForm,
@@ -12,18 +21,50 @@ export default function BaseListingForm({
   sendLabel = 'Сохранить и отправить на модерацию',
   disabled = false,
   showPromoOptions = false,
+  /** Owner media quota: 1 free + paid extras. Admin leaves null/undefined = unlimited. */
+  mediaQuota = null,
 }) {
   const [form, setForm] = useState(initialForm || basesService.emptyForm());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [videoDraft, setVideoDraft] = useState('');
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setBool = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.checked }));
+
+  const enforceQuota = Boolean(mediaQuota);
+  const includedPhotos = Number(mediaQuota?.includedPhotos ?? DEFAULT_CONSTRUCTOR.includedPhotos) || 1;
+  const includedVideos = Number(mediaQuota?.includedVideos ?? DEFAULT_CONSTRUCTOR.includedVideos) || 1;
+  const extraPhotos = Math.max(0, Number(mediaQuota?.extraPhotos) || 0);
+  const extraVideos = Math.max(0, Number(mediaQuota?.extraVideos) || 0);
+  const maxPhotos = enforceQuota ? includedPhotos + extraPhotos : 15;
+  const maxVideos = enforceQuota ? includedVideos + extraVideos : 15;
+  const photoPrice = Number(mediaQuota?.addonPhoto ?? DEFAULT_CONSTRUCTOR.addonPhoto) || 100;
+  const videoPrice = Number(mediaQuota?.addonVideo ?? DEFAULT_CONSTRUCTOR.addonVideo) || 100;
+  const payHref = mediaQuota?.payHref || null;
+  const payHrefPhotos = mediaQuota?.payHrefPhotos || payHref;
+  const payHrefVideos = mediaQuota?.payHrefVideos || payHref;
+
+  const videos = parseLines(form.videosText);
 
   const run = async (handler) => {
     setSaving(true);
     setError('');
     try {
+      if (enforceQuota) {
+        const imgs = parseLines(form.imagesText);
+        const vids = parseLines(form.videosText);
+        if (imgs.length > maxPhotos) {
+          throw new Error(
+            `Доступно только ${maxPhotos} фото. Оплатите доп. фото (+${formatRub(photoPrice)}).`
+          );
+        }
+        if (vids.length > maxVideos) {
+          throw new Error(
+            `Доступно только ${maxVideos} видео. Оплатите доп. видео (+${formatRub(videoPrice)}).`
+          );
+        }
+      }
       await handler(form);
     } catch (err) {
       setError(err.message || 'Ошибка сохранения');
@@ -35,6 +76,26 @@ export default function BaseListingForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
     await run(onSubmit);
+  };
+
+  const addVideo = () => {
+    const url = videoDraft.trim();
+    if (!url) return;
+    if (videos.length >= maxVideos) return;
+    setForm((f) => ({
+      ...f,
+      videosText: [...parseLines(f.videosText), url].join('\n'),
+    }));
+    setVideoDraft('');
+  };
+
+  const removeVideo = (index) => {
+    setForm((f) => ({
+      ...f,
+      videosText: parseLines(f.videosText)
+        .filter((_, i) => i !== index)
+        .join('\n'),
+    }));
   };
 
   return (
@@ -192,26 +253,95 @@ export default function BaseListingForm({
             disabled={disabled}
           />
         </label>
+
         <div className="base-form__full">
+          {enforceQuota && (
+            <p className="base-form__media-note">
+              В тарифе: {includedPhotos} фото и {includedVideos} видео бесплатно. Доп. слоты — по{' '}
+              {formatRub(photoPrice)} / {formatRub(videoPrice)}.
+              Сейчас доступно: {maxPhotos} фото, {maxVideos} видео.
+            </p>
+          )}
           <ImageUploadListField
             label="Фотографии"
             value={form.imagesText}
             onChange={(v) => setForm((f) => ({ ...f, imagesText: v }))}
             bucket={uploadService.buckets.base}
             disabled={disabled}
-            max={15}
+            max={maxPhotos}
+            hint={
+              enforceQuota
+                ? `В тарифе ${maxPhotos} фото (из них ${includedPhotos} в базе)`
+                : undefined
+            }
+            upgradeHint={
+              enforceQuota
+                ? `Лимит фото исчерпан. Оплатите +${formatRub(photoPrice)} за каждое дополнительное фото.`
+                : null
+            }
+            upgradeHref={payHrefPhotos}
           />
         </div>
-        <label className="base-form__full">
-          Видео (YouTube embed/URL, каждый с новой строки)
-          <textarea
-            rows={3}
-            value={form.videosText}
-            onChange={set('videosText')}
-            placeholder="https://www.youtube.com/embed/…"
-            disabled={disabled}
-          />
-        </label>
+
+        <div className="base-form__full">
+          <span className="base-form__field-label">Видео (YouTube)</span>
+          {enforceQuota ? (
+            <div className="base-form__videos">
+              {videos.length > 0 && (
+                <ul className="base-form__video-list">
+                  {videos.map((url, i) => (
+                    <li key={`${url}-${i}`}>
+                      <span className="base-form__video-url">{url}</span>
+                      {!disabled && (
+                        <button type="button" onClick={() => removeVideo(i)}>
+                          Удалить
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!disabled && videos.length < maxVideos && (
+                <div className="base-form__video-add">
+                  <input
+                    value={videoDraft}
+                    onChange={(e) => setVideoDraft(e.target.value)}
+                    placeholder="https://www.youtube.com/embed/…"
+                    disabled={disabled}
+                  />
+                  <button type="button" className="btn-secondary" onClick={addVideo}>
+                    Добавить видео
+                  </button>
+                </div>
+              )}
+              {!disabled && videos.length >= maxVideos && (
+                <div className="media-upgrade-hint">
+                  <p>
+                    Лимит видео исчерпан. Оплатите +{formatRub(videoPrice)} за каждое дополнительное
+                    видео.
+                  </p>
+                  {payHrefVideos ? (
+                    <Link to={payHrefVideos} className="media-upgrade-hint__link">
+                      Оплатить доп. видео
+                    </Link>
+                  ) : (
+                    <p className="media-upgrade-hint__muted">
+                      Сначала сохраните базу, затем оплатите доп. видео в разделе оплаты размещения.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <textarea
+              rows={3}
+              value={form.videosText}
+              onChange={set('videosText')}
+              placeholder="https://www.youtube.com/embed/…"
+              disabled={disabled}
+            />
+          )}
+        </div>
       </div>
 
       {error && <div className="auth-error">{error}</div>}
