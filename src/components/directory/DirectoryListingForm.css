@@ -56,6 +56,27 @@
   grid-column: 1 / -1;
 }
 
+.dir-listing-form__upload {
+  display: block;
+}
+
+.dir-listing-form__upload .admin-field {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dir-listing-form__upload .admin-field > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dir-listing-form__upload .admin-field__hint {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-text-muted, #64748b);
+}
+
 .dir-listing-form__error {
   margin: 0;
   color: #b91c1c;

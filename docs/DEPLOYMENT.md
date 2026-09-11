@@ -84,7 +84,33 @@ server {
   listen 443 ssl;
   server_name example.com;
   root /var/www/rybalka/dist;
-  location / { try_files $uri $uri/ /index.html; }
+
+  # PWA: sw / manifest / shell — без долгого кэша, иначе приложение «не обновляется»
+  location = /sw.js {
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+    add_header Service-Worker-Allowed "/";
+    try_files $uri =404;
+  }
+  location ~* ^/workbox-.*\.js$ {
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+    try_files $uri =404;
+  }
+  location = /manifest.webmanifest {
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+    try_files $uri =404;
+  }
+  location = /index.html {
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+  }
+
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
 }
 
 # API (или тот же server с location /api)

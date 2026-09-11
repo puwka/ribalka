@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { ImageUploadField } from '../media/ImageUpload';
+import { uploadService } from '../../services/uploadService';
 import './DirectoryListingForm.css';
 
 const CATEGORIES = [
@@ -130,15 +132,16 @@ export default function DirectoryListingForm({
             placeholder="https://… — можно оставить пустым"
           />
         </label>
-        <label className="dir-listing-form__full">
-          URL изображения (необязательно)
-          <input
-            type="url"
+        <div className="dir-listing-form__full dir-listing-form__upload">
+          <ImageUploadField
+            label="Изображение (необязательно)"
             value={form.image}
-            onChange={(e) => setField('image', e.target.value)}
-            placeholder="https://…"
+            onChange={(url) => setField('image', url)}
+            bucket={uploadService.buckets.site}
+            disabled={saving}
+            hint="JPG, PNG, WebP · до 8 МБ"
           />
-        </label>
+        </div>
       </div>
 
       {error && <p className="dir-listing-form__error">{error}</p>}

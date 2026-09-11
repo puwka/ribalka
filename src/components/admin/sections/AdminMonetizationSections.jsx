@@ -198,8 +198,8 @@ export function AdminPlansSection() {
         <section className="admin-panel" style={{ marginBottom: 16 }}>
           <h3 style={{ marginTop: 0 }}>Тариф справочника (магазины, сервисы, гиды / егеря)</h3>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            Этот тариф управляет формой «Разместить в справочнике» на сайте. Пользователь оплачивает
-            через ЮKassa, заявка появляется здесь в разделе Справочник → Заявки.
+            Тариф для кабинета владельца: магазины, сервисы, гиды / егеря. Оплата через ЮKassa,
+            заявка — в разделе Справочник → Заявки.
           </p>
           {!directory ? (
             <AdminLoading />
@@ -256,6 +256,51 @@ export function AdminPlansSection() {
                       setDirectory((d) => ({
                         ...d,
                         service: { ...d.service, addonFrame: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                </AdminField>
+                <AdminField label="Скидка 3 мес. %">
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={directory.service?.discount3 ?? 10}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        service: { ...d.service, discount3: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                </AdminField>
+                <AdminField label="Скидка 6 мес. %">
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={directory.service?.discount6 ?? 20}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        service: { ...d.service, discount6: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                </AdminField>
+                <AdminField label="Скидка 12 мес. %">
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={directory.service?.discount12 ?? 30}
+                    onChange={(e) =>
+                      setDirectory((d) => ({
+                        ...d,
+                        service: { ...d.service, discount12: Number(e.target.value) },
                       }))
                     }
                   />

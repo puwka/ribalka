@@ -24,6 +24,9 @@ export const DEFAULT_SERVICE_TARIFF = {
   amountPerMonth: 590,
   addonTop: 500,
   addonFrame: 100,
+  discount3: 10,
+  discount6: 20,
+  discount12: 30,
   enabled: true,
 };
 
@@ -54,6 +57,9 @@ export function normalizeServiceTariff(raw = {}) {
     amountPerMonth: Number(raw.amountPerMonth ?? DEFAULT_SERVICE_TARIFF.amountPerMonth),
     addonTop: Number(raw.addonTop ?? DEFAULT_SERVICE_TARIFF.addonTop),
     addonFrame: Number(raw.addonFrame ?? DEFAULT_SERVICE_TARIFF.addonFrame),
+    discount3: Number(raw.discount3 ?? DEFAULT_SERVICE_TARIFF.discount3),
+    discount6: Number(raw.discount6 ?? DEFAULT_SERVICE_TARIFF.discount6),
+    discount12: Number(raw.discount12 ?? DEFAULT_SERVICE_TARIFF.discount12),
     enabled: raw.enabled !== false,
   };
 }
@@ -105,8 +111,11 @@ export function calcServiceTotal(tariff, options = {}) {
     t.amountPerMonth +
     (options.top ? t.addonTop : 0) +
     (options.frame ? t.addonFrame : 0);
-  const total = monthly * months;
-  return { months, monthly, full: total, discountPct: 0, discountAmount: 0, total };
+  const full = monthly * months;
+  const discountPct = discountPercentForMonths(t, months);
+  const discountAmount = Math.round((full * discountPct) / 100);
+  const total = Math.max(0, full - discountAmount);
+  return { months, monthly, full, discountPct, discountAmount, total };
 }
 
 export function formatRub(n) {

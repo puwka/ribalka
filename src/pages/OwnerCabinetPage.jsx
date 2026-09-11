@@ -30,11 +30,17 @@ import DirectoryListingForm, {
   directoryStatusLabel,
 } from '../components/directory/DirectoryListingForm';
 import OwnerDirectoryCheckout from '../components/directory/OwnerDirectoryCheckout';
+import DirectoryConstructorPricing, {
+  DEFAULT_DIRECTORY_OPTIONS,
+  buildDirectoryPaymentQuery,
+} from '../components/directory/DirectoryConstructorPricing';
 import { listingPaymentService } from '../services/listingPaymentService';
 import {
   formatRub,
   normalizeConstructor,
+  normalizeServiceTariff,
   calcConstructorTotal,
+  calcServiceTotal,
 } from '../lib/directoryPricing';
 import '../components/auth/AuthShared.css';
 import '../components/bases/BaseListingForm.css';
@@ -922,19 +928,50 @@ function OwnerDirectoryList() {
 function OwnerDirectoryCreate() {
   const { refresh } = useAuth();
   const navigate = useNavigate();
+  const [tariff, setTariff] = useState(() => normalizeServiceTariff({}));
+  const [options, setOptions] = useState(DEFAULT_DIRECTORY_OPTIONS);
+
+  useEffect(() => {
+    if (!apiDataEnabled) return;
+    listingPaymentService
+      .getDirectoryPrices()
+      .then((data) => {
+        setTariff(normalizeServiceTariff(data.service || data.directory || data.shop));
+      })
+      .catch(() => {});
+  }, []);
+
+  const quote = calcServiceTotal(tariff, options);
+  const submitLabel = apiDataEnabled
+    ? `Сохранить и оплатить ${formatRub(quote.total)}`
+    : 'Сохранить';
 
   return (
     <div className="cabinet-panel">
       <h2>Добавить в справочник</h2>
       <p className="cabinet-panel__lead">
-        Заполните карточку магазина, сервиса или егеря. Затем оплатите размещение в кабинете.
+        Заполните карточку магазина, сервиса или егеря. Тариф и итоговая сумма — сразу, как у баз.
       </p>
+
+      {apiDataEnabled && (
+        <DirectoryConstructorPricing
+          tariff={tariff}
+          options={options}
+          onChange={setOptions}
+          title="Размещение в справочнике"
+        />
+      )}
+
       <DirectoryListingForm
-        submitLabel="Сохранить и к оплате"
+        submitLabel={submitLabel}
         onSubmit={async (form) => {
           await refresh?.();
           const saved = await directoryOwnerService.createDraft(form);
-          navigate(`/owner/directory/${saved.id}/pay`);
+          if (apiDataEnabled) {
+            navigate(`/owner/directory/${saved.id}/pay${buildDirectoryPaymentQuery(options)}`);
+            return;
+          }
+          navigate('/owner/directory');
         }}
       />
       <div style={{ marginTop: 12 }}>
@@ -953,6 +990,8 @@ function OwnerDirectoryEdit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [tariff, setTariff] = useState(() => normalizeServiceTariff({}));
+  const [options, setOptions] = useState(DEFAULT_DIRECTORY_OPTIONS);
 
   useEffect(() => {
     let alive = true;
@@ -960,7 +999,13 @@ function OwnerDirectoryEdit() {
       setLoading(true);
       try {
         const row = await directoryOwnerService.getById(itemId);
-        if (alive) setItem(row);
+        if (!alive) return;
+        setItem(row);
+        setOptions((prev) => ({
+          ...prev,
+          top: Boolean(row?.isTop),
+          frame: Boolean(row?.yellowFrame),
+        }));
       } catch (err) {
         if (alive) setError(err.message || 'Не найдено');
       } finally {
@@ -972,6 +1017,16 @@ function OwnerDirectoryEdit() {
     };
   }, [itemId]);
 
+  useEffect(() => {
+    if (!apiDataEnabled) return;
+    listingPaymentService
+      .getDirectoryPrices()
+      .then((data) => {
+        setTariff(normalizeServiceTariff(data.service || data.directory || data.shop));
+      })
+      .catch(() => {});
+  }, []);
+
   if (loading) return <div className="cabinet-panel">Загрузка…</div>;
   if (!item) {
     return (
@@ -981,6 +1036,13 @@ function OwnerDirectoryEdit() {
       </div>
     );
   }
+
+  const quote = calcServiceTotal(tariff, options);
+  const categoryTitle = {
+    shop: 'Размещение магазина',
+    service: 'Размещение сервиса',
+    guide: 'Размещение гида / егеря',
+  }[item.category] || 'Размещение в справочнике';
 
   return (
     <div className="cabinet-panel">
@@ -992,6 +1054,16 @@ function OwnerDirectoryEdit() {
       </p>
       {error && <div className="auth-error">{error}</div>}
       {message && <div className="auth-success">{message}</div>}
+
+      {apiDataEnabled && (
+        <DirectoryConstructorPricing
+          tariff={tariff}
+          options={options}
+          onChange={setOptions}
+          title={item.expired || item.paidUntil ? 'Продление и опции' : categoryTitle}
+        />
+      )}
+
       <DirectoryListingForm
         initial={item}
         lockCategory
@@ -1006,8 +1078,13 @@ function OwnerDirectoryEdit() {
       />
       <div className="cabinet-actions" style={{ marginTop: 16 }}>
         {apiDataEnabled && (
-          <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
-            {item.expired ? 'Продлить' : 'Оплатить / продлить'}
+          <Link
+            className="btn-primary"
+            to={`/owner/directory/${item.id}/pay${buildDirectoryPaymentQuery(options)}`}
+          >
+            {item.expired
+              ? `Продлить за ${formatRub(quote.total)}`
+              : `Оплатить ${formatRub(quote.total)}`}
           </Link>
         )}
         <button type="button" className="btn-secondary" onClick={() => navigate('/owner/directory')}>

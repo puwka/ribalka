@@ -1,29 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listingPaymentService } from '../../services/listingPaymentService';
 import { directoryOwnerService } from '../../services/directoryOwnerService';
 import { apiDataEnabled } from '../../lib/apiClient';
 import { useAuth } from '../auth/AuthContext';
 import {
   DEFAULT_SERVICE_TARIFF,
-  DIRECTORY_PERIODS,
   calcServiceTotal,
   formatRub,
   normalizeServiceTariff,
 } from '../../lib/directoryPricing';
 import { directoryStatusLabel } from './DirectoryListingForm';
+import DirectoryConstructorPricing, {
+  DEFAULT_DIRECTORY_OPTIONS,
+} from './DirectoryConstructorPricing';
 import './DirectoryPricingForm.css';
 
 /** Pay / renew directory listing from owner cabinet */
 export default function OwnerDirectoryCheckout() {
   const { itemId } = useParams();
+  const [searchParams] = useSearchParams();
   const { refresh } = useAuth();
   const navigate = useNavigate();
   const [item, setItem] = useState(null);
   const [tariff, setTariff] = useState(DEFAULT_SERVICE_TARIFF);
-  const [months, setMonths] = useState(3);
-  const [top, setTop] = useState(false);
-  const [frame, setFrame] = useState(false);
+  const [options, setOptions] = useState(() => {
+    const m = Number(searchParams.get('months'));
+    return {
+      ...DEFAULT_DIRECTORY_OPTIONS,
+      months: [3, 6, 12].includes(m) ? m : 3,
+      top: searchParams.get('top') === '1',
+      frame: searchParams.get('frame') === '1',
+    };
+  });
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
@@ -42,8 +51,11 @@ export default function OwnerDirectoryCheckout() {
         if (!alive) return;
         if (!row) throw new Error('Карточка не найдена');
         setItem(row);
-        setTop(Boolean(row.isTop));
-        setFrame(Boolean(row.yellowFrame));
+        setOptions((prev) => ({
+          ...prev,
+          top: prev.top || Boolean(row.isTop),
+          frame: prev.frame || Boolean(row.yellowFrame),
+        }));
         if (prices) {
           setTariff(normalizeServiceTariff(prices.service || prices.directory || prices.shop));
         }
@@ -59,8 +71,8 @@ export default function OwnerDirectoryCheckout() {
   }, [itemId]);
 
   const quote = useMemo(
-    () => calcServiceTotal(tariff, { months, frame, top }),
-    [tariff, months, frame, top]
+    () => calcServiceTotal(tariff, options),
+    [tariff, options]
   );
 
   const pay = async () => {
@@ -70,9 +82,9 @@ export default function OwnerDirectoryCheckout() {
       await refresh?.();
       const result = await listingPaymentService.directoryCheckout({
         category: item.category,
-        months,
-        top,
-        frame,
+        months: options.months,
+        top: options.top,
+        frame: options.frame,
         directoryItemId: item.id,
         listing: {
           name: item.name,
@@ -116,6 +128,11 @@ export default function OwnerDirectoryCheckout() {
   }
 
   const isRenew = Boolean(item.paidUntil) || item.status === 'published' || item.expired;
+  const categoryTitle = {
+    shop: 'Размещение магазина',
+    service: 'Размещение сервиса',
+    guide: 'Размещение гида / егеря',
+  }[item.category] || 'Размещение в справочнике';
 
   return (
     <div className="cabinet-panel">
@@ -128,81 +145,32 @@ export default function OwnerDirectoryCheckout() {
         {item.expired ? ' · срок истёк — карточка скрыта с сайта, но сохранена у вас' : ''}
       </p>
 
-      <section className="dir-pricing" style={{ marginTop: 0 }}>
-        {!tariff.enabled && (
-          <p className="dir-pricing__hint" style={{ color: '#b91c1c' }}>
-            Приём оплат временно отключён.
-          </p>
-        )}
+      <DirectoryConstructorPricing
+        tariff={tariff}
+        options={options}
+        onChange={setOptions}
+        title={categoryTitle}
+        subtitle="ТОП, рамка и срок — итоговая сумма обновляется сразу."
+      />
 
-        <div className="dir-pricing__body">
-          <div className="dir-pricing__base">
-            <strong>{tariff.title}</strong>
-            <span>{formatRub(tariff.amountPerMonth)} / мес</span>
-          </div>
-          <div className="dir-pricing__addons">
-            <p className="dir-pricing__label">Добавить:</p>
-            <label className="dir-pricing__check">
-              <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
-              <span>
-                Размещение в ТОП <em>+{formatRub(tariff.addonTop)}/мес</em>
-              </span>
-            </label>
-            <label className="dir-pricing__check">
-              <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
-              <span>
-                Жёлтая рамка <em>+{formatRub(tariff.addonFrame)}/мес</em>
-              </span>
-            </label>
-          </div>
-        </div>
+      {error && <p className="dir-pricing__error">{error}</p>}
 
-        <div className="dir-pricing__periods">
-          <p className="dir-pricing__label">Срок оплаты:</p>
-          <div className="dir-pricing__period-btns">
-            {DIRECTORY_PERIODS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={months === m ? 'is-active' : ''}
-                onClick={() => setMonths(m)}
-              >
-                {m} мес.
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="dir-pricing__total">
-          <div>
-            <span>В месяц</span>
-            <strong>{formatRub(quote.monthly)}</strong>
-          </div>
-          <div className="dir-pricing__grand">
-            <span>Итого за {quote.months} мес.</span>
-            <strong>{formatRub(quote.total)}</strong>
-          </div>
-        </div>
-
-        {error && <p className="dir-pricing__error">{error}</p>}
-
-        <div className="cabinet-actions" style={{ marginTop: 16 }}>
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={paying || !tariff.enabled}
-            onClick={pay}
-          >
-            {paying ? 'Создаём платёж…' : `Оплатить ${formatRub(quote.total)}`}
-          </button>
-          <Link className="btn-secondary" to={`/owner/directory/${item.id}/edit`}>
-            Редактировать карточку
-          </Link>
-          <Link className="btn-secondary" to="/owner/directory">
-            К списку
-          </Link>
-        </div>
-      </section>
+      <div className="cabinet-actions" style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={paying || !tariff.enabled}
+          onClick={pay}
+        >
+          {paying ? 'Создаём платёж…' : `Оплатить ${formatRub(quote.total)}`}
+        </button>
+        <Link className="btn-secondary" to={`/owner/directory/${item.id}/edit`}>
+          Редактировать карточку
+        </Link>
+        <Link className="btn-secondary" to="/owner/directory">
+          К списку
+        </Link>
+      </div>
     </div>
   );
 }

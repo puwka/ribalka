@@ -198,7 +198,7 @@ function deepMerge(base, patch) {
 async function remoteGetKv(key) {
   if (!apiDataEnabled) return null;
   try {
-    const data = await api.get(`/api/cms/kv/${encodeURIComponent(key)}`);
+    const data = await api.get(`/api/cms/kv?key=${encodeURIComponent(key)}`);
     return data?.value ?? null;
   } catch {
     return null;
@@ -207,7 +207,7 @@ async function remoteGetKv(key) {
 
 async function remoteSetKv(key, value) {
   if (!apiDataEnabled) return value;
-  await api.put(`/api/cms/kv/${encodeURIComponent(key)}`, { value });
+  await api.put('/api/cms/kv', { key, value });
   return value;
 }
 

@@ -24,7 +24,15 @@ function calcAmount(tariff, { months, frame, top }) {
     Number(tariff.amountPerMonth || 0) +
     (top ? Number(tariff.addonTop || 0) : 0) +
     (frame ? Number(tariff.addonFrame || 0) : 0);
-  return Math.max(0, Math.round(monthly * m));
+  const full = monthly * m;
+  const discountPct =
+    m === 3
+      ? Number(tariff.discount3) || 0
+      : m === 6
+        ? Number(tariff.discount6) || 0
+        : Number(tariff.discount12) || 0;
+  const discountAmount = Math.round((full * discountPct) / 100);
+  return Math.max(0, Math.round(full - discountAmount));
 }
 
 function categoryLabel(category) {

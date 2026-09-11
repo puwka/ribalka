@@ -45,6 +45,7 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // Don't leave stale HTML/shell in runtime cache
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
@@ -52,12 +53,14 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
+            // Always prefer network for SPA shell so deploys show up
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'pages-cache',
-              networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 5 },
+              cacheName: 'pages-cache-v2',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
@@ -73,15 +76,11 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'icon-cache',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
-          {
-            urlPattern: ({ request }) =>
-              request.destination === 'script' || request.destination === 'style',
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'static-resources' },
-          },
+          // Hashed JS/CSS are precached — do not SWR-cache them under a shared name
+          // (that kept old bundles alive after deploy)
         ],
       },
       // SW in dev caches CSS/JS and hides HMR header fixes — enable only for PWA testing
