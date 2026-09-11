@@ -21,7 +21,7 @@ const DEFAULT_SETTINGS = {
   legalOgrnip: '326595800114060',
   legalInn: '590415452100',
   sponsors: [
-    { label: 'cash-boom.live', url: 'https://cash-boom.live' },
+    { label: 'Cash-boom.live', url: 'https://cash-boom.live' },
     { label: 'Енот-мани.рф', url: 'https://енот-мани.рф' },
   ],
   social: {

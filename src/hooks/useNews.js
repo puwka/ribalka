@@ -1,29 +1,35 @@
-import { useState, useEffect } from 'react';
-import { newsData } from '../data/news';
+import { useState, useEffect, useCallback } from 'react';
 import { newsAdminService } from '../services/newsAdminService';
+import { apiDataEnabled } from '../lib/apiClient';
+import { newsData } from '../data/news';
 
 export const useNews = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const items = await newsAdminService.listPublic();
-      setData(items?.length ? items : newsData);
+      // В API-режиме не подмешиваем сид — иначе «удалённые» новости возвращаются
+      if (apiDataEnabled) {
+        setData(Array.isArray(items) ? items : []);
+      } else {
+        setData(items?.length ? items : newsData);
+      }
     } catch (err) {
       setError(err);
-      setData(newsData);
+      setData(apiDataEnabled ? [] : newsData);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return { data, loading, error, refetch: load };
 };

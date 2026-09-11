@@ -91,6 +91,25 @@ export default function AdminNewsSection() {
     }
   };
 
+  const remove = async () => {
+    if (!selected?.id) return;
+    if (!window.confirm(`Удалить новость «${selected.title}» безвозвратно?`)) return;
+    setSaving(true);
+    setError('');
+    try {
+      await newsAdminService.remove(user.id, selected.id, profile?.display_name);
+      setSelected(null);
+      setIsNew(false);
+      setForm(newsAdminService.emptyForm());
+      setMessage('Новость удалена');
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   return (
@@ -183,9 +202,27 @@ export default function AdminNewsSection() {
                     Черновик
                   </button>
                   {!isNew && selected && (
-                    <Link to={`/news/${selected.id}`} className="admin-btn" target="_blank">
-                      Предпросмотр
-                    </Link>
+                    <>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        disabled={saving}
+                        onClick={() => save('archived')}
+                      >
+                        В архив
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--danger"
+                        disabled={saving}
+                        onClick={remove}
+                      >
+                        Удалить
+                      </button>
+                      <Link to={`/news/${selected.id}`} className="admin-btn" target="_blank">
+                        Предпросмотр
+                      </Link>
+                    </>
                   )}
                 </div>
               </>

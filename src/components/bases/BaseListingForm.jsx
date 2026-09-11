@@ -21,10 +21,15 @@ export default function BaseListingForm({
   sendLabel = 'Сохранить и отправить на модерацию',
   disabled = false,
   showPromoOptions = false,
-  /** Owner media quota: 1 free + paid extras. Admin leaves null/undefined = unlimited. */
+  /** Admin can place free waters; owners only commercial (paid) bases */
+  allowFreeType = false,
   mediaQuota = null,
 }) {
-  const [form, setForm] = useState(initialForm || basesService.emptyForm());
+  const [form, setForm] = useState(() => {
+    const initial = initialForm || basesService.emptyForm();
+    if (!allowFreeType) return { ...initial, type: 'paid' };
+    return initial;
+  });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [videoDraft, setVideoDraft] = useState('');
@@ -131,10 +136,17 @@ export default function BaseListingForm({
         </label>
         <label>
           Тип
-          <select value={form.type} onChange={set('type')} disabled={disabled}>
-            <option value="paid">Платная база</option>
-            <option value="free">Бесплатное место</option>
-          </select>
+          {allowFreeType ? (
+            <select value={form.type} onChange={set('type')} disabled={disabled}>
+              <option value="paid">Платная база</option>
+              <option value="free">Бесплатное место</option>
+            </select>
+          ) : (
+            <>
+              <input type="hidden" value="paid" readOnly />
+              <div className="base-form__type-fixed">Платная база (коммерческое размещение)</div>
+            </>
+          )}
         </label>
         <label className="base-form__full">
           Краткое описание

@@ -347,15 +347,11 @@ export default function AdminBasesSection() {
 
 
                 <BaseListingForm
-
                   key={`${selected.id}-${selected.updated_at}`}
-
                   initialForm={basesService.recordToForm(selected)}
-
                   submitLabel="Сохранить"
-
                   showPromoOptions
-
+                  allowFreeType
                   onSubmit={async (form) => {
 
                     const updated = await basesService.adminUpdate(user.id, selected.id, form);

@@ -13,9 +13,11 @@ export default function Footer() {
   const siteName = settings?.siteName || 'Рыбалка в Прикамье';
   const sponsors = (settings?.sponsors || []).map((s) => {
     const label = String(s?.label || '').trim();
-    // Align display with domain-style labels (CMS may still store short name)
     if (label === 'Енот-мани' || label === 'Енот мани') {
       return { ...s, label: 'Енот-мани.рф' };
+    }
+    if (/^cash-boom\.live$/i.test(label)) {
+      return { ...s, label: 'Cash-boom.live' };
     }
     return s;
   });
@@ -85,17 +87,17 @@ export default function Footer() {
           <div className="footer__social">
             {social.max && (
             <a href={social.max} target="_blank" rel="noopener noreferrer" className="social-link social-link--max" aria-label="MAX">
-              <img src="/img/social/max.png" alt="" width={40} height={40} />
+              <img src="/img/social/max.png" alt="" width={28} height={28} />
             </a>
             )}
             {social.telegram && (
             <a href={social.telegram} target="_blank" rel="noopener noreferrer" className="social-link social-link--telegram" aria-label="Telegram">
-              <img src="/img/social/telegram.png" alt="" width={40} height={40} />
+              <img src="/img/social/telegram.png" alt="" width={28} height={28} />
             </a>
             )}
             {social.vk && (
             <a href={social.vk} target="_blank" rel="noopener noreferrer" className="social-link social-link--vk" aria-label="ВКонтакте">
-              <img src="/img/social/vk.png" alt="" width={40} height={40} />
+              <img src="/img/social/vk.png" alt="" width={28} height={28} />
             </a>
             )}
           </div>

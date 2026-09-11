@@ -83,6 +83,15 @@
 .status-badge--rejected { background: #fee2e2; color: #991b1b; }
 .status-badge--archived { background: #f1f5f9; color: #64748b; }
 
+.base-form__type-fixed {
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: #f8fafc;
+  font-weight: 500;
+  color: #334155;
+}
+
 .base-form__media-note {
   margin: 0 0 10px;
   padding: 10px 12px;

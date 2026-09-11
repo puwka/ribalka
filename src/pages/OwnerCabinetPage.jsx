@@ -21,6 +21,7 @@ import {
   OwnerListingOrdersPanel,
 } from '../components/owner/ListingPayment';
 import { apiDataEnabled } from '../lib/apiClient';
+import { directoryOwnerService } from '../services/directoryOwnerService';
 import '../components/auth/AuthShared.css';
 import '../components/bases/BaseListingForm.css';
 import '../components/owner/OwnerCharts.css';
@@ -30,7 +31,8 @@ const OWNER_NAV = [
     title: 'Обзор',
     items: [
       { to: '/owner', end: true, label: 'Сводка' },
-      { to: '/owner/analytics', label: 'Аналитика' },
+      { to: '/owner/analytics', label: 'Аналитика баз' },
+      { to: '/owner/directory-analytics', label: 'Аналитика справочника' },
     ],
   },
   {
@@ -243,6 +245,109 @@ function OwnerAnalytics() {
           </div>
         ))}
         {data.byBase.length === 0 && <div className="empty-state">Нет баз для аналитики</div>}
+      </div>
+    </div>
+  );
+}
+
+function OwnerDirectoryAnalytics() {
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const rows = await directoryOwnerService.getAnalytics(days);
+        if (alive) setData(rows);
+      } catch (err) {
+        if (alive) setError(err.message || 'Не удалось загрузить аналитику');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [days]);
+
+  if (loading) return <div className="cabinet-panel">Загрузка аналитики справочника…</div>;
+
+  const categoryLabel = { shop: 'Магазин', service: 'Сервис', guide: 'Гид / егерь' };
+
+  return (
+    <div className="cabinet-panel">
+      <h2>Аналитика справочника</h2>
+      <p className="cabinet-panel__lead">
+        Просмотры карточки, звонки и переходы на сайт / в группу за выбранный период
+      </p>
+      {error && <div className="auth-error">{error}</div>}
+
+      <div className="period-filters" style={{ marginBottom: 16 }}>
+        {[7, 30, 90, 365].map((d) => (
+          <button
+            key={d}
+            type="button"
+            className={`period-filters__btn${days === d ? ' is-active' : ''}`}
+            onClick={() => setDays(d)}
+          >
+            {d === 365 ? 'Год' : `${d} дн.`}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className="owner-stat-cards"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
+        <div className="owner-chart">
+          <div className="owner-chart__title">Просмотры</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{data?.totals?.views ?? 0}</div>
+        </div>
+        <div className="owner-chart">
+          <div className="owner-chart__title">Звонки</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{data?.totals?.phone ?? 0}</div>
+        </div>
+        <div className="owner-chart">
+          <div className="owner-chart__title">Переходы на сайт</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{data?.totals?.website ?? 0}</div>
+        </div>
+      </div>
+
+      <div className="cabinet-list">
+        {(data?.items || []).map((item) => (
+          <div key={item.id} className="cabinet-row">
+            <div>
+              <div className="cabinet-row__title">
+                {item.name}{' '}
+                <span className="cabinet-row__meta">
+                  {categoryLabel[item.category] || item.category}
+                  {!item.active ? ' · срок размещения истёк' : ''}
+                </span>
+              </div>
+              <div className="cabinet-row__meta">
+                Просмотры {item.views} · звонки {item.phone} · сайт {item.website}
+                {item.paidUntil
+                  ? ` · оплачено до ${new Date(item.paidUntil).toLocaleDateString('ru-RU')}`
+                  : ''}
+              </div>
+            </div>
+          </div>
+        ))}
+        {(data?.items || []).length === 0 && (
+          <div className="empty-state">
+            Пока нет карточек в справочнике. Оформите размещение на странице «Справочник».
+          </div>
+        )}
       </div>
     </div>
   );
@@ -637,6 +742,7 @@ export default function OwnerCabinetPage() {
           <Route path="bases/:baseId/edit" element={<OwnerBaseEdit />} />
           <Route path="bookings" element={<Navigate to="/owner" replace />} />
           <Route path="analytics" element={<OwnerAnalytics />} />
+          <Route path="directory-analytics" element={<OwnerDirectoryAnalytics />} />
           <Route path="reviews" element={<OwnerReviews />} />
           <Route path="payments" element={<OwnerPayments />} />
           <Route path="payments/return" element={<OwnerPaymentReturnPage />} />

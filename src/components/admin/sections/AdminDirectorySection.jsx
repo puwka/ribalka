@@ -299,12 +299,12 @@ export default function AdminDirectorySection() {
                     />
                   </AdminField>
                 </div>
-                <AdminField label="Сайт">
+                <AdminField label="Сайт или группа (необязательно)">
                   <input
                     className="admin-input"
                     value={form.website}
                     onChange={(e) => setField('website', e.target.value)}
-                    placeholder="https://"
+                    placeholder="https://… — можно оставить пустым"
                   />
                 </AdminField>
                 <AdminField label="Теги (через запятую)">

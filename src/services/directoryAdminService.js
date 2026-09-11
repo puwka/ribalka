@@ -34,7 +34,12 @@ export const directoryAdminService = {
   async listPublic() {
     const page = await this.getPage();
     const items = Array.isArray(page.items) ? page.items : [];
-    const published = items.filter((i) => (i.status || 'published') === 'published');
+    const now = Date.now();
+    const published = items.filter((i) => {
+      if ((i.status || 'published') !== 'published') return false;
+      if (i.paidUntil && new Date(i.paidUntil).getTime() <= now) return false;
+      return true;
+    });
     return published.sort((a, b) => {
       const ta = a.isTop || a.top ? 0 : 1;
       const tb = b.isTop || b.top ? 0 : 1;

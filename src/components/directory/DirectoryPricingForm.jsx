@@ -220,12 +220,12 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
             <input value={form.hours} onChange={(e) => setField('hours', e.target.value)} />
           </label>
           <label className="dir-pricing__full">
-            Сайт
+            Сайт или группа (необязательно)
             <input
-              type="url"
+              type="text"
               value={form.website}
               onChange={(e) => setField('website', e.target.value)}
-              placeholder="https://"
+              placeholder="https://… или ссылка на группу — можно оставить пустым"
             />
           </label>
         </div>

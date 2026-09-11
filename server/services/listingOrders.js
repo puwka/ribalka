@@ -524,7 +524,8 @@ async function applyPaidSideEffects(client, order) {
       add column if not exists is_top boolean not null default false,
       add column if not exists yellow_frame boolean not null default false,
       add column if not exists paid_extra_photos int not null default 0,
-      add column if not exists paid_extra_videos int not null default 0
+      add column if not exists paid_extra_videos int not null default 0,
+      add column if not exists paid_until timestamptz
   `);
 
   let meta = order.meta;
@@ -540,6 +541,7 @@ async function applyPaidSideEffects(client, order) {
   const yellowFrame = Boolean(opts.frame);
   const extraPhotos = Math.max(0, Number(opts.extraPhotos) || 0);
   const extraVideos = Math.max(0, Number(opts.extraVideos) || 0);
+  const months = Math.max(1, Number(opts.months) || 3);
 
   await client.query(
     `update public.bases set
@@ -553,9 +555,15 @@ async function applyPaidSideEffects(client, order) {
        yellow_frame = $3,
        paid_extra_photos = greatest(coalesce(paid_extra_photos, 0), $4::int),
        paid_extra_videos = greatest(coalesce(paid_extra_videos, 0), $5::int),
+       paid_until = (
+         case
+           when paid_until is null or paid_until < now() then now()
+           else paid_until
+         end
+       ) + make_interval(months => $6::int),
        updated_at = now()
      where id = $1`,
-    [order.base_id, isTop, yellowFrame, extraPhotos, extraVideos]
+    [order.base_id, isTop, yellowFrame, extraPhotos, extraVideos, months]
   );
 
   await client.query(

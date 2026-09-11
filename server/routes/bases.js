@@ -14,7 +14,8 @@ async function ensurePromoColumns() {
       add column if not exists is_top boolean not null default false,
       add column if not exists yellow_frame boolean not null default false,
       add column if not exists paid_extra_photos int not null default 0,
-      add column if not exists paid_extra_videos int not null default 0
+      add column if not exists paid_extra_videos int not null default 0,
+      add column if not exists paid_until timestamptz
   `);
   promoColumnsReady = true;
 }
@@ -216,6 +217,11 @@ router.get('/', async (req, res, next) => {
       left join public.base_videos bv on bv.base_id = b.id
       left join public.base_services bs on bs.base_id = b.id
       where b.status = $1
+        and (
+          b.type = 'free'
+          or b.paid_until is null
+          or b.paid_until > now()
+        )
     `;
     if (type) {
       params.push(type);
@@ -293,6 +299,9 @@ router.post('/', requireAuth, async (req, res, next) => {
   try {
     const data = parsePayload(req.body || {});
     const isAdmin = (req.user.roles || []).includes('admin');
+    if (!isAdmin) {
+      data.type = 'paid';
+    }
     assertOwnerMediaLimits(data, { paid_extra_photos: 0, paid_extra_videos: 0 }, isAdmin);
     await ensurePromoColumns();
     await client.query('begin');
@@ -354,6 +363,9 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
 
     const data = parsePayload(req.body || {});
     await ensurePromoColumns();
+    if (!isAdmin) {
+      data.type = 'paid';
+    }
     assertOwnerMediaLimits(data, existing, isAdmin);
     await client.query('begin');
     if (isAdmin) {
