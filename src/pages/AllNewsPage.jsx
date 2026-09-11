@@ -1,12 +1,30 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNews } from '../hooks/useNews';
+import { newsService } from '../services/newsService';
 import './AllNewsPage.css';
+
+function alreadyViewed(id) {
+  try {
+    return Boolean(sessionStorage.getItem(`news_viewed_${id}`));
+  } catch {
+    return false;
+  }
+}
+
+function markViewed(id) {
+  try {
+    sessionStorage.setItem(`news_viewed_${id}`, '1');
+  } catch {
+    /* ignore */
+  }
+}
 
 export default function AllNewsPage() {
   const { data: newsData, loading } = useNews();
   const navigate = useNavigate();
   const [openId, setOpenId] = useState(null);
+  const [viewOverrides, setViewOverrides] = useState({});
 
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleDateString('ru-RU', {
@@ -16,7 +34,20 @@ export default function AllNewsPage() {
     });
 
   const toggle = (id) => {
+    const opening = openId !== id;
     setOpenId((prev) => (prev === id ? null : id));
+    if (!opening || alreadyViewed(id)) return;
+    (async () => {
+      try {
+        const updated = await newsService.recordView(id);
+        markViewed(id);
+        if (updated?.views != null) {
+          setViewOverrides((prev) => ({ ...prev, [id]: updated.views }));
+        }
+      } catch {
+        /* счётчик не критичен */
+      }
+    })();
   };
 
   if (loading) {
@@ -43,6 +74,7 @@ export default function AllNewsPage() {
           <div className="news-accordion" role="list">
             {newsData.map((news) => {
               const isOpen = openId === news.id;
+              const views = viewOverrides[news.id] ?? news.views ?? 0;
               return (
                 <article
                   key={news.id}
@@ -67,9 +99,7 @@ export default function AllNewsPage() {
                         <span className="news-accordion__category">{news.category}</span>
                       )}
                       <span className="news-accordion__date">{formatDate(news.date)}</span>
-                      {news.views != null && (
-                        <span className="news-accordion__views">👁 {news.views}</span>
-                      )}
+                      <span className="news-accordion__views">👁 {views}</span>
                     </div>
                     <h2 className="news-accordion__title">{news.title}</h2>
                     <span className="news-accordion__chevron" aria-hidden>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/auth/AuthContext';
 import { GuestOnly } from '../components/auth/RequireAuth';
 import '../components/auth/AuthShared.css';
@@ -7,11 +7,14 @@ import '../components/auth/AuthShared.css';
 function RegisterForm() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const preferOwner = Boolean(location.state?.preferOwner);
+  const from = location.state?.from || '';
   const [form, setForm] = useState({
     displayName: '',
     email: '',
     password: '',
-    role: 'user',
+    role: preferOwner ? 'owner' : 'user',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,8 +27,11 @@ function RegisterForm() {
     setError('');
     try {
       const bundle = await register(form.email, form.password, form.displayName, form.role);
-      if (bundle?.isOwner) navigate('/owner', { replace: true });
-      else navigate('/cabinet', { replace: true });
+      if (bundle?.isOwner) {
+        navigate(from.startsWith('/owner') ? from : '/owner', { replace: true });
+      } else {
+        navigate('/cabinet', { replace: true });
+      }
     } catch (err) {
       setError(err.message || 'Не удалось зарегистрироваться');
     } finally {
@@ -37,7 +43,9 @@ function RegisterForm() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Регистрация</h1>
-        <p className="auth-card__subtitle">Создайте аккаунт пользователя или владельца базы</p>
+        <p className="auth-card__subtitle">
+          Аккаунт рыболова или владельца (базы, магазины, сервисы, егеря)
+        </p>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
@@ -74,7 +82,7 @@ function RegisterForm() {
             Тип аккаунта
             <select value={form.role} onChange={onChange('role')}>
               <option value="user">Рыболов (USER)</option>
-              <option value="owner">Владелец базы (OWNER)</option>
+              <option value="owner">Владелец (базы / справочник)</option>
             </select>
           </label>
 

@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { directoryAdminService } from '../services/directoryAdminService';
 import { DIRECTORY_CATEGORIES } from '../data/directorySeed';
 import DirectoryCard from '../components/directory/DirectoryCard';
-import DirectoryPricingForm from '../components/directory/DirectoryPricingForm';
+import { useAuth } from '../components/auth/AuthContext';
+import { directoryOwnerService } from '../services/directoryOwnerService';
 import './DirectoryPage.css';
 
 const PREVIEW_LIMIT = 4;
 
 export default function DirectoryPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated, isOwner, isAdmin, refresh } = useAuth();
   const [title, setTitle] = useState('Справочник рыболова');
   const [description, setDescription] = useState(
     'Магазины, сервисы, гиды и егеря Пермского края'
@@ -16,6 +19,7 @@ export default function DirectoryPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(DIRECTORY_CATEGORIES[0].id);
+  const [opening, setOpening] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -49,6 +53,25 @@ export default function DirectoryPage() {
   const activeCat = DIRECTORY_CATEGORIES.find((c) => c.id === activeTab) || DIRECTORY_CATEGORIES[0];
   const list = byCategory[activeCat.id] || [];
   const preview = list.slice(0, PREVIEW_LIMIT);
+
+  const openCabinet = async () => {
+    if (!isAuthenticated) {
+      navigate('/register', { state: { from: '/owner/directory/new', preferOwner: true } });
+      return;
+    }
+    setOpening(true);
+    try {
+      if (!isOwner && !isAdmin) {
+        await directoryOwnerService.enableOwner();
+        await refresh?.();
+      }
+      navigate('/owner/directory/new');
+    } catch {
+      navigate('/owner/directory/new');
+    } finally {
+      setOpening(false);
+    }
+  };
 
   return (
     <div className="directory-page">
@@ -107,7 +130,34 @@ export default function DirectoryPage() {
           </section>
         )}
 
-        <DirectoryPricingForm />
+        <section className="directory-place-cta" id="directory-pricing">
+          <h2>Разместить магазин, сервис или егеря</h2>
+          <p>
+            Карточка, тариф, продление и статистика (просмотры, звонки, сайт) — в личном кабинете.
+            После истечения оплаты запись остаётся у вас, её можно продлить.
+          </p>
+          <div className="directory-place-cta__actions">
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={opening}
+              onClick={openCabinet}
+            >
+              {opening
+                ? 'Открываем кабинет…'
+                : isOwner || isAdmin
+                  ? 'В кабинет — добавить карточку'
+                  : isAuthenticated
+                    ? 'Открыть кабинет владельца'
+                    : 'Зарегистрироваться и разместить'}
+            </button>
+            {(isOwner || isAdmin) && (
+              <Link className="btn btn--ghost" to="/owner/directory">
+                Мои карточки
+              </Link>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

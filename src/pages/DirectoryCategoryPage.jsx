@@ -3,7 +3,6 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { directoryAdminService } from '../services/directoryAdminService';
 import { DIRECTORY_CATEGORIES } from '../data/directorySeed';
 import DirectoryCard from '../components/directory/DirectoryCard';
-import DirectoryPricingForm from '../components/directory/DirectoryPricingForm';
 import './DirectoryPage.css';
 
 const TAB_TO_CATEGORY = Object.fromEntries(DIRECTORY_CATEGORIES.map((c) => [c.tab, c]));
@@ -116,7 +115,18 @@ export default function DirectoryCategoryPage() {
           </div>
         )}
 
-        <DirectoryPricingForm defaultCategory={categoryMeta.id} />
+        <section className="directory-place-cta">
+          <h2>Хотите разместить свою карточку?</h2>
+          <p>
+            Добавление, оплата и продление — в кабинете владельца. На публичной странице только
+            каталог.
+          </p>
+          <div className="directory-place-cta__actions">
+            <Link className="btn btn--primary" to="/directory#directory-pricing">
+              Перейти к размещению
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );

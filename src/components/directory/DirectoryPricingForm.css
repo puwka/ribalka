@@ -256,6 +256,46 @@
   font-size: 0.9rem;
 }
 
+.base-ctor__counters {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.base-ctor__counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.base-ctor__counter em {
+  font-style: normal;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.85rem;
+}
+
+.base-ctor__counter > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.base-ctor__counter button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.base-ctor__counter strong {
+  min-width: 1.5rem;
+  text-align: center;
+}
+
 @media (max-width: 640px) {
   .dir-pricing__fields {
     grid-template-columns: 1fr;

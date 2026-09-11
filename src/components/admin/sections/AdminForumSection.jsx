@@ -15,6 +15,7 @@ export default function AdminForumSection() {
   const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const load = async () => {
     setError('');
@@ -45,6 +46,7 @@ export default function AdminForumSection() {
     const note = action === 'reject' ? window.prompt('Причина') || '' : '';
     try {
       await forumService.moderateTopic(user.id, id, { action, note });
+      setMessage('Сохранено');
       await load();
     } catch (err) {
       setError(err.message);
@@ -54,6 +56,7 @@ export default function AdminForumSection() {
   const actMessage = async (id, action) => {
     try {
       await forumService.moderateMessage(user.id, id, { action });
+      setMessage('Сохранено');
       await loadMessages();
     } catch (err) {
       setError(err.message);
@@ -62,8 +65,8 @@ export default function AdminForumSection() {
 
   const startEdit = (item) => {
     setEditingId(item.id);
-    setEditTitle(item.title);
-    setEditBody(item.body);
+    setEditTitle(item.title || '');
+    setEditBody(item.body || '');
     setExpandedId(item.id);
   };
 
@@ -71,7 +74,33 @@ export default function AdminForumSection() {
     try {
       await forumService.updateTopic(id, { title: editTitle, body: editBody }, { isAdmin: true });
       setEditingId(null);
+      setMessage('Тема обновлена');
       await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const removeTopic = async (item) => {
+    if (!window.confirm(`Удалить тему «${item.title}» и все сообщения в ней?`)) return;
+    try {
+      await forumService.deleteTopic(user.id, item.id);
+      if (expandedId === item.id) setExpandedId(null);
+      if (editingId === item.id) setEditingId(null);
+      setMessage('Тема удалена');
+      await load();
+      await loadMessages();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const removeMessage = async (m) => {
+    if (!window.confirm('Удалить это сообщение безвозвратно?')) return;
+    try {
+      await forumService.deleteMessage(user.id, m.id);
+      setMessage('Сообщение удалено');
+      await loadMessages();
     } catch (err) {
       setError(err.message);
     }
@@ -85,6 +114,7 @@ export default function AdminForumSection() {
     <>
       <AdminPageHead title="Форум" subtitle="Модерация тем и сообщений" />
       <AdminAlert type="error">{error}</AdminAlert>
+      <AdminAlert type="success">{message}</AdminAlert>
 
       <div className="admin-toolbar">
         {[
@@ -132,10 +162,13 @@ export default function AdminForumSection() {
                 {expandedId === item.id && (
                   <div className="admin-accordion__body">
                     {editingId === item.id ? (
-                      <>
+                      <div className="admin-edit-form">
                         <label>
                           Заголовок
-                          <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                          />
                         </label>
                         <label>
                           Текст
@@ -161,7 +194,7 @@ export default function AdminForumSection() {
                             Отмена
                           </button>
                         </div>
-                      </>
+                      </div>
                     ) : (
                       <>
                         <p className="admin-accordion__meta">
@@ -211,6 +244,13 @@ export default function AdminForumSection() {
                         onClick={() => actTopic(item.id, 'pin')}
                       >
                         Закрепить
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--sm admin-btn--danger"
+                        onClick={() => removeTopic(item)}
+                      >
+                        Удалить
                       </button>
                     </div>
                   </div>
@@ -288,6 +328,13 @@ export default function AdminForumSection() {
                           onClick={() => actMessage(m.id, 'hide')}
                         >
                           Скрыть
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--sm admin-btn--danger"
+                          onClick={() => removeMessage(m)}
+                        >
+                          Удалить
                         </button>
                       </div>
                     </td>

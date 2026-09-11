@@ -83,7 +83,7 @@ export function mapNewsToUi(row) {
       : String(row.created_at).slice(0, 10),
     author: row.author_name || row.profiles?.display_name || 'Редакция',
     category: row.category ?? '',
-    views: row.views_count ?? 0,
+    views: row.views_count ?? row.views ?? 0,
     slug: row.slug,
     status: row.status,
   };

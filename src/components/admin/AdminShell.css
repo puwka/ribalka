@@ -803,6 +803,12 @@
   border-top: 1px solid var(--color-border, #e5e7eb);
 }
 
+.admin-accordion__body .admin-edit-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .admin-accordion__meta {
   font-size: 0.85rem;
   color: #6b7280;
@@ -815,18 +821,28 @@
   margin: 0 0 12px;
 }
 
+.admin-edit-form {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
 .admin-edit-form label {
   display: grid;
   gap: 6px;
-  margin-bottom: 10px;
+  margin: 0;
+  width: 100%;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .admin-edit-form input,
 .admin-edit-form textarea {
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 8px;
   padding: 8px 10px;
   font: inherit;
+  resize: vertical;
 }

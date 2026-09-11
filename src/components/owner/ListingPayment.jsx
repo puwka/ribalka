@@ -41,15 +41,18 @@ export function OwnerListingCheckoutPage() {
   const navigate = useNavigate();
   const [base, setBase] = useState(null);
   const [tariff, setTariff] = useState(null);
-  const [months, setMonths] = useState(3);
-  const [top, setTop] = useState(false);
-  const [frame, setFrame] = useState(false);
   const [extraPhotos, setExtraPhotos] = useState(() =>
     Math.max(0, Number(searchParams.get('extraPhotos')) || 0)
   );
   const [extraVideos, setExtraVideos] = useState(() =>
     Math.max(0, Number(searchParams.get('extraVideos')) || 0)
   );
+  const [months, setMonths] = useState(() => {
+    const m = Number(searchParams.get('months'));
+    return [3, 6, 12].includes(m) ? m : 3;
+  });
+  const [top, setTop] = useState(() => searchParams.get('top') === '1');
+  const [frame, setFrame] = useState(() => searchParams.get('frame') === '1');
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -78,13 +81,19 @@ export function OwnerListingCheckoutPage() {
         const opts = preview.activeOrder?.meta?.constructor_options || preview.quote?.options;
         const qPhotos = Math.max(0, Number(searchParams.get('extraPhotos')) || 0);
         const qVideos = Math.max(0, Number(searchParams.get('extraVideos')) || 0);
+        const qMonths = Number(searchParams.get('months'));
+        const qTop = searchParams.get('top') === '1';
+        const qFrame = searchParams.get('frame') === '1';
         if (opts) {
           if ([3, 6, 12].includes(Number(opts.months))) setMonths(Number(opts.months));
-          setTop(Boolean(opts.top));
-          setFrame(Boolean(opts.frame));
+          setTop(Boolean(opts.top) || qTop);
+          setFrame(Boolean(opts.frame) || qFrame);
           setExtraPhotos(Math.max(qPhotos, Number(opts.extraPhotos) || 0));
           setExtraVideos(Math.max(qVideos, Number(opts.extraVideos) || 0));
         } else {
+          if ([3, 6, 12].includes(qMonths)) setMonths(qMonths);
+          if (qTop) setTop(true);
+          if (qFrame) setFrame(true);
           if (qPhotos) setExtraPhotos(qPhotos);
           if (qVideos) setExtraVideos(qVideos);
         }

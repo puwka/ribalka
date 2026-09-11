@@ -96,6 +96,21 @@ export async function listOrdersAdmin({ status } = {}) {
  * Create directory placement order + YooKassa payment.
  * Amount is always computed from admin tariff (never trusted from client).
  */
+async function ensureOwnerRole(userId) {
+  await pool.query(
+    `insert into public.user_roles (user_id, role_id)
+     select $1, r.id from public.roles r where r.code = 'owner'
+     on conflict do nothing`,
+    [userId]
+  );
+  await pool.query(
+    `update public.users
+     set primary_role = case when primary_role = 'user' then 'owner' else primary_role end
+     where id = $1`,
+    [userId]
+  );
+}
+
 export async function createDirectoryCheckout({
   userId,
   category,
@@ -103,6 +118,7 @@ export async function createDirectoryCheckout({
   frame = false,
   top = false,
   listing = {},
+  directoryItemId = null,
   returnUrl,
 }) {
   if (!CATEGORIES.has(category)) {
@@ -117,9 +133,23 @@ export async function createDirectoryCheckout({
     throw err;
   }
 
-  const name = String(listing.name || '').trim();
-  const phone = String(listing.phone || '').trim();
-  const description = String(listing.description || '').trim();
+  await ensureOwnerRole(userId);
+
+  let existingItem = null;
+  const itemId = directoryItemId ? String(directoryItemId).trim() : '';
+  if (itemId) {
+    const page = await getCmsPage();
+    existingItem = page.items.find((i) => String(i.id) === itemId) || null;
+    if (!existingItem || String(existingItem.ownerUserId) !== String(userId)) {
+      const err = new Error('Карточка не найдена или нет доступа');
+      err.status = 404;
+      throw err;
+    }
+  }
+
+  const name = String(listing.name || existingItem?.name || '').trim();
+  const phone = String(listing.phone || existingItem?.phone || '').trim();
+  const description = String(listing.description || existingItem?.description || '').trim();
   if (!name) {
     const err = new Error('Укажите название');
     err.status = 400;
@@ -151,11 +181,11 @@ export async function createDirectoryCheckout({
     name,
     category,
     description,
-    address: String(listing.address || '').trim(),
+    address: String(listing.address || existingItem?.address || '').trim(),
     phone,
-    website: String(listing.website || '').trim(),
-    hours: String(listing.hours || '').trim(),
-    image: String(listing.image || '').trim(),
+    website: String(listing.website || existingItem?.website || '').trim(),
+    hours: String(listing.hours || existingItem?.hours || '').trim(),
+    image: String(listing.image || existingItem?.image || '').trim(),
     tags: Array.isArray(listing.tags)
       ? listing.tags
       : String(listing.tags || '')
@@ -165,6 +195,7 @@ export async function createDirectoryCheckout({
     yellowFrame: wantFrame,
     isTop: wantTop,
     months: m,
+    renew: Boolean(existingItem),
   };
 
   const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
@@ -176,8 +207,8 @@ export async function createDirectoryCheckout({
   const { rows } = await pool.query(
     `insert into public.directory_listing_orders
       (user_id, category, amount, currency, status, description, expires_at,
-       payment_provider, months, addon_frame, addon_top, payload)
-     values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',$6,$7,$8,$9::jsonb)
+       payment_provider, months, addon_frame, addon_top, payload, directory_item_id)
+     values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',$6,$7,$8,$9::jsonb,$10)
      returning *`,
     [
       userId,
@@ -189,6 +220,7 @@ export async function createDirectoryCheckout({
       wantFrame,
       wantTop,
       JSON.stringify(payload),
+      itemId || null,
     ]
   );
   let order = mapOrder(rows[0]);
@@ -206,7 +238,7 @@ export async function createDirectoryCheckout({
   const publicSite = (process.env.PUBLIC_SITE_URL || '').replace(/\/$/, '');
   let siteReturn =
     returnUrl ||
-    (publicSite ? `${publicSite}/directory/payment/result/${order.id}` : '');
+    (publicSite ? `${publicSite}/owner/directory/payment/result/${order.id}` : '');
   if (!siteReturn) {
     const err = new Error('Не задан PUBLIC_SITE_URL');
     err.status = 500;
@@ -214,7 +246,7 @@ export async function createDirectoryCheckout({
   }
   siteReturn = siteReturn.replace(':orderId', order.id).replace('{orderId}', order.id);
   if (!siteReturn.includes(order.id)) {
-    siteReturn = `${siteReturn.replace(/\/$/, '')}/directory/payment/result/${order.id}`;
+    siteReturn = `${siteReturn.replace(/\/$/, '')}/owner/directory/payment/result/${order.id}`;
   }
 
   const userRes = await pool.query(
@@ -308,8 +340,7 @@ export async function createDirectoryCheckout({
 async function publishDirectoryItem(client, order) {
   const payload = order.payload && typeof order.payload === 'object' ? order.payload : {};
   const itemId = order.directory_item_id || `dir-${order.id.slice(0, 8)}`;
-  const paidUntil = new Date();
-  paidUntil.setMonth(paidUntil.getMonth() + Number(order.months || 3));
+  const months = Math.max(1, Number(order.months || 3));
 
   const pageRes = await client.query('select value from public.cms_kv where key = $1 for update', [
     PAGE_KEY,
@@ -324,29 +355,46 @@ async function publishDirectoryItem(client, order) {
   }
   if (!page || typeof page !== 'object' || Array.isArray(page)) page = {};
   const items = Array.isArray(page.items) ? [...page.items] : [];
+  const idx = items.findIndex((i) => String(i.id) === String(itemId));
+  const existing = idx >= 0 ? items[idx] : null;
+
+  const now = new Date();
+  const baseDate =
+    existing?.paidUntil && new Date(existing.paidUntil).getTime() > now.getTime()
+      ? new Date(existing.paidUntil)
+      : now;
+  baseDate.setMonth(baseDate.getMonth() + months);
+  const paidUntil = baseDate.toISOString();
+
+  // Продление опубликованной карточки — остаётся published; новое/черновик — на модерацию
+  const wasPublished =
+    existing &&
+    (existing.status === 'published' || existing.status === 'approved');
+  const nextStatus = wasPublished ? existing.status : 'pending';
 
   const row = {
+    ...(existing || {}),
     id: itemId,
-    name: payload.name,
-    category: order.category,
-    description: payload.description || '',
-    address: payload.address || '',
-    phone: payload.phone || '',
-    website: payload.website || '',
-    hours: payload.hours || '',
-    image: payload.image || '',
-    tags: Array.isArray(payload.tags) ? payload.tags : [],
-    status: 'pending',
+    name: payload.name || existing?.name,
+    category: order.category || existing?.category,
+    description: payload.description ?? existing?.description ?? '',
+    address: payload.address ?? existing?.address ?? '',
+    phone: payload.phone || existing?.phone || '',
+    website: payload.website ?? existing?.website ?? '',
+    hours: payload.hours ?? existing?.hours ?? '',
+    image: payload.image ?? existing?.image ?? '',
+    tags: Array.isArray(payload.tags) ? payload.tags : existing?.tags || [],
+    status: nextStatus,
     yellowFrame: Boolean(order.addon_frame || payload.yellowFrame),
     isTop: Boolean(order.addon_top || payload.isTop),
     ownerUserId: order.user_id,
     orderId: order.id,
-    paidUntil: paidUntil.toISOString(),
-    createdAt: new Date().toISOString(),
+    paidUntil,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
-  const idx = items.findIndex((i) => String(i.id) === String(itemId));
-  if (idx >= 0) items[idx] = { ...items[idx], ...row };
+  if (idx >= 0) items[idx] = row;
   else items.unshift(row);
 
   const next = {
@@ -368,13 +416,18 @@ async function publishDirectoryItem(client, order) {
     [order.id, itemId]
   );
 
+  const notifyBody = wasPublished
+    ? `Оплата продления «${row.name}» прошла. Размещение до ${new Date(paidUntil).toLocaleDateString('ru-RU')}.`
+    : `«${row.name}» отправлена на модерацию. После проверки появится в справочнике.`;
+
   await client.query(
     `insert into public.notifications (user_id, type, title, body, link_path, payload)
-     values ($1, 'payment', 'Заявка в справочник оплачена', $2, $3, $4::jsonb)`,
+     values ($1, 'payment', $2, $3, $4, $5::jsonb)`,
     [
       order.user_id,
-      `«${payload.name}» отправлена на модерацию. После проверки появится в справочнике.`,
-      '/directory',
+      wasPublished ? 'Продление справочника оплачено' : 'Заявка в справочник оплачена',
+      notifyBody,
+      '/owner/directory',
       JSON.stringify({ order_id: order.id, directory_item_id: itemId }),
     ]
   );

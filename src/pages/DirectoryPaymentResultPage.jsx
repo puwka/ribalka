@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { listingPaymentService } from '../services/listingPaymentService';
 import './DirectoryPage.css';
 
+/** Legacy return URL from YooKassa — keep working, point to cabinet */
 export default function DirectoryPaymentResultPage() {
   const { orderId } = useParams();
   const [state, setState] = useState({ phase: 'checking', order: null, error: '' });
@@ -34,27 +35,27 @@ export default function DirectoryPaymentResultPage() {
         {state.phase === 'checking' && <p>Проверяем оплату…</p>}
         {state.phase === 'paid' && (
           <>
-            <p>Оплата получена. Заявка отправлена на модерацию и появится в справочнике после проверки.</p>
+            <p>Оплата получена. Карточка в кабинете владельца; новые заявки проходят модерацию.</p>
             <p>
-              <Link to="/directory">← К справочнику</Link>
+              <Link to="/owner/directory">← Мои карточки в кабинете</Link>
             </p>
           </>
         )}
         {state.phase === 'pending' && (
           <>
-            <p>Платёж ещё обрабатывается. Обновите страницу через минуту или проверьте кабинет уведомлений.</p>
+            <p>Платёж ещё обрабатывается. Обновите страницу через минуту.</p>
             <p>
               Заказ: <code>{orderId}</code>
             </p>
             <p>
-              <Link to="/directory">← К справочнику</Link>
+              <Link to="/owner/directory">← В кабинет</Link>
             </p>
           </>
         )}
         {state.phase === 'error' && (
           <>
             <p style={{ color: '#b91c1c' }}>{state.error}</p>
-            <Link to="/directory">← К справочнику</Link>
+            <Link to="/owner/directory">← В кабинет</Link>
           </>
         )}
       </div>

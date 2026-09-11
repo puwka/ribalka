@@ -383,4 +383,32 @@ export const forumService = {
     await socialDb.putMessage(msg);
     return publicMessage(msg, null);
   },
+
+  async deleteTopic(adminId, topicId) {
+    await assertAdmin(adminId);
+    if (apiDataEnabled) {
+      await api.delete(`/api/forum/topics/${encodeURIComponent(topicId)}`);
+      return { ok: true };
+    }
+    const topic = await socialDb.getTopic(topicId);
+    if (!topic) throw new ApiError('Тема не найдена');
+    const messages = await socialDb.listMessagesByTopic(topicId);
+    for (const m of messages) {
+      await socialDb.deleteMessage(m.id);
+    }
+    await socialDb.deleteTopic(topicId);
+    return { ok: true };
+  },
+
+  async deleteMessage(adminId, messageId) {
+    await assertAdmin(adminId);
+    if (apiDataEnabled) {
+      await api.delete(`/api/forum/messages/${encodeURIComponent(messageId)}`);
+      return { ok: true };
+    }
+    const msg = await socialDb.getMessage(messageId);
+    if (!msg) throw new ApiError('Сообщение не найдено');
+    await socialDb.deleteMessage(messageId);
+    return { ok: true };
+  },
 };

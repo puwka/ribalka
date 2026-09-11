@@ -58,6 +58,33 @@
   text-align: center;
 }
 
+.directory-place-cta {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--color-surface, #fff);
+}
+
+.directory-place-cta h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+}
+
+.directory-place-cta p {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted, #64748b);
+  max-width: 46rem;
+  line-height: 1.5;
+}
+
+.directory-place-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .directory-search {
   margin-bottom: 1rem;
 }

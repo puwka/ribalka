@@ -185,6 +185,24 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res, next) => {
   }
 });
 
+/** Public: increment view counter */
+router.post('/:id/view', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `update public.news set
+         views_count = coalesce(views_count, 0) + 1,
+         updated_at = now()
+       where id = $1 and status = 'published'
+       returning *`,
+      [req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    res.json(mapNews(rows[0]));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await pool.query(`select * from public.news where id = $1`, [

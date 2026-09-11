@@ -103,7 +103,7 @@ export const listingPaymentService = {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     return api.post('/api/payments/directory-checkout', {
       ...payload,
-      returnUrl: `${origin}/directory/payment/result/:orderId`,
+      returnUrl: `${origin}/owner/directory/payment/result/:orderId`,
     });
   },
 

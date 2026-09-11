@@ -9,6 +9,10 @@ import {
   PERIODS,
 } from '../services/ownerDashboardService';
 import BaseListingForm, { statusLabel } from '../components/bases/BaseListingForm';
+import BaseConstructorPricing, {
+  DEFAULT_BASE_OPTIONS,
+  buildPaymentQuery,
+} from '../components/bases/BaseConstructorPricing';
 import { LineChart, PeriodFilters } from '../components/owner/OwnerCharts';
 import {
   OwnerSubscriptionPanel,
@@ -22,9 +26,21 @@ import {
 } from '../components/owner/ListingPayment';
 import { apiDataEnabled } from '../lib/apiClient';
 import { directoryOwnerService } from '../services/directoryOwnerService';
+import DirectoryListingForm, {
+  directoryStatusLabel,
+} from '../components/directory/DirectoryListingForm';
+import OwnerDirectoryCheckout from '../components/directory/OwnerDirectoryCheckout';
+import { listingPaymentService } from '../services/listingPaymentService';
+import {
+  formatRub,
+  normalizeConstructor,
+  calcConstructorTotal,
+} from '../lib/directoryPricing';
 import '../components/auth/AuthShared.css';
 import '../components/bases/BaseListingForm.css';
 import '../components/owner/OwnerCharts.css';
+import '../components/directory/DirectoryListingForm.css';
+import '../components/directory/DirectoryPricingForm.css';
 
 const OWNER_NAV = [
   {
@@ -40,6 +56,8 @@ const OWNER_NAV = [
     items: [
       { to: '/owner/bases', label: 'Мои базы' },
       { to: '/owner/bases/new', label: 'Добавить базу' },
+      { to: '/owner/directory', label: 'Магазины / сервисы / егеря' },
+      { to: '/owner/directory/new', label: 'Добавить в справочник' },
       { to: '/owner/reviews', label: 'Отзывы' },
     ],
   },
@@ -55,6 +73,12 @@ const OWNER_NAV = [
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('ru-RU');
+}
+
+function isBaseExpired(b) {
+  if (!b?.paid_until && !b?.paidUntil) return false;
+  const until = b.paid_until || b.paidUntil;
+  return new Date(until).getTime() <= Date.now();
 }
 
 function OwnerDashboard() {
@@ -341,11 +365,27 @@ function OwnerDirectoryAnalytics() {
                   : ''}
               </div>
             </div>
+            <div className="cabinet-actions" style={{ margin: 0 }}>
+              <Link className="btn-secondary" to={`/owner/directory/${item.id}/edit`}>
+                Карточка
+              </Link>
+              {apiDataEnabled && (
+                <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
+                  {!item.active ? 'Продлить' : 'Продлить / доплатить'}
+                </Link>
+              )}
+            </div>
           </div>
         ))}
         {(data?.items || []).length === 0 && (
           <div className="empty-state">
-            Пока нет карточек в справочнике. Оформите размещение на странице «Справочник».
+            Пока нет карточек. Добавьте магазин, сервис или егеря в разделе «Магазины / сервисы /
+            егеря».
+            <div style={{ marginTop: 12 }}>
+              <Link className="btn-primary" to="/owner/directory/new">
+                Добавить карточку
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -418,6 +458,8 @@ function OwnerBases() {
           {bases.map((b) => {
             const m = metricsById[String(b.id)];
             const cover = b.images?.[0];
+            const paidUntil = b.paid_until || b.paidUntil;
+            const expired = isBaseExpired(b);
             return (
               <article key={b.id} className="owner-base-card">
                 <div className="owner-base-card__media">
@@ -429,6 +471,9 @@ function OwnerBases() {
                     <span className={`status-badge status-badge--${b.status}`}>
                       {statusLabel(b.status)}
                     </span>
+                    {expired && (
+                      <span className="status-badge status-badge--rejected">Срок истёк</span>
+                    )}
                   </div>
                   <div className="owner-base-card__meta">
                     {[b.region, b.address].filter(Boolean).join(' · ') || 'Адрес не указан'}
@@ -438,6 +483,14 @@ function OwnerBases() {
                       <>
                         <br />
                         Просмотры {m.views} · избранное {m.favorites} · рейтинг {m.rating || '—'}
+                      </>
+                    )}
+                    {paidUntil && (
+                      <>
+                        <br />
+                        {expired
+                          ? `Размещение истекло ${formatDate(paidUntil)} — база скрыта с сайта, продлите в кабинете`
+                          : `Оплачено до ${formatDate(paidUntil)}`}
                       </>
                     )}
                     {b.status === 'rejected' && b.rejection_reason && (
@@ -467,23 +520,25 @@ function OwnerBases() {
                       </button>
                     </>
                   )}
-                  {b.status === 'approved' && (
+                  {(b.status === 'approved' || b.status === 'pending' || b.status === 'moderation') && (
                     <>
-                      <Link className="btn-secondary" to={`/waters/${b.id}`}>
-                        Просмотреть
-                      </Link>
+                      {b.status === 'approved' && !expired && (
+                        <Link className="btn-secondary" to={`/waters/${b.id}`}>
+                          Просмотреть
+                        </Link>
+                      )}
                       <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
                         Карточка
                       </Link>
+                      {apiDataEnabled && (expired || b.status === 'approved') && (
+                        <Link className="btn-primary" to={`/owner/payment/${b.id}`}>
+                          {expired ? 'Продлить' : 'Продлить / доплатить'}
+                        </Link>
+                      )}
                       <Link className="btn-secondary" to="/owner/analytics">
                         Статистика
                       </Link>
                     </>
-                  )}
-                  {(b.status === 'pending' || b.status === 'moderation') && (
-                    <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
-                      Просмотр
-                    </Link>
                   )}
                 </div>
               </article>
@@ -498,21 +553,43 @@ function OwnerBases() {
 function OwnerBaseCreate() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [tariff, setTariff] = useState(() => normalizeConstructor({}));
+  const [options, setOptions] = useState(DEFAULT_BASE_OPTIONS);
+
+  useEffect(() => {
+    if (!apiDataEnabled) return;
+    listingPaymentService
+      .getPublicListingPrice()
+      .then((p) => setTariff(normalizeConstructor(p)))
+      .catch(() => {});
+  }, []);
+
+  const quote = calcConstructorTotal(tariff, options);
+  const payLabel = apiDataEnabled
+    ? `Сохранить и оплатить ${formatRub(quote.total)}`
+    : 'Сохранить и на модерацию';
 
   return (
     <div className="cabinet-panel">
       <h2>Добавить базу</h2>
-      <p className="cabinet-panel__lead">Заполните карточку и отправьте на модерацию</p>
+      <p className="cabinet-panel__lead">
+        Заполните карточку, выберите опции размещения — стоимость видна сразу, как в справочнике.
+      </p>
+
+      {apiDataEnabled && (
+        <BaseConstructorPricing tariff={tariff} options={options} onChange={setOptions} />
+      )}
+
       <BaseListingForm
         submitLabel="Сохранить черновик"
-        sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
+        sendLabel={payLabel}
         mediaQuota={{
-          includedPhotos: 1,
-          includedVideos: 1,
-          extraPhotos: 0,
-          extraVideos: 0,
-          addonPhoto: 100,
-          addonVideo: 100,
+          includedPhotos: tariff.includedPhotos || 1,
+          includedVideos: tariff.includedVideos || 1,
+          extraPhotos: options.extraPhotos,
+          extraVideos: options.extraVideos,
+          addonPhoto: tariff.addonPhoto || 100,
+          addonVideo: tariff.addonVideo || 100,
           payHref: null,
         }}
         onSubmit={async (form) => {
@@ -522,7 +599,7 @@ function OwnerBaseCreate() {
         onSubmitAndSend={async (form) => {
           const saved = await basesService.saveDraft(user.id, form);
           if (apiDataEnabled) {
-            navigate(`/owner/payment/${saved.id}`);
+            navigate(`/owner/payment/${saved.id}${buildPaymentQuery(options)}`);
             return;
           }
           await basesService.submitForReview(user.id, saved.id);
@@ -542,6 +619,8 @@ function OwnerBaseEdit() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [tariff, setTariff] = useState(() => normalizeConstructor({}));
+  const [options, setOptions] = useState(DEFAULT_BASE_OPTIONS);
 
   const load = async () => {
     setLoading(true);
@@ -551,6 +630,13 @@ function OwnerBaseEdit() {
       if (!row || row.owner_id !== user.id) throw new Error('База не найдена или нет доступа');
       setRecord(row);
       setInitial(basesService.recordToForm(row));
+      setOptions((prev) => ({
+        ...prev,
+        top: Boolean(row.is_top),
+        frame: Boolean(row.yellow_frame),
+        extraPhotos: Math.max(prev.extraPhotos, Number(row.paid_extra_photos) || 0),
+        extraVideos: Math.max(prev.extraVideos, Number(row.paid_extra_videos) || 0),
+      }));
     } catch (err) {
       setError(err.message);
       setRecord(null);
@@ -563,15 +649,34 @@ function OwnerBaseEdit() {
     load();
   }, [user, baseId]);
 
+  useEffect(() => {
+    if (!apiDataEnabled) return;
+    listingPaymentService
+      .getPublicListingPrice()
+      .then((p) => setTariff(normalizeConstructor(p)))
+      .catch(() => {});
+  }, []);
+
   if (loading) return <div className="cabinet-panel">Загрузка…</div>;
   if (error && !record) {
     return (
       <div className="cabinet-panel">
         <div className="auth-error">{error}</div>
-        <Link className="btn-secondary" to="/owner/bases">Назад</Link>
+        <Link className="btn-secondary" to="/owner/bases">
+          Назад
+        </Link>
       </div>
     );
   }
+
+  const quote = calcConstructorTotal(tariff, options);
+  const paidUntil = record.paid_until || record.paidUntil;
+  const expired = isBaseExpired(record);
+  const payLabel = apiDataEnabled
+    ? expired || paidUntil
+      ? `Продлить за ${formatRub(quote.total)}`
+      : `Оплатить ${formatRub(quote.total)}`
+    : 'Сохранить и на модерацию';
 
   return (
     <div className="cabinet-panel">
@@ -581,7 +686,9 @@ function OwnerBaseEdit() {
         <span className={`status-badge status-badge--${record.status}`}>
           {statusLabel(record.status)}
         </span>
-        {' · '}можно править в любом статусе
+        {paidUntil ? ` · оплачено до ${formatDate(paidUntil)}` : ''}
+        {expired ? ' · срок истёк' : ''}
+        {' · '}можно править карточку и сразу видеть стоимость продления
       </p>
       {record.status === 'rejected' && record.rejection_reason && (
         <div className="auth-error" style={{ marginBottom: 12 }}>
@@ -589,24 +696,36 @@ function OwnerBaseEdit() {
         </div>
       )}
       {message && <div className="auth-success">{message}</div>}
+
+      {apiDataEnabled && (
+        <BaseConstructorPricing
+          tariff={tariff}
+          options={options}
+          onChange={setOptions}
+          title={expired || paidUntil ? 'Продление и опции' : 'Тариф и опции размещения'}
+        />
+      )}
+
       <BaseListingForm
         key={record.updated_at || record.id}
         initialForm={initial}
         submitLabel="Сохранить"
-        sendLabel={apiDataEnabled ? 'К оплате размещения' : 'Сохранить и на модерацию'}
+        sendLabel={payLabel}
         mediaQuota={{
-          includedPhotos: 1,
-          includedVideos: 1,
-          extraPhotos: Number(record.paid_extra_photos) || 0,
-          extraVideos: Number(record.paid_extra_videos) || 0,
-          addonPhoto: 100,
-          addonVideo: 100,
-          payHrefPhotos: `/owner/payment/${record.id}?extraPhotos=${
-            (Number(record.paid_extra_photos) || 0) + 1
-          }`,
-          payHrefVideos: `/owner/payment/${record.id}?extraVideos=${
-            (Number(record.paid_extra_videos) || 0) + 1
-          }`,
+          includedPhotos: tariff.includedPhotos || 1,
+          includedVideos: tariff.includedVideos || 1,
+          extraPhotos: Math.max(options.extraPhotos, Number(record.paid_extra_photos) || 0),
+          extraVideos: Math.max(options.extraVideos, Number(record.paid_extra_videos) || 0),
+          addonPhoto: tariff.addonPhoto || 100,
+          addonVideo: tariff.addonVideo || 100,
+          payHrefPhotos: `/owner/payment/${record.id}${buildPaymentQuery({
+            ...options,
+            extraPhotos: Math.max(options.extraPhotos, (Number(record.paid_extra_photos) || 0) + 1),
+          })}`,
+          payHrefVideos: `/owner/payment/${record.id}${buildPaymentQuery({
+            ...options,
+            extraVideos: Math.max(options.extraVideos, (Number(record.paid_extra_videos) || 0) + 1),
+          })}`,
         }}
         onSubmit={async (form) => {
           const saved = await basesService.saveDraft(user.id, form, baseId);
@@ -617,7 +736,7 @@ function OwnerBaseEdit() {
         onSubmitAndSend={async (form) => {
           const saved = await basesService.saveDraft(user.id, form, baseId);
           if (apiDataEnabled) {
-            navigate(`/owner/payment/${saved.id}`);
+            navigate(`/owner/payment/${saved.id}${buildPaymentQuery(options)}`);
             return;
           }
           await basesService.submitForReview(user.id, saved.id);
@@ -717,6 +836,253 @@ function OwnerPayments() {
   return <OwnerPaymentsPanel />;
 }
 
+function OwnerDirectoryList() {
+  const { refresh } = useAuth();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const categoryLabel = { shop: 'Магазин', service: 'Сервис', guide: 'Гид / егерь' };
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await refresh?.();
+      const list = await directoryOwnerService.listMine();
+      setItems(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setError(err.message || 'Не удалось загрузить');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <div className="cabinet-panel">
+      <h2>Магазины, сервисы и егеря</h2>
+      <p className="cabinet-panel__lead">
+        Карточки справочника: редактирование, статистика и продление тарифа после истечения срока.
+        С сайта скрываются только неоплаченные / истёкшие — в кабинете остаются всегда.
+      </p>
+      <div className="cabinet-actions" style={{ marginTop: 0, marginBottom: 8 }}>
+        <Link className="btn-primary" to="/owner/directory/new">
+          Добавить карточку
+        </Link>
+        <Link className="btn-secondary" to="/owner/directory-analytics">
+          Статистика
+        </Link>
+      </div>
+      {error && <div className="auth-error">{error}</div>}
+      {loading ? (
+        <div className="empty-state">Загрузка…</div>
+      ) : items.length === 0 ? (
+        <div className="empty-state">Пока нет карточек — создайте первую</div>
+      ) : (
+        <div className="cabinet-list">
+          {items.map((item) => (
+            <div key={item.id} className="cabinet-row">
+              <div>
+                <div className="cabinet-row__title">
+                  {item.name}{' '}
+                  <span className="cabinet-row__meta">
+                    {categoryLabel[item.category] || item.category} ·{' '}
+                    {directoryStatusLabel(item.status)}
+                    {item.expired ? ' · срок истёк' : ''}
+                  </span>
+                </div>
+                <div className="cabinet-row__meta">
+                  {item.phone || 'Телефон не указан'}
+                  {item.paidUntil ? ` · оплачено до ${formatDate(item.paidUntil)}` : ' · не оплачено'}
+                </div>
+              </div>
+              <div className="cabinet-actions" style={{ margin: 0 }}>
+                <Link className="btn-secondary" to={`/owner/directory/${item.id}/edit`}>
+                  Редактировать
+                </Link>
+                {apiDataEnabled && (
+                  <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
+                    {item.expired || item.status === 'published' || item.paidUntil
+                      ? 'Продлить / оплатить'
+                      : 'Оплатить размещение'}
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OwnerDirectoryCreate() {
+  const { refresh } = useAuth();
+  const navigate = useNavigate();
+
+  return (
+    <div className="cabinet-panel">
+      <h2>Добавить в справочник</h2>
+      <p className="cabinet-panel__lead">
+        Заполните карточку магазина, сервиса или егеря. Затем оплатите размещение в кабинете.
+      </p>
+      <DirectoryListingForm
+        submitLabel="Сохранить и к оплате"
+        onSubmit={async (form) => {
+          await refresh?.();
+          const saved = await directoryOwnerService.createDraft(form);
+          navigate(`/owner/directory/${saved.id}/pay`);
+        }}
+      />
+      <div style={{ marginTop: 12 }}>
+        <Link className="btn-secondary" to="/owner/directory">
+          Назад
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function OwnerDirectoryEdit() {
+  const { itemId } = useParams();
+  const navigate = useNavigate();
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const row = await directoryOwnerService.getById(itemId);
+        if (alive) setItem(row);
+      } catch (err) {
+        if (alive) setError(err.message || 'Не найдено');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [itemId]);
+
+  if (loading) return <div className="cabinet-panel">Загрузка…</div>;
+  if (!item) {
+    return (
+      <div className="cabinet-panel">
+        <div className="auth-error">{error || 'Не найдено'}</div>
+        <Link to="/owner/directory">Назад</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cabinet-panel">
+      <h2>Редактирование: {item.name}</h2>
+      <p className="cabinet-panel__lead">
+        {directoryStatusLabel(item.status)}
+        {item.paidUntil ? ` · оплачено до ${formatDate(item.paidUntil)}` : ''}
+        {item.expired ? ' · срок истёк, продлите оплату' : ''}
+      </p>
+      {error && <div className="auth-error">{error}</div>}
+      {message && <div className="auth-success">{message}</div>}
+      <DirectoryListingForm
+        initial={item}
+        lockCategory
+        submitLabel="Сохранить"
+        onSubmit={async (form) => {
+          setError('');
+          setMessage('');
+          const saved = await directoryOwnerService.update(item.id, form);
+          setItem(saved);
+          setMessage('Сохранено');
+        }}
+      />
+      <div className="cabinet-actions" style={{ marginTop: 16 }}>
+        {apiDataEnabled && (
+          <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
+            {item.expired ? 'Продлить' : 'Оплатить / продлить'}
+          </Link>
+        )}
+        <button type="button" className="btn-secondary" onClick={() => navigate('/owner/directory')}>
+          К списку
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OwnerDirectoryPaymentResult() {
+  const { orderId } = useParams();
+  const { refresh } = useAuth();
+  const [state, setState] = useState({ phase: 'checking', error: '' });
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const result = await listingPaymentService.verifyDirectoryOrder(orderId);
+        await refresh?.();
+        if (!alive) return;
+        setState({
+          phase: result.paid || result.order?.status === 'paid' ? 'paid' : 'pending',
+          error: '',
+        });
+      } catch (err) {
+        if (alive) setState({ phase: 'error', error: err.message || 'Ошибка' });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [orderId, refresh]);
+
+  return (
+    <div className="cabinet-panel">
+      <h2>Оплата справочника</h2>
+      {state.phase === 'checking' && <p>Проверяем оплату…</p>}
+      {state.phase === 'paid' && (
+        <>
+          <p>Оплата получена. Карточка сохранена в кабинете; при новой заявке — на модерации.</p>
+          <div className="cabinet-actions">
+            <Link className="btn-primary" to="/owner/directory">
+              Мои карточки
+            </Link>
+            <Link className="btn-secondary" to="/owner/directory-analytics">
+              Статистика
+            </Link>
+          </div>
+        </>
+      )}
+      {state.phase === 'pending' && (
+        <>
+          <p>Платёж ещё обрабатывается. Обновите страницу через минуту.</p>
+          <p>
+            Заказ: <code>{orderId}</code>
+          </p>
+          <Link className="btn-secondary" to="/owner/directory">
+            К карточкам
+          </Link>
+        </>
+      )}
+      {state.phase === 'error' && (
+        <>
+          <div className="auth-error">{state.error}</div>
+          <Link className="btn-secondary" to="/owner/directory">
+            К карточкам
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
+
 function OwnerSubscription() {
   return <OwnerSubscriptionPanel />;
 }
@@ -725,7 +1091,7 @@ function OwnerLayout() {
   return (
     <CabinetShell
       title="Кабинет владельца"
-      subtitle="Базы, тарифы и монетизация"
+      subtitle="Базы, справочник, тарифы и статистика"
       navGroups={OWNER_NAV}
     />
   );
@@ -740,6 +1106,11 @@ export default function OwnerCabinetPage() {
           <Route path="bases" element={<OwnerBases />} />
           <Route path="bases/new" element={<OwnerBaseCreate />} />
           <Route path="bases/:baseId/edit" element={<OwnerBaseEdit />} />
+          <Route path="directory" element={<OwnerDirectoryList />} />
+          <Route path="directory/new" element={<OwnerDirectoryCreate />} />
+          <Route path="directory/payment/result/:orderId" element={<OwnerDirectoryPaymentResult />} />
+          <Route path="directory/:itemId/edit" element={<OwnerDirectoryEdit />} />
+          <Route path="directory/:itemId/pay" element={<OwnerDirectoryCheckout />} />
           <Route path="bookings" element={<Navigate to="/owner" replace />} />
           <Route path="analytics" element={<OwnerAnalytics />} />
           <Route path="directory-analytics" element={<OwnerDirectoryAnalytics />} />

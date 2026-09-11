@@ -237,6 +237,42 @@ router.post('/topics', requireAuth, async (req, res, next) => {
   }
 });
 
+router.delete('/topics/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    // messages cascade via FK
+    const { rowCount } = await pool.query(`delete from public.forum_topics where id = $1`, [
+      req.params.id,
+    ]);
+    if (!rowCount) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true, deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/messages/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `delete from public.forum_messages where id = $1 returning topic_id`,
+      [req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    await pool.query(
+      `update public.forum_topics set
+         replies_count = (
+           select count(*)::int from public.forum_messages
+           where topic_id = $1 and status = 'approved'
+         ),
+         updated_at = now()
+       where id = $1`,
+      [rows[0].topic_id]
+    );
+    res.json({ ok: true, deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/topics/:id/moderate', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const action = req.body?.action;

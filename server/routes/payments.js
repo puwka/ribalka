@@ -95,7 +95,7 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
     const returnUrl =
       body.returnUrl ||
       (origin
-        ? `${String(origin).replace(/\/$/, '')}/directory/payment/result/:orderId`
+        ? `${String(origin).replace(/\/$/, '')}/owner/directory/payment/result/:orderId`
         : null);
     const directoryOrders = await import('../services/directoryOrders.js');
     const result = await directoryOrders.createDirectoryCheckout({
@@ -105,6 +105,7 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
       frame: Boolean(body.frame),
       top: Boolean(body.top),
       listing: body.listing || body,
+      directoryItemId: body.directoryItemId || body.directory_item_id || null,
       returnUrl,
     });
     res.status(201).json(result);
