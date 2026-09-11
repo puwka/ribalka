@@ -42,6 +42,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/yookassa', yookassaRoutes);
+app.use('/api/cms', cmsRoutes);
 app.use('/api/directory', directoryRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/reports', reportsRoutes);
