@@ -44,37 +44,38 @@ async function postBaseEvent(payload) {
  */
 export const analyticsTracker = {
   async trackView(base) {
-    if (!base?.id || (!base.ownerId && !base.owner_id)) return;
-    const ownerId = base.ownerId || base.owner_id;
+    if (!base?.id) return;
+    // Server resolves owner_id from public.bases; client owner is only needed offline.
     if (apiDataEnabled) {
       await postBaseEvent({
         baseId: String(base.id),
-        ownerId,
         eventType: 'view',
-        source: 'base_modal',
+        source: 'base_detail',
       });
       return;
     }
+    const ownerId = base.ownerId || base.owner_id;
+    if (!ownerId) return;
     await platformDb.addEvent({
       type: 'view',
       base_id: String(base.id),
       owner_id: ownerId,
-      source: 'base_modal',
+      source: 'base_detail',
     });
   },
 
   async trackClick(base, source = 'cta') {
-    if (!base?.id || !(base.ownerId || base.owner_id)) return;
-    const ownerId = base.ownerId || base.owner_id;
+    if (!base?.id) return;
     if (apiDataEnabled) {
       await postBaseEvent({
         baseId: String(base.id),
-        ownerId,
         eventType: 'click',
         source,
       });
       return;
     }
+    const ownerId = base.ownerId || base.owner_id;
+    if (!ownerId) return;
     await platformDb.addEvent({
       type: 'click',
       base_id: String(base.id),
@@ -84,17 +85,17 @@ export const analyticsTracker = {
   },
 
   async trackFavorite(base, userId, added) {
-    if (!base?.id || !(base.ownerId || base.owner_id)) return;
-    const ownerId = base.ownerId || base.owner_id;
+    if (!base?.id) return;
     if (apiDataEnabled) {
       await postBaseEvent({
         baseId: String(base.id),
-        ownerId,
         eventType: added ? 'favorite_add' : 'favorite_remove',
         source: 'favorite',
       });
       return;
     }
+    const ownerId = base.ownerId || base.owner_id;
+    if (!ownerId) return;
     await platformDb.addEvent({
       type: added ? 'favorite_add' : 'favorite_remove',
       base_id: String(base.id),

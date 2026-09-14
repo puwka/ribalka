@@ -70,6 +70,7 @@ export default function AdminDirectorySection() {
       status: item.status || 'published',
       yellowFrame: Boolean(item.yellowFrame || item.highlight),
       isTop: Boolean(item.isTop || item.top),
+      ownerUserId: item.ownerUserId || item.owner_id || '',
     });
   };
 
@@ -252,6 +253,14 @@ export default function AdminDirectorySection() {
                     </select>
                   </AdminField>
                 </div>
+                <AdminField label="ID владельца (user id) — чтобы статистика шла в его кабинет">
+                  <input
+                    className="admin-input"
+                    value={form.ownerUserId || ''}
+                    onChange={(e) => setField('ownerUserId', e.target.value)}
+                    placeholder="uuid пользователя"
+                  />
+                </AdminField>
                 <label className="admin-check">
                   <input
                     type="checkbox"

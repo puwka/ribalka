@@ -168,11 +168,19 @@ router.post('/events', async (req, res, next) => {
 
     const page = await loadDirectoryPage();
     const item = page.items.find((i) => String(i.id) === itemId);
-    if (!item || !isActiveListing(item)) {
+    // Count views for any published card (including expired) so renewals keep history.
+    if (!item || (item.status || 'published') === 'archived') {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const status = item.status || 'published';
+    if (status !== 'published' && status !== 'approved') {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    const ownerId = item.ownerUserId || item.owner_id || null;
+    let ownerId = item.ownerUserId || item.owner_id || null;
+    if (ownerId && !/^[0-9a-f-]{36}$/i.test(String(ownerId))) {
+      ownerId = null;
+    }
     const sessionKey =
       String(req.body?.sessionKey || req.body?.session_id || '').slice(0, 120) || null;
 
@@ -217,14 +225,15 @@ router.get('/mine/analytics', requireAuth, async (req, res, next) => {
       return res.json({ days, items: [], totals: { views: 0, phone: 0, website: 0 } });
     }
 
+    // Count by item_id (owner's cards), not event.owner_id — older events may have null owner_id
+    // when the card was created in admin without ownerUserId.
     const { rows } = await pool.query(
       `select item_id, event_type, count(*)::int as cnt
        from public.directory_listing_events
-       where owner_id = $1
-         and item_id = any($2::text[])
-         and created_at >= $3
+       where item_id = any($1::text[])
+         and created_at >= $2
        group by item_id, event_type`,
-      [req.user.sub, itemIds, from.toISOString()]
+      [itemIds, from.toISOString()]
     );
 
     const byItem = Object.fromEntries(

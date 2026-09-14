@@ -353,9 +353,65 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res, next) => {
     const itemMeta = Object.fromEntries(
       items.map((i) => [
         String(i.id),
-        { name: i.name || i.id, category: i.category || '', status: i.status || 'published' },
+        {
+          name: i.name || i.id,
+          category: i.category || '',
+          status: i.status || 'published',
+          ownerUserId: i.ownerUserId || i.owner_id || null,
+        },
       ])
     );
+
+    const directoryTopItems = dirTop.rows.map((r) => ({
+      ...r,
+      name: itemMeta[String(r.item_id)]?.name || r.item_id,
+      category: itemMeta[String(r.item_id)]?.category || '',
+      status: itemMeta[String(r.item_id)]?.status || '',
+      owner_id: r.owner_id || itemMeta[String(r.item_id)]?.ownerUserId || null,
+    }));
+
+    // Attribute directory events to CMS ownerUserId when event.owner_id is null
+    const { rows: dirItemStats } = await pool.query(
+      `select item_id,
+              count(*) filter (where event_type = 'view')::int as views,
+              count(*) filter (where event_type = 'phone')::int as phone,
+              count(*) filter (where event_type = 'website')::int as website
+       from public.directory_listing_events
+       where created_at >= $1
+       group by item_id`,
+      [from.toISOString()]
+    );
+    const ownerAgg = new Map();
+    for (const row of dirItemStats) {
+      const oid = String(
+        itemMeta[String(row.item_id)]?.ownerUserId || ''
+      ).trim();
+      if (!oid) continue;
+      const cur = ownerAgg.get(oid) || { owner_id: oid, owner_name: '—', views: 0, phone: 0, website: 0 };
+      cur.views += Number(row.views) || 0;
+      cur.phone += Number(row.phone) || 0;
+      cur.website += Number(row.website) || 0;
+      ownerAgg.set(oid, cur);
+    }
+    // Fill names from SQL byOwner when available
+    for (const r of ownersDir.rows) {
+      const cur = ownerAgg.get(String(r.owner_id));
+      if (cur && r.owner_name) cur.owner_name = r.owner_name;
+    }
+    const missingIds = [...ownerAgg.values()].filter((o) => o.owner_name === '—').map((o) => o.owner_id);
+    if (missingIds.length) {
+      const { rows: names } = await pool.query(
+        `select u.id::text as id, coalesce(p.display_name, u.email, '—') as owner_name
+         from public.users u
+         left join public.profiles p on p.user_id = u.id
+         where u.id::text = any($1::text[])`,
+        [missingIds]
+      );
+      for (const n of names) {
+        const cur = ownerAgg.get(String(n.id));
+        if (cur) cur.owner_name = n.owner_name;
+      }
+    }
 
     res.json({
       days,
@@ -366,13 +422,8 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res, next) => {
       },
       directory: {
         totals: sumEventTypes(dirTotals.rows),
-        topItems: dirTop.rows.map((r) => ({
-          ...r,
-          name: itemMeta[String(r.item_id)]?.name || r.item_id,
-          category: itemMeta[String(r.item_id)]?.category || '',
-          status: itemMeta[String(r.item_id)]?.status || '',
-        })),
-        byOwner: ownersDir.rows,
+        topItems: directoryTopItems,
+        byOwner: [...ownerAgg.values()].sort((a, b) => b.views - a.views).slice(0, 40),
       },
     });
   } catch (err) {

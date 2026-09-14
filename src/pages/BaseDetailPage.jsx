@@ -46,10 +46,6 @@ export default function BaseDetailPage() {
         setItem(enriched);
         setActiveImg(0);
         setActiveVideo(0);
-        if (viewedRef.current !== String(enriched.id)) {
-          viewedRef.current = String(enriched.id);
-          void analyticsTracker.trackView(enriched);
-        }
         if (user?.id) {
           const type = row.type === 'free' ? 'place' : 'base';
           setFavorited(await favoritesService.isFavorite(user.id, type, row.id));
@@ -82,6 +78,14 @@ export default function BaseDetailPage() {
       alive = false;
     };
   }, [id, user?.id, profile?.display_name]);
+
+  useEffect(() => {
+    if (!item?.id) return;
+    const key = String(item.id);
+    if (viewedRef.current === key) return;
+    viewedRef.current = key;
+    void analyticsTracker.trackView(item);
+  }, [item?.id]);
 
   const submitReview = async (e) => {
     e.preventDefault();

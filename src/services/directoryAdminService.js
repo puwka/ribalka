@@ -24,6 +24,7 @@ export const directoryAdminService = {
       status: 'published',
       yellowFrame: false,
       isTop: false,
+      ownerUserId: '',
     };
   },
 
@@ -99,9 +100,24 @@ export const directoryAdminService = {
 
     if (!row.name) throw new Error('Укажите название');
 
+    const ownerRaw = String(form.ownerUserId || '').trim();
+    if (ownerRaw) {
+      row.ownerUserId = ownerRaw;
+    }
+
     const idx = items.findIndex((i) => String(i.id) === String(row.id));
-    if (idx >= 0) items[idx] = { ...items[idx], ...row };
-    else items.unshift(row);
+    if (idx >= 0) {
+      const prev = items[idx];
+      items[idx] = {
+        ...prev,
+        ...row,
+        // Keep previous owner unless admin explicitly set a new one
+        ownerUserId: ownerRaw ? ownerRaw : prev.ownerUserId || null,
+        paidUntil: prev.paidUntil ?? null,
+      };
+    } else {
+      items.unshift(row);
+    }
 
     await cmsService.savePage(adminId, CMS_PAGES.DIRECTORY, {
       ...page,
