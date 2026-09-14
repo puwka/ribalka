@@ -353,6 +353,25 @@ function OwnerDirectoryAnalytics() {
         </div>
       </div>
 
+      {data?.byCategory && (
+        <div className="cabinet-list" style={{ marginBottom: 20 }}>
+          {['shop', 'service', 'guide'].map((cat) => {
+            const row = data.byCategory[cat] || { views: 0, phone: 0, website: 0, count: 0 };
+            return (
+              <div key={cat} className="cabinet-row">
+                <div>
+                  <div className="cabinet-row__title">{categoryLabel[cat]}</div>
+                  <div className="cabinet-row__meta">
+                    Карточек {row.count} · просмотры {row.views} · звонки {row.phone} · сайт{' '}
+                    {row.website}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="cabinet-list">
         {(data?.items || []).map((item) => (
           <div key={item.id} className="cabinet-row">

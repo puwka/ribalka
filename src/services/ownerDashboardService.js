@@ -4,7 +4,7 @@ import { localAuthStore } from '../lib/localAuthStore';
 import { paymentService } from './paymentService';
 import { plansService } from './plansService';
 import { reviewsService } from './reviewsService';
-import { apiDataEnabled } from '../lib/apiClient';
+import { api, apiDataEnabled } from '../lib/apiClient';
 
 export const PERIODS = [
   { id: '7d', label: '7 дней', days: 7 },
@@ -27,6 +27,18 @@ function inRange(iso, from) {
   return new Date(iso).getTime() >= from.getTime();
 }
 
+async function postBaseEvent(payload) {
+  if (!apiDataEnabled) return;
+  try {
+    await api.post('/api/analytics/base/events', {
+      ...payload,
+      sessionKey: getAnalyticsSessionId(),
+    });
+  } catch {
+    /* non-blocking */
+  }
+}
+
 /**
  * Track public interactions against owner bases.
  */
@@ -34,6 +46,15 @@ export const analyticsTracker = {
   async trackView(base) {
     if (!base?.id || (!base.ownerId && !base.owner_id)) return;
     const ownerId = base.ownerId || base.owner_id;
+    if (apiDataEnabled) {
+      await postBaseEvent({
+        baseId: String(base.id),
+        ownerId,
+        eventType: 'view',
+        source: 'base_modal',
+      });
+      return;
+    }
     await platformDb.addEvent({
       type: 'view',
       base_id: String(base.id),
@@ -44,20 +65,40 @@ export const analyticsTracker = {
 
   async trackClick(base, source = 'cta') {
     if (!base?.id || !(base.ownerId || base.owner_id)) return;
+    const ownerId = base.ownerId || base.owner_id;
+    if (apiDataEnabled) {
+      await postBaseEvent({
+        baseId: String(base.id),
+        ownerId,
+        eventType: 'click',
+        source,
+      });
+      return;
+    }
     await platformDb.addEvent({
       type: 'click',
       base_id: String(base.id),
-      owner_id: base.ownerId || base.owner_id,
+      owner_id: ownerId,
       source,
     });
   },
 
   async trackFavorite(base, userId, added) {
     if (!base?.id || !(base.ownerId || base.owner_id)) return;
+    const ownerId = base.ownerId || base.owner_id;
+    if (apiDataEnabled) {
+      await postBaseEvent({
+        baseId: String(base.id),
+        ownerId,
+        eventType: added ? 'favorite_add' : 'favorite_remove',
+        source: 'favorite',
+      });
+      return;
+    }
     await platformDb.addEvent({
       type: added ? 'favorite_add' : 'favorite_remove',
       base_id: String(base.id),
-      owner_id: base.ownerId || base.owner_id,
+      owner_id: ownerId,
       user_id: userId || null,
     });
   },
@@ -120,26 +161,21 @@ async function loadOwnerReviews(ownerId, bases) {
   return Array.from(byId.values());
 }
 
+async function getRemoteBaseAnalytics(periodId) {
+  const period = PERIODS.find((p) => p.id === periodId) || PERIODS[1];
+  const remote = await api.get(`/api/analytics/owner/bases?days=${period.days}`);
+  return { period, remote };
+}
+
 export const ownerDashboardService = {
   periods: PERIODS,
 
   async getDashboard(ownerId, periodId = '30d') {
     const period = PERIODS.find((p) => p.id === periodId) || PERIODS[1];
     const from = new Date(Date.now() - period.days * 86400000);
-
     const bases = await basesService.listMine(ownerId);
-    const [events, reviews] = await Promise.all([
-      platformDb.listEventsByOwner(ownerId),
-      loadOwnerReviews(ownerId, bases),
-    ]);
-
-    const periodEvents = events.filter((e) => inRange(e.created_at, from));
+    const reviews = await loadOwnerReviews(ownerId, bases);
     const periodReviews = reviews.filter((r) => inRange(r.created_at, from));
-
-    const views = periodEvents.filter((e) => e.type === 'view').length;
-    const uniqueViews = uniqueSessions(periodEvents, 'view', from);
-    const clicks = periodEvents.filter((e) => e.type === 'click').length;
-    const favorites = periodEvents.filter((e) => e.type === 'favorite_add').length;
     const ratingValues = reviews.map((r) => Number(r.rating)).filter((n) => n > 0);
     const ratingAvg = ratingValues.length
       ? Number((ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length).toFixed(2))
@@ -164,15 +200,11 @@ export const ownerDashboardService = {
       }
     }
 
-    return {
+    const common = {
       period,
       basesCount: bases.length,
       basesApproved: bases.filter((b) => b.status === 'approved').length,
       basesPending: bases.filter((b) => b.status === 'pending').length,
-      views,
-      uniqueViews,
-      clicks,
-      favorites,
       rating: ratingAvg,
       reviewsCount: reviews.length,
       reviewsPeriod: periodReviews.length,
@@ -185,6 +217,70 @@ export const ownerDashboardService = {
             priceMonth: plan.price_month ?? plan.priceMonth,
           }
         : null,
+    };
+
+    if (apiDataEnabled) {
+      try {
+        const { remote } = await getRemoteBaseAnalytics(periodId);
+        const reviewsByBase = Object.fromEntries(
+          bases.map((b) => {
+            const br = reviews.filter((r) => String(r.base_id) === String(b.id));
+            const ratings = br.map((r) => Number(r.rating)).filter((n) => n > 0);
+            return [
+              String(b.id),
+              {
+                reviews: br.length,
+                rating: ratings.length
+                  ? Number((ratings.reduce((a, c) => a + c, 0) / ratings.length).toFixed(2))
+                  : 0,
+              },
+            ];
+          })
+        );
+
+        const byBase = (remote.byBase || remote.items || []).map((b) => ({
+          ...b,
+          reviews: reviewsByBase[String(b.id)]?.reviews || 0,
+          rating: reviewsByBase[String(b.id)]?.rating || 0,
+        }));
+
+        return {
+          ...common,
+          views: remote.totals?.views || 0,
+          uniqueViews: remote.totals?.uniqueViews || 0,
+          clicks: remote.totals?.clicks || 0,
+          phone: remote.totals?.phone || 0,
+          favorites: remote.totals?.favorites || 0,
+          charts: {
+            views: remote.charts?.views || [],
+            clicks: remote.charts?.clicks || [],
+            favorites: remote.charts?.favorites || [],
+            reviews: buildSeries(
+              Math.min(period.days, 90),
+              reviews.map((r) => ({ ...r, type: 'review', session_id: r.id })),
+              'review'
+            ),
+          },
+          byBase,
+        };
+      } catch {
+        /* fall through to local */
+      }
+    }
+
+    const events = await platformDb.listEventsByOwner(ownerId);
+    const periodEvents = events.filter((e) => inRange(e.created_at, from));
+    const views = periodEvents.filter((e) => e.type === 'view').length;
+    const uniqueViews = uniqueSessions(periodEvents, 'view', from);
+    const clicks = periodEvents.filter((e) => e.type === 'click').length;
+    const favorites = periodEvents.filter((e) => e.type === 'favorite_add').length;
+
+    return {
+      ...common,
+      views,
+      uniqueViews,
+      clicks,
+      favorites,
       charts: {
         views: buildSeries(Math.min(period.days, 90), events, 'view'),
         clicks: buildSeries(Math.min(period.days, 90), events, 'click'),

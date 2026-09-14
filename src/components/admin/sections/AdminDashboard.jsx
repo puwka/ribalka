@@ -111,6 +111,13 @@ export default function AdminDashboard() {
             </div>
             <div className="admin-feed__item">
               <div>
+                <div className="admin-feed__title">Статистика</div>
+                <div className="admin-feed__meta">Базы и справочник</div>
+              </div>
+              <Link to="/admin/analytics" className="admin-btn admin-btn--sm">Открыть</Link>
+            </div>
+            <div className="admin-feed__item">
+              <div>
                 <div className="admin-feed__title">Районы</div>
                 <div className="admin-feed__meta">Фильтр каталога</div>
               </div>

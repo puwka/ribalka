@@ -257,7 +257,17 @@ router.get('/mine/analytics', requireAuth, async (req, res, next) => {
       { views: 0, phone: 0, website: 0 }
     );
 
-    res.json({ days, items: list, totals });
+    const byCategory = { shop: { views: 0, phone: 0, website: 0, count: 0 }, service: { views: 0, phone: 0, website: 0, count: 0 }, guide: { views: 0, phone: 0, website: 0, count: 0 } };
+    for (const row of list) {
+      const key = byCategory[row.category] ? row.category : null;
+      if (!key) continue;
+      byCategory[key].views += row.views;
+      byCategory[key].phone += row.phone;
+      byCategory[key].website += row.website;
+      byCategory[key].count += 1;
+    }
+
+    res.json({ days, items: list, totals, byCategory });
   } catch (err) {
     next(err);
   }

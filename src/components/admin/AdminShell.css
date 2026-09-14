@@ -846,3 +846,25 @@
   font: inherit;
   resize: vertical;
 }
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-tab {
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-tab.is-active {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #fff;
+  font-weight: 600;
+}

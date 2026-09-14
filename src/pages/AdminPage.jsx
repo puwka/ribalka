@@ -21,6 +21,7 @@ import { AdminPlansSection, AdminPaymentsSection } from '../components/admin/sec
 import AdminSeoSection from '../components/admin/sections/AdminSeoSection';
 import AdminSettingsSection from '../components/admin/sections/AdminSettingsSection';
 import AdminDistrictsSection from '../components/admin/sections/AdminDistrictsSection';
+import AdminAnalyticsSection from '../components/admin/sections/AdminAnalyticsSection';
 
 export default function AdminPage() {
   return (
@@ -29,6 +30,7 @@ export default function AdminPage() {
         <Route element={<AdminShell />}>
           <Route index element={<AdminDashboard />} />
           <Route path="moderation" element={<AdminModerationHub />} />
+          <Route path="analytics" element={<AdminAnalyticsSection />} />
           <Route path="audit" element={<AdminAuditSection />} />
           <Route path="content/home" element={<AdminContentHome />} />
           <Route path="content/paid-waters" element={<AdminContentPaidWaters />} />

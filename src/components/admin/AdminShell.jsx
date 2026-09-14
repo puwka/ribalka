@@ -7,6 +7,7 @@ const NAV_GROUPS = [
     title: 'Обзор',
     items: [
       { to: '/admin', label: 'Dashboard', end: true },
+      { to: '/admin/analytics', label: 'Статистика' },
       { to: '/admin/moderation', label: 'Модерация' },
       { to: '/admin/audit', label: 'История' },
     ],
@@ -53,6 +54,7 @@ const NAV_GROUPS = [
 function breadcrumbLabel(pathname) {
   const map = {
     '/admin': 'Dashboard',
+    '/admin/analytics': 'Статистика',
     '/admin/moderation': 'Модерация',
     '/admin/audit': 'История',
     '/admin/content/home': 'Главная',
