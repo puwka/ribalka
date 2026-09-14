@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { basesService } from '../services/basesService';
 import { reportSocialService } from '../services/reportSocialService';
 import { useAuth } from '../components/auth/AuthContext';
 import { favoritesService } from '../services/favoritesService';
+import { analyticsTracker } from '../services/ownerDashboardService';
 import { formatPaidPrice, enrichWaterItem } from '../lib/waterUtils';
 import { toYandexCoords } from '../lib/coords';
 import { useToast } from '../components/ui/ToastContext';
@@ -26,6 +27,7 @@ export default function BaseDetailPage() {
   const [reviews, setReviews] = useState([]);
   const [reviewForm, setReviewForm] = useState({ name: '', text: '', rating: 0 });
   const [reviewSaving, setReviewSaving] = useState(false);
+  const viewedRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -44,6 +46,10 @@ export default function BaseDetailPage() {
         setItem(enriched);
         setActiveImg(0);
         setActiveVideo(0);
+        if (viewedRef.current !== String(enriched.id)) {
+          viewedRef.current = String(enriched.id);
+          void analyticsTracker.trackView(enriched);
+        }
         if (user?.id) {
           const type = row.type === 'free' ? 'place' : 'base';
           setFavorited(await favoritesService.isFavorite(user.id, type, row.id));
@@ -218,8 +224,25 @@ export default function BaseDetailPage() {
                 {favorited ? 'В избранном' : 'В избранное'}
               </button>
               {mapUrl && (
-                <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost">
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--ghost"
+                  onClick={() => analyticsTracker.trackClick(item, 'map')}
+                >
                   На карте
+                </a>
+              )}
+              {item.website && (
+                <a
+                  href={item.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--ghost"
+                  onClick={() => analyticsTracker.trackClick(item, 'website')}
+                >
+                  Сайт
                 </a>
               )}
             </div>
@@ -384,7 +407,25 @@ export default function BaseDetailPage() {
               {item.phone && (
                 <div className="water-detail__info-row">
                   <span>Телефон</span>
-                  <a href={`tel:${item.phone.replace(/\s/g, '')}`}>{item.phone}</a>
+                  <a
+                    href={`tel:${item.phone.replace(/\s/g, '')}`}
+                    onClick={() => analyticsTracker.trackClick(item, 'phone')}
+                  >
+                    {item.phone}
+                  </a>
+                </div>
+              )}
+              {item.website && (
+                <div className="water-detail__info-row">
+                  <span>Сайт</span>
+                  <a
+                    href={item.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => analyticsTracker.trackClick(item, 'website')}
+                  >
+                    Перейти
+                  </a>
                 </div>
               )}
               {item.workHours && (
