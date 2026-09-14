@@ -91,6 +91,7 @@ export default function OwnerDirectoryCheckout() {
           phone: item.phone,
           description: item.description,
           address: item.address,
+          region: item.region,
           website: item.website,
           hours: item.hours,
           image: item.image,

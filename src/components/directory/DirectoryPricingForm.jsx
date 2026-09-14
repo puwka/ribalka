@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { listingPaymentService } from '../../services/listingPaymentService';
-import { apiDataEnabled } from '../../lib/apiClient';
+import { api, apiDataEnabled } from '../../lib/apiClient';
 import { useAuth } from '../auth/AuthContext';
 import {
   DEFAULT_SERVICE_TARIFF,
@@ -31,10 +31,12 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
     name: '',
     phone: '',
     description: '',
+    region: '',
     address: '',
     website: '',
     hours: '',
   });
+  const [districts, setDistricts] = useState([]);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -44,6 +46,22 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
       setCategory(defaultCategory);
     }
   }, [defaultCategory]);
+
+  useEffect(() => {
+    if (!apiDataEnabled) return;
+    let alive = true;
+    api
+      .get('/api/cms/districts')
+      .then((d) => {
+        if (alive) setDistricts((d || []).map((x) => x.name).filter(Boolean));
+      })
+      .catch(() => {
+        if (alive) setDistricts([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!apiDataEnabled) return;
@@ -208,8 +226,35 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
               rows={3}
               value={form.description}
               onChange={(e) => setField('description', e.target.value)}
-              placeholder="Чем занимаетесь, район работы, услуги…"
+              placeholder="Чем занимаетесь, услуги…"
             />
+          </label>
+          <label>
+            Район *
+            {districts.length > 0 ? (
+              <select
+                required
+                value={form.region}
+                onChange={(e) => setField('region', e.target.value)}
+              >
+                <option value="">Выберите район</option>
+                {districts.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+                {form.region && !districts.includes(form.region) && (
+                  <option value={form.region}>{form.region}</option>
+                )}
+              </select>
+            ) : (
+              <input
+                required
+                value={form.region}
+                onChange={(e) => setField('region', e.target.value)}
+                placeholder="Например: Соликамск"
+              />
+            )}
           </label>
           <label>
             Адрес

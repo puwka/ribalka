@@ -1,17 +1,61 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import WatersHomeSection from '../components/home/WatersHomeSection';
 import News from '../components/News/News';
 import { catalogStats } from '../lib/catalogSeed';
+import { basesService } from '../services/basesService';
+import { directoryAdminService } from '../services/directoryAdminService';
 import { CMS_PAGES } from '../services/cmsService';
 import { useCmsPage } from '../hooks/useCms';
 import './HomePage.css';
 
+function emptyStats() {
+  const seed = catalogStats();
+  return {
+    paid: seed.paid,
+    free: seed.free,
+    total: seed.total,
+    shops: 0,
+    services: 0,
+    guides: 0,
+  };
+}
+
 export default function HomePage() {
-  const stats = useMemo(() => catalogStats(), []);
+  const [stats, setStats] = useState(emptyStats);
   const { data: cms } = useCmsPage(CMS_PAGES.HOME);
   const blocks = cms?.blocks || {};
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [paid, free, directory] = await Promise.all([
+          basesService.listPublic({ type: 'paid' }).catch(() => null),
+          basesService.listPublic({ type: 'free' }).catch(() => null),
+          directoryAdminService.listPublic().catch(() => []),
+        ]);
+        if (!alive) return;
+        const paidCount = Array.isArray(paid) ? paid.length : catalogStats().paid;
+        const freeCount = Array.isArray(free) ? free.length : catalogStats().free;
+        const items = Array.isArray(directory) ? directory : [];
+        setStats({
+          paid: paidCount,
+          free: freeCount,
+          total: paidCount + freeCount,
+          shops: items.filter((i) => i.category === 'shop').length,
+          services: items.filter((i) => i.category === 'service').length,
+          guides: items.filter((i) => i.category === 'guide').length,
+        });
+      } catch {
+        /* keep seed fallback */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const showNav = blocks.navStrip?.enabled !== false;
   const showWaters = blocks.watersSection?.enabled !== false;

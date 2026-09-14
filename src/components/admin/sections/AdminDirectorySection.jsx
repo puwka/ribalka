@@ -10,6 +10,7 @@ import {
 } from '../AdminUI';
 import { ImageUploadField } from '../../media/ImageUpload';
 import { uploadService } from '../../../services/uploadService';
+import { api, apiDataEnabled } from '../../../lib/apiClient';
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
@@ -31,6 +32,7 @@ export default function AdminDirectorySection() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [districts, setDistricts] = useState([]);
 
   const load = async () => {
     setLoading(true);
@@ -50,6 +52,22 @@ export default function AdminDirectorySection() {
     if (user?.id) load();
   }, [filter, user?.id]);
 
+  useEffect(() => {
+    if (!apiDataEnabled) return undefined;
+    let alive = true;
+    api
+      .get('/api/cms/districts')
+      .then((d) => {
+        if (alive) setDistricts((d || []).map((x) => x.name).filter(Boolean));
+      })
+      .catch(() => {
+        if (alive) setDistricts([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const openItem = (item) => {
@@ -61,6 +79,7 @@ export default function AdminDirectorySection() {
       name: item.name || '',
       category: item.category || 'shop',
       description: item.description || '',
+      region: item.region || '',
       address: item.address || '',
       phone: item.phone || '',
       website: item.website || '',
@@ -210,6 +229,7 @@ export default function AdminDirectorySection() {
                     </AdminStatus>
                     {' · '}
                     {item.category}
+                    {item.region ? ` · ${item.region}` : ''}
                   </div>
                 </button>
               ))
@@ -284,6 +304,32 @@ export default function AdminDirectorySection() {
                     value={form.description}
                     onChange={(e) => setField('description', e.target.value)}
                   />
+                </AdminField>
+                <AdminField label="Район" hint="Список: Админка → Районы">
+                  {districts.length > 0 ? (
+                    <select
+                      className="admin-input"
+                      value={form.region || ''}
+                      onChange={(e) => setField('region', e.target.value)}
+                    >
+                      <option value="">Выберите район</option>
+                      {districts.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                      {form.region && !districts.includes(form.region) && (
+                        <option value={form.region}>{form.region}</option>
+                      )}
+                    </select>
+                  ) : (
+                    <input
+                      className="admin-input"
+                      value={form.region || ''}
+                      onChange={(e) => setField('region', e.target.value)}
+                      placeholder="Например: Соликамск"
+                    />
+                  )}
                 </AdminField>
                 <AdminField label="Адрес">
                   <input

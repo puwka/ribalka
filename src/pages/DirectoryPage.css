@@ -89,6 +89,22 @@
   margin-bottom: 1rem;
 }
 
+.directory-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.directory-filters__region {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  font: inherit;
+  background: #fff;
+}
+
 .search-input {
   width: 100%;
   padding: 0.85rem 1rem;
@@ -104,6 +120,59 @@
 
 .directory-count strong {
   color: var(--color-text, #0f172a);
+}
+
+.directory-region-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.directory-region-group__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary, #0f172a);
+}
+
+.directory-region-group__pin {
+  font-size: 1rem;
+}
+
+.directory-region-group__count {
+  margin-left: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.card-region {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 20px);
+  background: rgba(37, 99, 235, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-region-line {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1d4ed8;
 }
 
 .directory-grid {
@@ -198,7 +267,7 @@
 .card-category {
   position: absolute;
   right: 10px;
-  bottom: 10px;
+  top: 10px;
   background: rgba(15, 23, 42, 0.8);
   color: #fff;
   font-size: 0.75rem;
@@ -311,6 +380,10 @@
 }
 
 @media (max-width: 768px) {
+  .directory-filters {
+    grid-template-columns: 1fr;
+  }
+
   .directory-grid,
   .directory-grid--preview {
     grid-template-columns: 1fr;

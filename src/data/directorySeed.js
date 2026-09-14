@@ -13,6 +13,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'shop',
     description:
       'Крупнейший рыболовный магазин в Перми. Широкий ассортимент снастей, приманок и эхолотов от ведущих производителей.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Ленина, 45',
     phone: '8-993-196-05-76',
     website: 'https://example.com',
@@ -27,6 +28,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'shop',
     description:
       'Специализированный магазин для спиннингистов и нахлыстовиков. Профессиональные консультации от опытных рыбаков.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Куйбышева, 32',
     phone: '8-993-196-05-77',
     website: 'https://example.com',
@@ -41,6 +43,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'shop',
     description:
       'Всё для охоты и рыбалки в одном месте. Лодки, моторы, палатки, спальники и экипировка для любого сезона.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Революции, 18',
     phone: '8-993-196-05-78',
     website: 'https://example.com',
@@ -55,6 +58,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'shop',
     description:
       'Уютный магазин с дружелюбными продавцами. Всегда свежие приманки, лески и аксессуары по доступным ценам.',
+    region: 'г. Березники',
     address: 'г. Пермь, ул. Мира, 27',
     phone: '8-993-196-05-83',
     website: 'https://example.com',
@@ -69,6 +73,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'service',
     description:
       'Профессиональный ремонт надувных лодок и ПВХ, подвесных моторов любой сложности. Гарантия на все работы.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Техническая, 12',
     phone: '8-993-196-05-79',
     website: '',
@@ -83,6 +88,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'service',
     description:
       'Аренда лодок, эхолотов, спиннингов и палаток. Залог не требуется. Доставка по Перми бесплатно.',
+    region: 'г. Пермь',
     address: 'г. Пермь, набережная Камы, 5',
     phone: '8-993-196-05-80',
     website: 'https://example.com',
@@ -97,6 +103,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'service',
     description:
       'Профессиональная заточка рыболовных, охотничьих и кухонных ножей. Быстро, качественно, недорого.',
+    region: 'г. Кунгур',
     address: 'г. Пермь, ул. Советская, 8',
     phone: '8-993-196-05-84',
     website: '',
@@ -111,6 +118,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'service',
     description:
       'Быстрая доставка свежего улова по Перми и области. Упаковка в термосумки, охлаждение, ветеринарный контроль.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Куйбышева, 50',
     phone: '8-993-196-05-85',
     website: 'https://example.com',
@@ -125,6 +133,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'guide',
     description:
       'Профессиональный егерь-инструктор с 15-летним стажем. Знает все рыбные места на Каме и Чусовой.',
+    region: 'Красновишерский район',
     address: 'г. Пермь',
     phone: '8-993-196-05-81',
     website: '',
@@ -139,6 +148,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'guide',
     description:
       'Организация рыболовных туров по Пермскому краю. Доставка на лучшие места, снасти предоставляются.',
+    region: 'г. Соликамск',
     address: 'Пермский край',
     phone: '8-993-196-05-82',
     website: 'https://example.com',
@@ -153,6 +163,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'guide',
     description:
       'Обучение технике ловли на спиннинг и нахлыст. Индивидуальный подход, выезд на водоёмы с учениками.',
+    region: 'г. Пермь',
     address: 'г. Пермь',
     phone: '8-993-196-05-86',
     website: 'https://example.com',
@@ -167,6 +178,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'guide',
     description:
       'Организация фототуров на рыбалку. Запечатлеем ваши трофеи и эмоции на профессиональную камеру.',
+    region: 'Чусовской район',
     address: 'Пермский край',
     phone: '8-993-196-05-87',
     website: 'https://example.com',
@@ -181,6 +193,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'shop',
     description:
       'Сеть магазинов с широким выбором спиннингов, катушек и зимней экипировки. Постоянные акции для постоянных клиентов.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Пушкина, 12',
     phone: '8-993-196-05-88',
     website: 'https://example.com',
@@ -195,6 +208,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'service',
     description:
       'Ремонт и тюнинг лодок ПВХ, установка транцев, якорных лебёдок и консолей. Выезд на место.',
+    region: 'г. Пермь',
     address: 'г. Пермь, ул. Промышленная, 7',
     phone: '8-993-196-05-89',
     website: '',
@@ -209,6 +223,7 @@ export const DIRECTORY_SEED_ITEMS = [
     category: 'guide',
     description:
       'Сплавы и рыбалка на Чусовой и Сылве. Группы до 6 человек, питание и снаряжение по запросу.',
+    region: 'Кунгурский район',
     address: 'Пермский край',
     phone: '8-993-196-05-90',
     website: 'https://example.com',

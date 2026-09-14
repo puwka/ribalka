@@ -44,12 +44,14 @@
 }
 
 .dir-listing-form__fields input,
+.dir-listing-form__fields select,
 .dir-listing-form__fields textarea {
   font: inherit;
   font-weight: 400;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--color-border, #cbd5e1);
   border-radius: 8px;
+  background: #fff;
 }
 
 .dir-listing-form__full {

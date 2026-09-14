@@ -5,6 +5,7 @@ import { DIRECTORY_CATEGORIES } from '../data/directorySeed';
 import DirectoryCard from '../components/directory/DirectoryCard';
 import { useAuth } from '../components/auth/AuthContext';
 import { directoryOwnerService } from '../services/directoryOwnerService';
+import { sortDirectoryItems } from '../lib/directoryRegion';
 import './DirectoryPage.css';
 
 const PREVIEW_LIMIT = 4;
@@ -46,6 +47,9 @@ export default function DirectoryPage() {
     const map = { shop: [], service: [], guide: [] };
     for (const item of items) {
       if (map[item.category]) map[item.category].push(item);
+    }
+    for (const key of Object.keys(map)) {
+      map[key] = sortDirectoryItems(map[key], { byRegion: true });
     }
     return map;
   }, [items]);
