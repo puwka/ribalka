@@ -29,6 +29,7 @@ import UserCabinetPage from './pages/UserCabinetPage';
 import OwnerCabinetPage from './pages/OwnerCabinetPage';
 import PwaInstallPrompt from './components/pwa/PwaInstallPrompt';
 import DocumentTitle from './components/seo/DocumentTitle';
+import YandexMetrikaHit from './components/seo/YandexMetrikaHit';
 import BaseDetailPage from './pages/BaseDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ScrollToTop from './components/ScrollToTop';
@@ -58,6 +59,7 @@ function App() {
         <ScrollToTop />
         <div className="app">
           <DocumentTitle />
+          <YandexMetrikaHit />
           <CookieBanner />
           <LegalModals />
           <PwaInstallPrompt />
