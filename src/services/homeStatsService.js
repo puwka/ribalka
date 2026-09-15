@@ -1,17 +1,18 @@
-import { catalogStats, getCatalogUiList } from '../lib/catalogSeed';
+import { catalogStats } from '../lib/catalogSeed';
 import { api, apiDataEnabled } from '../lib/apiClient';
 import { cmsDb } from '../lib/cmsDb';
 import { DIRECTORY_PAGE_DEFAULTS } from '../data/directorySeed';
+import { basesService } from './basesService';
 
-const CACHE_KEY = 'rybalka_home_stats_v2';
+const CACHE_KEY = 'rybalka_home_stats_v3';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-function seedStats() {
-  const seed = catalogStats();
+function emptyStats() {
+  // Do not use raw seed counts — CMS may archive most catalog waters.
   return {
-    paid: seed.paid,
-    free: seed.free,
-    total: seed.total,
+    paid: 0,
+    free: 0,
+    total: 0,
     shops: 0,
     services: 0,
     guides: 0,
@@ -29,6 +30,17 @@ function countDirectoryItems(items) {
     shops: published.filter((i) => i.category === 'shop').length,
     services: published.filter((i) => i.category === 'service').length,
     guides: published.filter((i) => i.category === 'guide').length,
+  };
+}
+
+function countWaters(list) {
+  const items = Array.isArray(list) ? list : [];
+  const paid = items.filter((b) => b.type === 'paid').length;
+  const free = items.filter((b) => b.type === 'free').length;
+  return {
+    paid,
+    free,
+    total: paid + free,
   };
 }
 
@@ -80,36 +92,25 @@ async function loadDirectoryCounts() {
   }
 }
 
+/**
+ * Same source as /paid-waters, /free-waters and /map —
+ * seed + owner bases + CMS overrides (archived hidden).
+ */
 async function loadWaterCounts() {
-  const seed = catalogStats();
-  if (!apiDataEnabled) return seed;
-
   try {
-    const rows = await api.get('/api/bases');
-    const catalogIds = new Set(getCatalogUiList().map((i) => String(i.id)));
-    let extraPaid = 0;
-    let extraFree = 0;
-    for (const row of rows || []) {
-      if (catalogIds.has(String(row.id))) continue;
-      if (row.type === 'free') extraFree += 1;
-      else extraPaid += 1;
-    }
-    return {
-      paid: seed.paid + extraPaid,
-      free: seed.free + extraFree,
-      total: seed.total + extraPaid + extraFree,
-    };
+    const list = await basesService.listPublic();
+    return countWaters(list);
   } catch {
-    return seed;
+    return catalogStats();
   }
 }
 
-/** Instant value for first paint (cache or seed). */
+/** Instant value for first paint (cache, or empty until live load). */
 export function getHomeStatsSync() {
-  return readCache() || seedStats();
+  return readCache() || emptyStats();
 }
 
-/** Refresh home hero counts without heavy catalog merges. */
+/** Refresh home hero counts. */
 export async function loadHomeStats() {
   const [waters, directory] = await Promise.all([loadWaterCounts(), loadDirectoryCounts()]);
   const stats = {
