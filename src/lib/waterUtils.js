@@ -14,9 +14,9 @@ export function parsePriceValue(priceLabel) {
 }
 
 export function formatPaidPrice(item) {
-  if (item.price) return item.price.startsWith('от') ? `Рыбалка ${item.price}` : `Рыбалка от ${item.price}`;
+  if (item.price) return item.price.startsWith('от') ? `Отдых ${item.price}` : `Отдых от ${item.price}`;
   const from = parsePriceValue(item.price_label);
-  if (from) return `Рыбалка от ${from.toLocaleString('ru-RU')} ₽`;
+  if (from) return `Отдых от ${from.toLocaleString('ru-RU')} ₽`;
   return 'Цена не указана';
 }
 
