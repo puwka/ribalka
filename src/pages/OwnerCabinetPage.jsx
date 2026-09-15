@@ -61,6 +61,7 @@ const OWNER_NAV = [
     items: [
       { to: '/owner/bases', label: 'Мои базы' },
       { to: '/owner/bases/new', label: 'Добавить базу' },
+      { to: '/owner/directory/new', label: 'Добавить в справочник' },
       { to: '/owner/reviews', label: 'Отзывы' },
     ],
   },
