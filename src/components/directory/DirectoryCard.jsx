@@ -13,6 +13,32 @@ export function getCategoryLabel(category) {
   return labels[category] || '';
 }
 
+const DAY_TOKEN =
+  '(?:Пн|Вт|Ср|Чт|Пт|Сб|Вс|Понедельник|Вторник|Среда|Четверг|Пятница|Суббота|Воскресенье)';
+
+/** Split jammed one-line schedules into readable lines. */
+export function formatHoursLines(hours) {
+  const raw = String(hours || '').trim();
+  if (!raw) return [];
+  if (/\n/.test(raw)) {
+    return raw
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const withBreaks = raw
+    .replace(/\s*[;|]\s*/g, '\n')
+    // Break before a new day only after a time or «выходной» (keeps «Вт – Ср»)
+    .replace(
+      new RegExp(`((?:\\d{1,2}:\\d{2}|выходн[а-яёА-ЯЁ]*))\\s+(${DAY_TOKEN})`, 'gi'),
+      '$1\n$2'
+    );
+  return withBreaks
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function sessionKey() {
   try {
     const k = 'dir_analytics_sid';
@@ -70,6 +96,7 @@ export default function DirectoryCard({ item }) {
   };
 
   const website = hasWebsite(item) ? String(item.website).trim() : '';
+  const hoursLines = formatHoursLines(item.hours);
 
   return (
     <div className={classes}>
@@ -108,26 +135,18 @@ export default function DirectoryCard({ item }) {
               </a>
             </div>
           )}
-          {item.hours && (
+          {hoursLines.length > 0 && (
             <div className="info-row">
               <span className="info-icon">🕐</span>
-              <span>{item.hours}</span>
+              <span className="info-hours">
+                {hoursLines.map((line, i) => (
+                  <span key={`${i}-${line}`} className="info-hours__line">
+                    {line}
+                  </span>
+                ))}
+              </span>
             </div>
           )}
-          {website ? (
-            <div className="info-row">
-              <span className="info-icon">🌐</span>
-              <a
-                href={website.startsWith('http') ? website : `https://${website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="info-link"
-                onClick={onWebsite}
-              >
-                Перейти на сайт
-              </a>
-            </div>
-          ) : null}
         </div>
 
         <div className="card-actions">

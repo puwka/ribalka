@@ -143,6 +143,30 @@ export default function AdminReportsSection() {
     }
   };
 
+  const remove = async (id) => {
+    if (!user?.id) {
+      setError('Войдите как администратор');
+      return;
+    }
+    const place = selected?.place || 'этот отчёт';
+    if (!window.confirm(`Удалить отчёт «${place}» безвозвратно?`)) return;
+    setError('');
+    setMessage('');
+    try {
+      await reportSocialService.delete(user.id, id);
+      setMessage('Отчёт удалён');
+      setSelected(null);
+      setSelectedId(null);
+      setEditing(false);
+      clearOpenParam();
+      setItems((prev) => prev.filter((r) => String(r.id) !== String(id)));
+      await load();
+      await loadComments();
+    } catch (err) {
+      setError(err.message || 'Не удалось удалить отчёт');
+    }
+  };
+
   const saveEdit = async () => {
     if (!selected || !editForm || !user?.id) return;
     setError('');
@@ -358,6 +382,13 @@ export default function AdminReportsSection() {
                   <Link to={`/reports/${selected.id}`} className="admin-btn" target="_blank">
                     На сайте
                   </Link>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--danger"
+                    onClick={() => remove(selected.id)}
+                  >
+                    Удалить
+                  </button>
                 </div>
               </>
             )}

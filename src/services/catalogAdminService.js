@@ -483,11 +483,17 @@ export const catalogAdminService = {
       });
 
     const adminOnly = Object.values(overrides).filter(
-      (w) => w.source === 'admin' && w.status === 'published' && !items.find((i) => String(i.id) === String(w.id))
+      (w) =>
+        w.source === 'admin' &&
+        w.status === 'published' &&
+        !items.find((i) => String(i.id) === String(w.id))
     );
 
     for (const w of adminOnly) {
-      merged.push(recordToUi(w));
+      const ui = recordToUi(w);
+      // Skip if already present under another shape after merge
+      if (merged.some((i) => String(i.id) === String(ui.id))) continue;
+      merged.push(ui);
     }
 
     return merged.sort((a, b) => a.name.localeCompare(b.name, 'ru'));

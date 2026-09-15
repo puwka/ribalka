@@ -338,22 +338,25 @@ export default function AdminDirectorySection() {
                     onChange={(e) => setField('address', e.target.value)}
                   />
                 </AdminField>
-                <div className="admin-grid-2">
-                  <AdminField label="Телефон">
-                    <input
-                      className="admin-input"
-                      value={form.phone}
-                      onChange={(e) => setField('phone', e.target.value)}
-                    />
-                  </AdminField>
-                  <AdminField label="Часы работы">
-                    <input
-                      className="admin-input"
-                      value={form.hours}
-                      onChange={(e) => setField('hours', e.target.value)}
-                    />
-                  </AdminField>
-                </div>
+                <AdminField label="Телефон">
+                  <input
+                    className="admin-input"
+                    value={form.phone}
+                    onChange={(e) => setField('phone', e.target.value)}
+                  />
+                </AdminField>
+                <AdminField
+                  label="Часы работы"
+                  hint="Каждый интервал с новой строки, например: Пн 11:00–22:00"
+                >
+                  <textarea
+                    className="admin-input"
+                    rows={3}
+                    value={form.hours}
+                    onChange={(e) => setField('hours', e.target.value)}
+                    placeholder={'Пн 11:00–22:00\nВт–Ср выходной\nЧт–Вс 11:00–22:00'}
+                  />
+                </AdminField>
                 <AdminField label="Сайт или группа (необязательно)">
                   <input
                     className="admin-input"

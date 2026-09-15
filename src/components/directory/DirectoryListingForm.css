@@ -54,6 +54,12 @@
   background: #fff;
 }
 
+.dir-listing-form__hint {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-muted, #64748b);
+}
+
 .dir-listing-form__full {
   grid-column: 1 / -1;
 }

@@ -16,6 +16,7 @@ const BASE_EVENT_TYPES = new Set([
 ]);
 
 const PAGE_KEY = 'page:directory';
+const WATERS_KEY = 'waters';
 
 async function ensureBaseEventsTable() {
   await pool.query(`
@@ -28,6 +29,14 @@ async function ensureBaseEventsTable() {
       session_key text,
       created_at timestamptz not null default now()
     )
+  `);
+  await pool.query(`
+    create index if not exists base_listing_events_created_idx
+      on public.base_listing_events (created_at desc)
+  `);
+  await pool.query(`
+    create index if not exists base_listing_events_base_idx
+      on public.base_listing_events (base_id, created_at desc)
   `);
 }
 
@@ -42,6 +51,36 @@ async function ensureDirectoryEventsTable() {
       created_at timestamptz not null default now()
     )
   `);
+}
+
+async function getKv(key) {
+  const { rows } = await pool.query(`select value from public.cms_kv where key = $1`, [key]);
+  let value = rows[0]?.value ?? null;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      value = null;
+    }
+  }
+  return value;
+}
+
+/** CMS water overrides (admin catalog). Seed-only waters may be absent. */
+async function loadWatersMeta() {
+  const value = await getKv(WATERS_KEY);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  for (const row of Object.values(value)) {
+    if (!row?.id) continue;
+    const id = String(row.id);
+    out[id] = {
+      name: row.name || id,
+      type: row.type || '',
+      ownerUserId: row.ownerUserId || row.owner_id || null,
+    };
+  }
+  return out;
 }
 
 function parseDays(raw, fallback = 30) {
@@ -94,23 +133,32 @@ function sumEventTypes(rows) {
 }
 
 async function loadDirectoryItems() {
-  const { rows } = await pool.query(`select value from public.cms_kv where key = $1`, [PAGE_KEY]);
-  let page = rows[0]?.value ?? {};
-  if (typeof page === 'string') {
-    try {
-      page = JSON.parse(page);
-    } catch {
-      page = {};
-    }
-  }
+  let page = await getKv(PAGE_KEY);
+  if (!page || typeof page !== 'object') page = {};
   return Array.isArray(page?.items) ? page.items : [];
 }
 
-/** Public: track base interaction */
+/**
+ * Resolve owner for analytics.
+ * Owner listings live in public.bases; catalog/CMS waters often do not —
+ * still accept those IDs so admin stats are not stuck at zero.
+ */
+async function resolveBaseOwnerId(baseId) {
+  const { rows } = await pool.query(
+    `select owner_id from public.bases where id::text = $1 limit 1`,
+    [baseId]
+  );
+  if (rows[0]) return rows[0].owner_id || null;
+
+  // CMS waters rarely have a real user owner; skip heavy map load on every hit.
+  return null;
+}
+
+/** Public: track base / water interaction */
 router.post('/base/events', async (req, res, next) => {
   try {
     await ensureBaseEventsTable();
-    const baseId = String(req.body?.baseId || req.body?.base_id || '').trim();
+    const baseId = String(req.body?.baseId || req.body?.base_id || '').trim().slice(0, 120);
     let eventType = String(req.body?.eventType || req.body?.type || '').trim();
     const source = String(req.body?.source || '').slice(0, 80) || null;
     const sessionKey =
@@ -125,17 +173,12 @@ router.post('/base/events', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid event type' });
     }
 
-    const { rows } = await pool.query(
-      `select id, owner_id from public.bases where id::text = $1 limit 1`,
-      [baseId]
-    );
-    const base = rows[0];
-    if (!base) return res.status(404).json({ error: 'Base not found' });
+    const ownerId = await resolveBaseOwnerId(baseId);
 
     await pool.query(
       `insert into public.base_listing_events (base_id, owner_id, event_type, source, session_key)
        values ($1, $2, $3, $4, $5)`,
-      [String(base.id), base.owner_id, eventType, source, sessionKey]
+      [baseId, ownerId, eventType, source, sessionKey]
     );
     res.status(201).json({ ok: true });
   } catch (err) {
@@ -350,6 +393,7 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res, next) => {
     ]);
 
     const items = await loadDirectoryItems();
+    const watersMeta = await loadWatersMeta();
     const itemMeta = Object.fromEntries(
       items.map((i) => [
         String(i.id),
@@ -368,6 +412,11 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res, next) => {
       category: itemMeta[String(r.item_id)]?.category || '',
       status: itemMeta[String(r.item_id)]?.status || '',
       owner_id: r.owner_id || itemMeta[String(r.item_id)]?.ownerUserId || null,
+    }));
+
+    const basesTopItems = baseTop.rows.map((r) => ({
+      ...r,
+      name: r.name || watersMeta[String(r.base_id)]?.name || `Водоём ${r.base_id}`,
     }));
 
     // Attribute directory events to CMS ownerUserId when event.owner_id is null
@@ -417,7 +466,7 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res, next) => {
       days,
       bases: {
         totals: sumEventTypes(baseTotals.rows),
-        topItems: baseTop.rows,
+        topItems: basesTopItems,
         byOwner: ownersBase.rows,
       },
       directory: {

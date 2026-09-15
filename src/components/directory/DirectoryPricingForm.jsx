@@ -260,9 +260,15 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
             Адрес
             <input value={form.address} onChange={(e) => setField('address', e.target.value)} />
           </label>
-          <label>
+          <label className="dir-pricing__full">
             Часы работы
-            <input value={form.hours} onChange={(e) => setField('hours', e.target.value)} />
+            <textarea
+              rows={3}
+              value={form.hours}
+              onChange={(e) => setField('hours', e.target.value)}
+              placeholder={'Пн 11:00–22:00\nВт–Ср выходной\nЧт–Вс 11:00–22:00'}
+            />
+            <span className="dir-pricing__hint">Каждый интервал — с новой строки</span>
           </label>
           <label className="dir-pricing__full">
             Сайт или группа (необязательно)

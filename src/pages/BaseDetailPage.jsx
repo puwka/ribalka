@@ -6,6 +6,7 @@ import { useAuth } from '../components/auth/AuthContext';
 import { favoritesService } from '../services/favoritesService';
 import { analyticsTracker } from '../services/ownerDashboardService';
 import { formatPaidPrice, enrichWaterItem } from '../lib/waterUtils';
+import RichText from '../components/ui/RichText';
 import { toYandexCoords } from '../lib/coords';
 import { useToast } from '../components/ui/ToastContext';
 import { normalizeVideoList } from '../lib/videoEmbed';
@@ -266,7 +267,7 @@ export default function BaseDetailPage() {
 
             <section className="water-detail__section">
               <h2>Описание</h2>
-              <p>{item.description}</p>
+              <RichText value={item.description} className="water-detail__description" />
             </section>
 
             {videos.length > 0 && (

@@ -4,7 +4,7 @@ import { cmsDb } from '../lib/cmsDb';
 import { DIRECTORY_PAGE_DEFAULTS } from '../data/directorySeed';
 import { basesService } from './basesService';
 
-const CACHE_KEY = 'rybalka_home_stats_v3';
+const CACHE_KEY = 'rybalka_home_stats_v4';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function emptyStats() {

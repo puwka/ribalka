@@ -179,6 +179,11 @@
   font-size: var(--text-sm);
 }
 
+.water-detail__description {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
 .water-detail__muted {
   margin-top: var(--space-2);
   font-size: var(--text-sm);

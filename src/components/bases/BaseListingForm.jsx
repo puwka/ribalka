@@ -4,6 +4,7 @@ import { basesService } from '../../services/basesService';
 import { ImageUploadListField } from '../media/ImageUpload';
 import { uploadService } from '../../services/uploadService';
 import { DEFAULT_CONSTRUCTOR, formatRub } from '../../lib/directoryPricing';
+import RichTextEditor from '../ui/RichTextEditor';
 import './BaseListingForm.css';
 
 function parseLines(text) {
@@ -159,7 +160,13 @@ export default function BaseListingForm({
         </label>
         <label className="base-form__full">
           Описание *
-          <textarea required rows={5} value={form.description} onChange={set('description')} disabled={disabled} />
+          <RichTextEditor
+            value={form.description}
+            onChange={(html) => setForm((f) => ({ ...f, description: html }))}
+            disabled={disabled}
+            minHeight={180}
+            placeholder="Полное описание базы…"
+          />
         </label>
         <label>
           Регион *

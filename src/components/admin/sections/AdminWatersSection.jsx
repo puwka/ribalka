@@ -12,6 +12,7 @@ import {
 import { ImageUploadListField } from '../../media/ImageUpload';
 import { uploadService } from '../../../services/uploadService';
 import { api, apiDataEnabled } from '../../../lib/apiClient';
+import RichTextEditor from '../../ui/RichTextEditor';
 
 export default function AdminWatersSection() {
   const { user, profile } = useAuth();
@@ -225,8 +226,13 @@ export default function AdminWatersSection() {
                   />
                 </AdminField>
 
-                <AdminField label="Описание">
-                  <textarea className="admin-textarea" rows={4} value={form.description} onChange={(e) => setField('description', e.target.value)} />
+                <AdminField label="Описание" hint="Можно абзацы, списки, жирный и курсив">
+                  <RichTextEditor
+                    value={form.description}
+                    onChange={(html) => setField('description', html)}
+                    minHeight={200}
+                    placeholder="Полное описание водоёма или базы…"
+                  />
                 </AdminField>
 
                 <div className="admin-grid-2">

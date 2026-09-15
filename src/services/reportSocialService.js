@@ -685,6 +685,26 @@ export const reportSocialService = {
     return row;
   },
 
+  async delete(adminId, reportId) {
+    await assertAdmin(adminId);
+    const key = String(reportId);
+
+    if (isApiReports()) {
+      await api.delete(`/api/reports/${encodeURIComponent(key)}`);
+      try {
+        await socialDb.deleteReport(key);
+      } catch {
+        /* local mirror optional */
+      }
+      return true;
+    }
+
+    const row = await resolveReport(key);
+    if (!row) throw new ApiError('Отчёт не найден');
+    await socialDb.deleteReport(key);
+    return true;
+  },
+
   async listPendingComments(status = 'pending') {
     if (isApiReports()) {
       const rows = await api.get(

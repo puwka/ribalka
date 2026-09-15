@@ -10,6 +10,7 @@ import { useToast } from '../ui/ToastContext';
 import './BaseModal.css';
 import { toVideoEmbedUrl } from '../../lib/videoEmbed';
 import { toYandexCoords } from '../../lib/coords';
+import RichText from '../ui/RichText';
 
 export default function BaseModal({ item, onClose }) {
   const { user, isAuthenticated, refresh } = useAuth();
@@ -191,7 +192,7 @@ export default function BaseModal({ item, onClose }) {
               <div className="info-icon">📝</div>
               <div className="info-content">
                 <h4>Описание</h4>
-                <p>{item.description}</p>
+                <RichText value={item.description} />
               </div>
             </div>
 

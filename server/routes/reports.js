@@ -663,4 +663,17 @@ router.patch('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) 
   }
 });
 
+/** Admin: permanently delete a report */
+router.delete('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rowCount } = await pool.query(`delete from public.fishing_reports where id = $1`, [
+      req.params.id,
+    ]);
+    if (!rowCount) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true, deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

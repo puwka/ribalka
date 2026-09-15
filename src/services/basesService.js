@@ -372,28 +372,34 @@ export const basesService = {
     // Previously a single approved Supabase row replaced the whole catalog.
     const catalog = getCatalogUiList(filters);
 
+    let list;
     if (isRemoteDb()) {
       const qs = filters.type ? `?type=${encodeURIComponent(filters.type)}` : '';
       const rows = await api.get(`/api/bases${qs}`);
       const remote = (rows ?? []).map(enrichRemote);
-      const list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
-      return sortPromoFirst(list);
+      list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
+    } else {
+      const rows = await basesLocalDb.listApproved(filters.type);
+      const ownerItems = rows
+        .filter((r) => r.source !== 'catalog' && r.owner_id !== CATALOG_OWNER_ID)
+        .map((r) => ({
+          ...toUi(r),
+          status: r.status,
+          rejection_reason: r.rejection_reason,
+          owner_id: r.owner_id,
+          price_from: r.price_from,
+          isTop: Boolean(r.is_top || r.isTop),
+          yellowFrame: Boolean(r.yellow_frame || r.yellowFrame),
+        }));
+
+      list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, ownerItems));
     }
 
-    const rows = await basesLocalDb.listApproved(filters.type);
-    const ownerItems = rows
-      .filter((r) => r.source !== 'catalog' && r.owner_id !== CATALOG_OWNER_ID)
-      .map((r) => ({
-        ...toUi(r),
-        status: r.status,
-        rejection_reason: r.rejection_reason,
-        owner_id: r.owner_id,
-        price_from: r.price_from,
-        isTop: Boolean(r.is_top || r.isTop),
-        yellowFrame: Boolean(r.yellow_frame || r.yellowFrame),
-      }));
+    // CMS admin waters were appended to every list — keep only requested type.
+    if (filters.type) {
+      list = list.filter((item) => item.type === filters.type);
+    }
 
-    const list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, ownerItems));
     return sortPromoFirst(list);
   },
 

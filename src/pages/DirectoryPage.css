@@ -324,6 +324,17 @@
   align-items: flex-start;
 }
 
+.info-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  line-height: 1.35;
+}
+
+.info-hours__line {
+  display: block;
+}
+
 .info-link {
   color: var(--color-accent, #2563eb);
 }
