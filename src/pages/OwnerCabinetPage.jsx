@@ -62,6 +62,7 @@ const OWNER_NAV = [
     items: [
       { to: '/owner/bases', label: 'Мои базы' },
       { to: '/owner/bases/new', label: 'Добавить базу' },
+      { to: '/owner/directory', label: 'Мой справочник' },
       { to: '/owner/directory/new', label: 'Добавить в справочник' },
       { to: '/owner/reviews', label: 'Отзывы' },
     ],
@@ -316,6 +317,12 @@ function OwnerDirectoryAnalytics() {
       </p>
       {error && <div className="auth-error">{error}</div>}
 
+      <div className="cabinet-actions" style={{ marginTop: 0, marginBottom: 8 }}>
+        <Link className="btn-secondary" to="/owner/directory">
+          Мой справочник
+        </Link>
+      </div>
+
       <div className="period-filters" style={{ marginBottom: 16 }}>
         {[7, 30, 90, 365].map((d) => (
           <button
@@ -403,11 +410,13 @@ function OwnerDirectoryAnalytics() {
         ))}
         {(data?.items || []).length === 0 && (
           <div className="empty-state">
-            Пока нет карточек. Добавьте магазин, сервис или егеря в разделе «Магазины / сервисы /
-            егеря».
+            Пока нет карточек. Добавьте магазин, сервис или егеря в разделе «Мой справочник».
             <div style={{ marginTop: 12 }}>
               <Link className="btn-primary" to="/owner/directory/new">
                 Добавить карточку
+              </Link>
+              <Link className="btn-secondary" to="/owner/directory" style={{ marginLeft: 8 }}>
+                Мой справочник
               </Link>
             </div>
           </div>
@@ -781,6 +790,8 @@ function OwnerReviews() {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [drafts, setDrafts] = useState({});
+  const [editing, setEditing] = useState({});
+  const [savingId, setSavingId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -799,56 +810,119 @@ function OwnerReviews() {
     load();
   }, [user]);
 
-  const reply = async (reviewId) => {
+  const startEdit = (r) => {
+    setEditing((e) => ({ ...e, [r.id]: true }));
+    setDrafts((d) => ({ ...d, [r.id]: r.owner_reply || d[r.id] || '' }));
+  };
+
+  const cancelEdit = (reviewId) => {
+    setEditing((e) => {
+      const next = { ...e };
+      delete next[reviewId];
+      return next;
+    });
+    setDrafts((d) => {
+      const next = { ...d };
+      delete next[reviewId];
+      return next;
+    });
+  };
+
+  const saveReply = async (reviewId, isEdit) => {
     setError('');
+    setSavingId(reviewId);
     try {
       await ownerDashboardService.replyToReview(user.id, reviewId, drafts[reviewId] || '');
-      setDrafts((d) => ({ ...d, [reviewId]: '' }));
+      setDrafts((d) => {
+        const next = { ...d };
+        delete next[reviewId];
+        return next;
+      });
+      if (isEdit) {
+        setEditing((e) => {
+          const next = { ...e };
+          delete next[reviewId];
+          return next;
+        });
+      }
       await load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSavingId('');
     }
   };
 
   return (
     <div className="cabinet-panel">
       <h2>Отзывы</h2>
-      <p className="cabinet-panel__lead">Просмотр и ответ владельца</p>
+      <p className="cabinet-panel__lead">Просмотр и ответ владельца — ответ можно изменить</p>
       {error && <div className="auth-error">{error}</div>}
       {loading ? (
         <div className="empty-state">Загрузка…</div>
       ) : (
         <div className="cabinet-list">
           {reviews.length === 0 && <div className="empty-state">Отзывов пока нет</div>}
-          {reviews.map((r) => (
-            <div key={r.id} className="cabinet-item">
-              <div className="cabinet-item__title">
-                {r.base_name} · {r.author_name} · ⭐ {r.rating}
-              </div>
-              <div className="cabinet-item__meta">
-                {r.body}
-                <br />
-                {formatDate(r.created_at)}
-              </div>
-              {r.owner_reply ? (
-                <div className="auth-success" style={{ marginTop: 10 }}>
-                  Ваш ответ: {r.owner_reply}
+          {reviews.map((r) => {
+            const isEditing = Boolean(editing[r.id]);
+            const showForm = !r.owner_reply || isEditing;
+            return (
+              <div key={r.id} className="cabinet-item">
+                <div className="cabinet-item__title">
+                  {r.base_name} · {r.author_name} · ⭐ {r.rating}
                 </div>
-              ) : (
-                <div className="cabinet-form" style={{ marginTop: 10 }}>
-                  <textarea
-                    rows={2}
-                    placeholder="Ответ владельца"
-                    value={drafts[r.id] || ''}
-                    onChange={(e) => setDrafts((d) => ({ ...d, [r.id]: e.target.value }))}
-                  />
-                  <button type="button" className="btn-primary" onClick={() => reply(r.id)}>
-                    Ответить
-                  </button>
+                <div className="cabinet-item__meta">
+                  {r.body}
+                  <br />
+                  {formatDate(r.created_at)}
                 </div>
-              )}
-            </div>
-          ))}
+                {r.owner_reply && !isEditing ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div className="auth-success">Ваш ответ: {r.owner_reply}</div>
+                    <div className="cabinet-actions" style={{ marginTop: 8 }}>
+                      <button type="button" className="btn-secondary" onClick={() => startEdit(r)}>
+                        Изменить ответ
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {showForm ? (
+                  <div className="cabinet-form" style={{ marginTop: 10 }}>
+                    <textarea
+                      rows={2}
+                      placeholder="Ответ владельца"
+                      value={drafts[r.id] || ''}
+                      onChange={(e) => setDrafts((d) => ({ ...d, [r.id]: e.target.value }))}
+                    />
+                    <div className="cabinet-actions" style={{ marginTop: 8 }}>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={savingId === r.id}
+                        onClick={() => saveReply(r.id, isEditing)}
+                      >
+                        {savingId === r.id
+                          ? 'Сохранение…'
+                          : isEditing
+                            ? 'Сохранить'
+                            : 'Ответить'}
+                      </button>
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={savingId === r.id}
+                          onClick={() => cancelEdit(r.id)}
+                        >
+                          Отмена
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -887,10 +961,10 @@ function OwnerDirectoryList() {
 
   return (
     <div className="cabinet-panel">
-      <h2>Магазины, сервисы и егеря</h2>
+      <h2>Мой справочник</h2>
       <p className="cabinet-panel__lead">
-        Карточки справочника: редактирование, статистика и продление тарифа после истечения срока.
-        С сайта скрываются только неоплаченные / истёкшие — в кабинете остаются всегда.
+        Магазины, сервисы, гиды и егеря: редактирование, оплата и продление. С сайта скрываются
+        только неоплаченные / истёкшие — в кабинете остаются всегда.
       </p>
       <div className="cabinet-actions" style={{ marginTop: 0, marginBottom: 8 }}>
         <Link className="btn-primary" to="/owner/directory/new">
