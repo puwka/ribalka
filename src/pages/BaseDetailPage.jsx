@@ -11,6 +11,7 @@ import { toYandexCoords } from '../lib/coords';
 import { useToast } from '../components/ui/ToastContext';
 import { normalizeVideoList } from '../lib/videoEmbed';
 import { reviewsService } from '../services/reviewsService';
+import ImageLightbox from '../components/ui/ImageLightbox';
 import './BaseDetailPage.css';
 
 export default function BaseDetailPage() {
@@ -23,6 +24,7 @@ export default function BaseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [favorited, setFavorited] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const [activeVideo, setActiveVideo] = useState(0);
   const [reports, setReports] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -169,17 +171,35 @@ export default function BaseDetailPage() {
 
   return (
     <article className="water-detail">
+      <ImageLightbox
+        images={images}
+        index={lightboxIndex}
+        alt={item.name}
+        onClose={() => setLightboxIndex(null)}
+        onIndexChange={(next) => {
+          setLightboxIndex(next);
+          setActiveImg(next);
+        }}
+      />
+
       <div className="water-detail__hero">
         {images.length > 0 ? (
           <>
-            <img
-              src={images[activeImg]}
-              alt={item.name}
-              className="water-detail__hero-img"
-              onError={(e) => {
-                e.currentTarget.classList.add('is-broken');
-              }}
-            />
+            <button
+              type="button"
+              className="water-detail__hero-open"
+              onClick={() => setLightboxIndex(activeImg)}
+              aria-label="Открыть фото"
+            >
+              <img
+                src={images[activeImg]}
+                alt={item.name}
+                className="water-detail__hero-img"
+                onError={(e) => {
+                  e.currentTarget.classList.add('is-broken');
+                }}
+              />
+            </button>
             {images.length > 1 && (
               <div className="water-detail__thumbs">
                 {images.map((src, i) => (
@@ -187,7 +207,10 @@ export default function BaseDetailPage() {
                     key={src + i}
                     type="button"
                     className={`water-detail__thumb ${i === activeImg ? 'is-active' : ''}`}
-                    onClick={() => setActiveImg(i)}
+                    onClick={() => {
+                      setActiveImg(i);
+                      setLightboxIndex(i);
+                    }}
                   >
                     <img src={src} alt="" loading="lazy" />
                   </button>

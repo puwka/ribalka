@@ -105,6 +105,45 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+router.post('/:id/reply', requireAuth, async (req, res, next) => {
+  try {
+    const reply = String(
+      req.body?.owner_reply || req.body?.reply || req.body?.text || ''
+    ).trim();
+    if (!reply) return res.status(400).json({ error: 'Введите текст ответа' });
+
+    const { rows: found } = await pool.query(
+      `select * from public.site_reviews where id = $1 limit 1`,
+      [req.params.id]
+    );
+    const review = found[0];
+    if (!review) return res.status(404).json({ error: 'Отзыв не найден' });
+
+    const { rows: owned } = await pool.query(
+      `select id from public.bases
+       where owner_id = $1 and id::text = $2
+       limit 1`,
+      [req.user.sub, String(review.target_id)]
+    );
+    if (!owned[0]) {
+      return res.status(403).json({ error: 'Отзыв не найден или нет доступа' });
+    }
+
+    const { rows } = await pool.query(
+      `update public.site_reviews
+       set owner_reply = $2,
+           owner_replied_at = now(),
+           updated_at = now()
+       where id = $1
+       returning *`,
+      [req.params.id, reply]
+    );
+    res.json(mapReview(rows[0]));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const status = req.body?.status;

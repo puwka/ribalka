@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { paymentService } from '../../services/paymentService';
 import { advertisingService } from '../../services/advertisingService';
 import { basesService } from '../../services/basesService';
 import { listingPaymentService } from '../../services/listingPaymentService';
 import {
-  DIRECTORY_PERIODS,
-  calcConstructorTotal,
+  DEFAULT_CONSTRUCTOR,
+  DEFAULT_SERVICE_TARIFF,
   formatRub,
   normalizeConstructor,
+  normalizeServiceTariff,
 } from '../../lib/directoryPricing';
-import { statusLabel } from '../bases/BaseListingForm';
 import '../auth/AuthShared.css';
 import './OwnerMonetization.css';
 import './ListingPayment.css';
@@ -26,208 +26,178 @@ function formatDate(iso) {
 }
 
 export function OwnerSubscriptionPanel() {
-  const { user } = useAuth();
-  const [bases, setBases] = useState([]);
-  const [tariff, setTariff] = useState(null);
-  const [baseId, setBaseId] = useState('');
-  const [months, setMonths] = useState(3);
-  const [top, setTop] = useState(false);
-  const [frame, setFrame] = useState(false);
-  const [extraPhotos, setExtraPhotos] = useState(0);
-  const [extraVideos, setExtraVideos] = useState(0);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
+  const [baseTariff, setBaseTariff] = useState(() => normalizeConstructor(DEFAULT_CONSTRUCTOR));
+  const [directoryTariff, setDirectoryTariff] = useState(() =>
+    normalizeServiceTariff(DEFAULT_SERVICE_TARIFF)
+  );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [list, price] = await Promise.all([
-          basesService.listMine(user.id).catch(() => []),
+        const [ctor, directory] = await Promise.all([
           listingPaymentService
             .getPublicListingPrice()
             .catch(() => listingPaymentService.getPrice().catch(() => null)),
+          listingPaymentService.getDirectoryPrices().catch(() => null),
         ]);
         if (!alive) return;
-        setBases(Array.isArray(list) ? list : []);
-        if (price) setTariff(normalizeConstructor(price));
-        if (list?.[0]?.id) setBaseId(String(list[0].id));
-      } catch (err) {
-        if (alive) setError(err.message);
+        if (ctor) setBaseTariff(normalizeConstructor(ctor));
+        if (directory?.service || directory?.directory) {
+          setDirectoryTariff(normalizeServiceTariff(directory.service || directory.directory));
+        }
+      } finally {
+        if (alive) setLoading(false);
       }
     })();
     return () => {
       alive = false;
     };
-  }, [user]);
+  }, []);
 
-  const quote = useMemo(() => {
-    if (!tariff) return null;
-    return calcConstructorTotal(tariff, { months, top, frame, extraPhotos, extraVideos });
-  }, [tariff, months, top, frame, extraPhotos, extraVideos]);
-
-  const payNow = async () => {
-    setBusy(true);
-    setError('');
-    try {
-      if (!baseId) throw new Error('Выберите базу');
-      const result = await listingPaymentService.checkout(baseId, {
-        months,
-        top,
-        frame,
-        extraPhotos,
-        extraVideos,
-      });
-      if (result.order?.status === 'paid') {
-        navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
-        return;
-      }
-      if (result.confirmationUrl) {
-        window.location.href = result.confirmationUrl;
-        return;
-      }
-      throw new Error('Не удалось получить ссылку на оплату ЮKassa');
-    } catch (err) {
-      setError(err.message || 'Ошибка оплаты');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const ctor = tariff || normalizeConstructor({});
+  const ctor = baseTariff;
+  const dir = directoryTariff;
 
   return (
-    <div className="cabinet-panel mon-panel">
-      <h2>Тарифы размещения</h2>
+    <div className="cabinet-panel mon-panel owner-tariffs">
+      <h2>Тарифы</h2>
       <p className="cabinet-panel__lead">
-        Тариф <strong>Конструктор</strong> для платных баз. Оплата через ЮKassa (без ложной
-        «успешной» симуляции).
+        Два направления размещения: платные рыболовные базы и карточки в справочнике. Оплата и
+        опции подключаются при оформлении конкретной карточки.
       </p>
-      {error && <div className="auth-error">{error}</div>}
+      {loading ? <p className="owner-tariffs__loading">Загружаем актуальные цены…</p> : null}
 
-      <div className="listing-pay__card">
-        <div className="listing-pay__row">
-          <span>{ctor.title}</span>
-          <strong>{formatRub(ctor.baseAmount)} / мес</strong>
-        </div>
-        <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: '#64748b' }}>
-          В базе: {ctor.includedPhotos} фото и {ctor.includedVideos} видео
-        </p>
-      </div>
-
-      <div className="listing-pay__opts">
-        <p className="listing-pay__label">База для размещения</p>
-        {bases.length === 0 ? (
-          <p>
-            Нет баз. <Link to="/owner/bases/new">Добавить базу</Link>
-          </p>
-        ) : (
-          <select
-            className="admin-select"
-            style={{ width: '100%', maxWidth: 420 }}
-            value={baseId}
-            onChange={(e) => setBaseId(e.target.value)}
-          >
-            {bases.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({statusLabel(b.status)})
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <div className="listing-pay__opts">
-        <p className="listing-pay__label">Срок оплаты</p>
-        <div className="listing-pay__period-btns">
-          {DIRECTORY_PERIODS.map((m) => {
-            const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
-            return (
-              <button
-                key={m}
-                type="button"
-                className={months === m ? 'is-active' : ''}
-                onClick={() => setMonths(m)}
-              >
-                {m} мес.
-                {disc > 0 ? <small>−{disc}%</small> : null}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="listing-pay__opts">
-        <p className="listing-pay__label">Дополнительные опции</p>
-        <label className="listing-pay__check">
-          <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
-          <span>
-            Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
-          </span>
-        </label>
-        <label className="listing-pay__check">
-          <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
-          <span>
-            Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
-          </span>
-        </label>
-        <div className="listing-pay__counter">
-          <span>
-            + фото <em>+{formatRub(ctor.addonPhoto)}</em>
-          </span>
-          <div>
-            <button type="button" onClick={() => setExtraPhotos((n) => Math.max(0, n - 1))}>
-              −
-            </button>
-            <strong>{extraPhotos}</strong>
-            <button type="button" onClick={() => setExtraPhotos((n) => n + 1)}>
-              +
-            </button>
-          </div>
-        </div>
-        <div className="listing-pay__counter">
-          <span>
-            + видео <em>+{formatRub(ctor.addonVideo)}</em>
-          </span>
-          <div>
-            <button type="button" onClick={() => setExtraVideos((n) => Math.max(0, n - 1))}>
-              −
-            </button>
-            <strong>{extraVideos}</strong>
-            <button type="button" onClick={() => setExtraVideos((n) => n + 1)}>
-              +
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {quote && (
-        <div className="listing-pay__card listing-pay__card--total">
-          <div className="listing-pay__row">
-            <span>В месяц</span>
-            <strong>{formatRub(quote.monthly)}</strong>
-          </div>
-          {quote.discountPct > 0 && (
-            <div className="listing-pay__row">
-              <span>Скидка {quote.discountPct}%</span>
-              <strong>−{formatRub(quote.discountAmount)}</strong>
+      <div className="owner-tariffs__grid">
+        <article className="owner-tariff-card">
+          <div className="owner-tariff-card__top">
+            <h3>{ctor.title || 'Конструктор'}</h3>
+            <div className="owner-tariff-card__price">
+              <strong>{formatRub(ctor.baseAmount)}</strong>
+              <span>/ мес</span>
             </div>
-          )}
-          <div className="listing-pay__row listing-pay__row--total">
-            <span>Итого за {quote.months} мес.</span>
-            <strong>{formatRub(quote.total)}</strong>
           </div>
-        </div>
-      )}
+          <p className="owner-tariff-card__desc">
+            Размещение рыболовной базы на сайте. В тарифе{' '}
+            <strong>{ctor.includedPhotos ?? 1} фото</strong> и{' '}
+            <strong>{ctor.includedVideos ?? 1} видео</strong>.
+          </p>
 
-      <div className="cabinet-actions">
-        <button type="button" className="btn-primary" disabled={busy || !baseId} onClick={payNow}>
-          {busy ? 'Создаём платёж…' : `Оплатить ${quote ? formatRub(quote.total) : ''}`}
-        </button>
-        <Link className="btn-secondary" to="/owner/bases/new">
-          Добавить базу
-        </Link>
+          <h4>Дополнительно</h4>
+          <ul>
+            <li>
+              Размещение в ТОП — <strong>+{formatRub(ctor.addonTop)}/мес</strong>
+            </li>
+            <li>
+              Жёлтая рамка — <strong>+{formatRub(ctor.addonFrame)}/мес</strong>
+            </li>
+            <li>
+              +1 фото — <strong>+{formatRub(ctor.addonPhoto)}</strong>
+            </li>
+            <li>
+              +1 видео — <strong>+{formatRub(ctor.addonVideo)}</strong>
+            </li>
+          </ul>
+
+          <h4>Сроки и скидки</h4>
+          <ul>
+            <li>Минимальный срок — от 3 месяцев</li>
+            <li>
+              3 месяца — скидка <strong>{ctor.discount3 ?? 10}%</strong>
+            </li>
+            <li>
+              6 месяцев — скидка <strong>{ctor.discount6 ?? 20}%</strong>
+            </li>
+            <li>
+              12 месяцев — скидка <strong>{ctor.discount12 ?? 30}%</strong>
+            </li>
+          </ul>
+
+          <div className="owner-tariff-card__actions">
+            <Link className="btn-primary" to="/owner/bases/new">
+              Добавить базу
+            </Link>
+            <Link className="btn-secondary" to="/owner/bases">
+              Мои базы
+            </Link>
+          </div>
+        </article>
+
+        <article className="owner-tariff-card owner-tariff-card--alt">
+          <div className="owner-tariff-card__top">
+            <h3>{dir.title || 'Тариф справочника'}</h3>
+            <div className="owner-tariff-card__price">
+              <strong>{formatRub(dir.amountPerMonth)}</strong>
+              <span>/ мес</span>
+            </div>
+          </div>
+          <p className="owner-tariff-card__desc">
+            Один тариф для магазинов, сервисов, гидов и егерей.
+          </p>
+
+          <h4>Категории</h4>
+          <ul>
+            <li>
+              <strong>Магазины</strong> — снасти, экипировка
+            </li>
+            <li>
+              <strong>Сервисы</strong> — ремонт, прокат
+            </li>
+            <li>
+              <strong>Гиды и егеря</strong> — сопровождение, маршруты
+            </li>
+          </ul>
+
+          <h4>Дополнительно</h4>
+          <ul>
+            {(Number(dir.addonTop) || 0) > 0 ? (
+              <li>
+                Размещение в ТОП — <strong>+{formatRub(dir.addonTop)}/мес</strong>
+              </li>
+            ) : null}
+            <li>
+              Жёлтая рамка — <strong>+{formatRub(dir.addonFrame)}/мес</strong>
+            </li>
+          </ul>
+
+          <h4>Сроки</h4>
+          <ul>
+            <li>Оплата на 3, 6 или 12 месяцев</li>
+            {(Number(dir.discount3) || 0) > 0 ||
+            (Number(dir.discount6) || 0) > 0 ||
+            (Number(dir.discount12) || 0) > 0 ? (
+              <>
+                {(Number(dir.discount3) || 0) > 0 ? (
+                  <li>
+                    3 месяца — скидка <strong>{dir.discount3}%</strong>
+                  </li>
+                ) : null}
+                {(Number(dir.discount6) || 0) > 0 ? (
+                  <li>
+                    6 месяцев — скидка <strong>{dir.discount6}%</strong>
+                  </li>
+                ) : null}
+                {(Number(dir.discount12) || 0) > 0 ? (
+                  <li>
+                    12 месяцев — скидка <strong>{dir.discount12}%</strong>
+                  </li>
+                ) : null}
+              </>
+            ) : (
+              <li>Скидки за срок настраиваются в админке</li>
+            )}
+            <li>После оплаты заявка проходит модерацию</li>
+          </ul>
+
+          <div className="owner-tariff-card__actions">
+            <Link className="btn-primary" to="/owner/directory/new">
+              Добавить в справочник
+            </Link>
+            <Link className="btn-secondary" to="/directory">
+              Смотреть справочник
+            </Link>
+          </div>
+        </article>
       </div>
     </div>
   );

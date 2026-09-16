@@ -11,12 +11,14 @@ import './BaseModal.css';
 import { toVideoEmbedUrl } from '../../lib/videoEmbed';
 import { toYandexCoords } from '../../lib/coords';
 import RichText from '../ui/RichText';
+import ImageLightbox from '../ui/ImageLightbox';
 
 export default function BaseModal({ item, onClose }) {
   const { user, isAuthenticated, refresh } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('info');
   const [activeVideo, setActiveVideo] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [commentName, setCommentName] = useState('');
@@ -158,9 +160,25 @@ export default function BaseModal({ item, onClose }) {
 
         <div className="base-modal__gallery">
           {item.images?.slice(0, 4).map((img, i) => (
-            <img key={i} src={img} alt={item.name} />
+            <button
+              key={i}
+              type="button"
+              className="base-modal__gallery-btn"
+              onClick={() => setLightboxIndex(i)}
+              aria-label={`Открыть фото ${i + 1}`}
+            >
+              <img src={img} alt={item.name} />
+            </button>
           ))}
         </div>
+
+        <ImageLightbox
+          images={item.images || []}
+          index={lightboxIndex}
+          alt={item.name}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+        />
 
         <div className="base-modal__tabs">
           <button className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`} onClick={() => setActiveTab('info')}>

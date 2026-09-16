@@ -58,4 +58,13 @@ export const reviewsService = {
     }
     return platformDb.updateReview(id, { status });
   },
+
+  async replyAsOwner(id, text) {
+    if (apiDataEnabled) {
+      return api.post(`/api/reviews/${encodeURIComponent(id)}/reply`, {
+        owner_reply: text,
+      });
+    }
+    throw new Error('API mode is disabled');
+  },
 };

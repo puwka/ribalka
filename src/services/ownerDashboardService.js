@@ -326,14 +326,27 @@ export const ownerDashboardService = {
   },
 
   async replyToReview(ownerId, reviewId, text) {
-    const review = await platformDb.getReview(reviewId);
-    if (!review || review.owner_id !== ownerId) {
-      throw new Error('Отзыв не найден или нет доступа');
-    }
     if (!text?.trim()) throw new Error('Введите текст ответа');
+
+    if (apiDataEnabled) {
+      return reviewsService.replyAsOwner(reviewId, text.trim());
+    }
+
+    const review = await platformDb.getReview(reviewId);
+    if (!review) throw new Error('Отзыв не найден или нет доступа');
+
+    const baseId = String(review.base_id || review.target_id || '');
+    const ownsByField = review.owner_id && String(review.owner_id) === String(ownerId);
+    if (!ownsByField) {
+      const bases = await basesService.listMine(ownerId);
+      const ownsBase = bases.some((b) => String(b.id) === baseId);
+      if (!ownsBase) throw new Error('Отзыв не найден или нет доступа');
+    }
+
     return platformDb.updateReview(reviewId, {
       owner_reply: text.trim(),
       owner_replied_at: new Date().toISOString(),
+      owner_id: ownerId,
     });
   },
 

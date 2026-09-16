@@ -54,6 +54,7 @@ const OWNER_NAV = [
     items: [
       { to: '/owner', end: true, label: 'Сводка' },
       { to: '/owner/analytics', label: 'Аналитика баз' },
+      { to: '/owner/directory-analytics', label: 'Аналитика справочника' },
     ],
   },
   {

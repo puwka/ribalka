@@ -1,0 +1,122 @@
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+  animation: image-lightbox-in 0.18s ease-out;
+}
+
+@keyframes image-lightbox-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.image-lightbox__img {
+  max-width: min(96vw, 1200px);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  cursor: default;
+  animation: image-lightbox-zoom 0.2s ease-out;
+}
+
+@keyframes image-lightbox-zoom {
+  from {
+    transform: scale(0.96);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.image-lightbox__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.image-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.image-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.image-lightbox__nav:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.image-lightbox__nav--prev {
+  left: 12px;
+}
+
+.image-lightbox__nav--next {
+  right: 12px;
+}
+
+.image-lightbox__counter {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 0.9rem;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .image-lightbox {
+    padding: 12px;
+  }
+
+  .image-lightbox__nav {
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
+
+  .image-lightbox__nav--prev {
+    left: 6px;
+  }
+
+  .image-lightbox__nav--next {
+    right: 6px;
+  }
+}

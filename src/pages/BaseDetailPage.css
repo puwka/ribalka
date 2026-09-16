@@ -20,6 +20,15 @@
   display: block;
 }
 
+.water-detail__hero-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+}
+
 .water-detail__hero-img.is-broken {
   display: none;
 }

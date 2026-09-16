@@ -90,15 +90,27 @@
   margin-bottom: 24px;
 }
 
+.base-modal__gallery-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 .base-modal__gallery img {
   width: 100%;
   height: 180px;
   object-fit: cover;
   border-radius: 12px;
   transition: transform 0.3s ease;
+  display: block;
 }
 
-.base-modal__gallery img:hover {
+.base-modal__gallery-btn:hover img {
   transform: scale(1.03);
 }
 
