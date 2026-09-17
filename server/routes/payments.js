@@ -31,13 +31,33 @@ router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
       extraVideos: Number(req.query.extraVideos) || 0,
     };
     const quote = listingOrders.quoteListingCheckout(settings, options);
+    const topSlots = await listingOrders.getTopAvailability({ baseId });
     const frozen = Boolean(activeOrder?.provider_payment_id);
     res.json({
       settings,
       activeOrder,
       quote,
+      topSlots: {
+        ...topSlots,
+        addonTopDaily: Number(settings.addonTopDaily) || 300,
+      },
       displayAmount: frozen ? Number(activeOrder.amount) : quote.total,
       frozen,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/listing-top-slots', requireAuth, async (req, res, next) => {
+  try {
+    const settings = await listingOrders.getListingPriceSettings();
+    const topSlots = await listingOrders.getTopAvailability({
+      baseId: req.query.baseId || null,
+    });
+    res.json({
+      ...topSlots,
+      addonTopDaily: Number(settings.addonTopDaily) || 300,
     });
   } catch (err) {
     next(err);
@@ -98,16 +118,25 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
         ? `${String(origin).replace(/\/$/, '')}/owner/directory/payment/result/:orderId`
         : null);
     const directoryOrders = await import('../services/directoryOrders.js');
-    const result = await directoryOrders.createDirectoryCheckout({
-      userId: req.user.sub,
-      category: body.category,
-      months: body.months,
-      frame: Boolean(body.frame),
-      top: Boolean(body.top),
-      listing: body.listing || body,
-      directoryItemId: body.directoryItemId || body.directory_item_id || null,
-      returnUrl,
-    });
+    const result =
+      body.mode === 'upgrade'
+        ? await directoryOrders.createDirectoryUpgradeCheckout({
+            userId: req.user.sub,
+            directoryItemId: body.directoryItemId || body.directory_item_id || null,
+            top: Boolean(body.top),
+            frame: Boolean(body.frame),
+            returnUrl,
+          })
+        : await directoryOrders.createDirectoryCheckout({
+            userId: req.user.sub,
+            category: body.category,
+            months: body.months,
+            frame: Boolean(body.frame),
+            top: Boolean(body.top),
+            listing: body.listing || body,
+            directoryItemId: body.directoryItemId || body.directory_item_id || null,
+            returnUrl,
+          });
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -164,7 +193,8 @@ router.post('/directory-orders/:id/verify', requireAuth, async (req, res, next) 
 /** Owner: create order + YooKassa payment for a base */
 router.post('/listing-checkout', requireAuth, async (req, res, next) => {
   try {
-    const { baseId, returnUrl, months, top, frame, extraPhotos, extraVideos } = req.body || {};
+    const { baseId, returnUrl, months, top, frame, extraPhotos, extraVideos, mode } =
+      req.body || {};
     if (!baseId) return res.status(400).json({ error: 'baseId required' });
 
     const site =
@@ -177,15 +207,63 @@ router.post('/listing-checkout', requireAuth, async (req, res, next) => {
         ? `${site.replace(/\/$/, '')}/owner/payment/result/:orderId`
         : null);
 
-    const result = await listingOrders.createListingCheckout({
-      userId: req.user.sub,
-      baseId,
-      returnUrl: finalReturn,
-      options: { months, top, frame, extraPhotos, extraVideos },
-    });
+    const options = { months, top, frame, extraPhotos, extraVideos };
+    let result;
+    if (mode === 'top_daily') {
+      result = await listingOrders.createTopDailyCheckout({
+        userId: req.user.sub,
+        baseId,
+        returnUrl: finalReturn,
+      });
+    } else if (mode === 'upgrade') {
+      result = await listingOrders.createListingUpgradeCheckout({
+        userId: req.user.sub,
+        baseId,
+        returnUrl: finalReturn,
+        options,
+      });
+    } else {
+      result = await listingOrders.createListingCheckout({
+        userId: req.user.sub,
+        baseId,
+        returnUrl: finalReturn,
+        options,
+      });
+    }
 
-    // Fix return URL if placeholder used — recreate is heavy; patch return in create with order id
     res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/listing-upgrade-preview', requireAuth, async (req, res, next) => {
+  try {
+    const baseId = req.query.baseId;
+    if (!baseId) return res.status(400).json({ error: 'baseId required' });
+    const settings = await listingOrders.getListingPriceSettings();
+    const { pool } = await import('../db.js');
+    const { rows } = await pool.query(
+      `select * from public.bases where id = $1 and owner_id = $2 limit 1`,
+      [baseId, req.user.sub]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'База не найдена' });
+    const quote = listingOrders.quoteListingUpgrade(settings, rows[0], {
+      months: Number(req.query.months) || 3,
+      top: req.query.top === '1' || req.query.top === 'true',
+      frame: req.query.frame === '1' || req.query.frame === 'true',
+      extraPhotos: Number(req.query.extraPhotos) || 0,
+      extraVideos: Number(req.query.extraVideos) || 0,
+    });
+    const topSlots = await listingOrders.getTopAvailability({ baseId });
+    res.json({
+      settings,
+      quote,
+      topSlots: {
+        ...topSlots,
+        addonTopDaily: Number(settings.addonTopDaily) || 300,
+      },
+    });
   } catch (err) {
     next(err);
   }

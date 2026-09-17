@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   DEFAULT_SERVICE_TARIFF,
   calcServiceTotal,
+  calcDirectoryUpgradeTotal,
   formatRub,
   normalizeServiceTariff,
 } from '../../lib/directoryPricing';
@@ -16,12 +17,13 @@ import DirectoryConstructorPricing, {
 } from './DirectoryConstructorPricing';
 import './DirectoryPricingForm.css';
 
-/** Pay / renew directory listing from owner cabinet */
+/** Pay / renew / upgrade directory listing from owner cabinet */
 export default function OwnerDirectoryCheckout() {
   const { itemId } = useParams();
   const [searchParams] = useSearchParams();
   const { refresh } = useAuth();
   const navigate = useNavigate();
+  const isUpgrade = searchParams.get('mode') === 'upgrade';
   const [item, setItem] = useState(null);
   const [tariff, setTariff] = useState(DEFAULT_SERVICE_TARIFF);
   const [options, setOptions] = useState(() => {
@@ -70,35 +72,43 @@ export default function OwnerDirectoryCheckout() {
     };
   }, [itemId]);
 
-  const quote = useMemo(
-    () => calcServiceTotal(tariff, options),
-    [tariff, options]
+  const renewQuote = useMemo(() => calcServiceTotal(tariff, options), [tariff, options]);
+  const upgradeQuote = useMemo(
+    () => (item && isUpgrade ? calcDirectoryUpgradeTotal(tariff, item, options) : null),
+    [tariff, item, options, isUpgrade]
   );
+  const amount = isUpgrade ? upgradeQuote?.total ?? 0 : renewQuote.total;
 
   const pay = async () => {
     setError('');
     setPaying(true);
     try {
       await refresh?.();
-      const result = await listingPaymentService.directoryCheckout({
-        category: item.category,
-        months: options.months,
-        top: options.top,
-        frame: options.frame,
-        directoryItemId: item.id,
-        listing: {
-          name: item.name,
-          phone: item.phone,
-          description: item.description,
-          address: item.address,
-          region: item.region,
-          website: item.website,
-          hours: item.hours,
-          image: item.image,
-        },
-      });
+      const result = isUpgrade
+        ? await listingPaymentService.directoryUpgradeCheckout({
+            directoryItemId: item.id,
+            top: options.top,
+            frame: options.frame,
+          })
+        : await listingPaymentService.directoryCheckout({
+            category: item.category,
+            months: options.months,
+            top: options.top,
+            frame: options.frame,
+            directoryItemId: item.id,
+            listing: {
+              name: item.name,
+              phone: item.phone,
+              description: item.description,
+              address: item.address,
+              region: item.region,
+              website: item.website,
+              hours: item.hours,
+              image: item.image,
+            },
+          });
       if (result.order?.status === 'paid') {
-        navigate('/owner/directory', { replace: true });
+        navigate(`/owner/directory/payment/result/${result.order.id}`, { replace: true });
         return;
       }
       if (result.confirmationUrl) {
@@ -108,19 +118,18 @@ export default function OwnerDirectoryCheckout() {
       throw new Error('Не удалось получить ссылку на оплату');
     } catch (err) {
       setError(err.message || 'Ошибка оплаты');
-    } finally {
       setPaying(false);
     }
   };
 
   if (loading) {
-    return <div className="cabinet-panel">Загрузка оплаты…</div>;
+    return <div className="cabinet-panel">Загрузка…</div>;
   }
 
-  if (!item) {
+  if (error && !item) {
     return (
       <div className="cabinet-panel">
-        <div className="auth-error">{error || 'Карточка не найдена'}</div>
+        <div className="auth-error">{error}</div>
         <Link className="btn-secondary" to="/owner/directory">
           Назад
         </Link>
@@ -128,45 +137,56 @@ export default function OwnerDirectoryCheckout() {
     );
   }
 
-  const isRenew = Boolean(item.paidUntil) || item.status === 'published' || item.expired;
-  const categoryTitle = {
-    shop: 'Размещение магазина',
-    service: 'Размещение сервиса',
-    guide: 'Размещение гида / егеря',
-  }[item.category] || 'Размещение в справочнике';
-
   return (
     <div className="cabinet-panel">
-      <h2>{isRenew || item.expired ? 'Продлить размещение' : 'Оплатить размещение'}</h2>
+      <h2>{isUpgrade ? 'Доплата опций справочника' : 'Оплата размещения'}</h2>
       <p className="cabinet-panel__lead">
         {item.name} · {directoryStatusLabel(item.status)}
-        {item.paidUntil
-          ? ` · оплачено до ${new Date(item.paidUntil).toLocaleDateString('ru-RU')}`
-          : ''}
-        {item.expired ? ' · срок истёк — карточка скрыта с сайта, но сохранена у вас' : ''}
+        {item.paidUntil ? ` · до ${new Date(item.paidUntil).toLocaleDateString('ru-RU')}` : ''}
       </p>
+      {isUpgrade ? (
+        <p className="dir-pricing__hint">
+          Оплачиваются только новые опции. Срок размещения не продлевается
+          {upgradeQuote?.remainingMonths
+            ? ` (осталось ≈ ${upgradeQuote.remainingMonths} мес.)`
+            : ''}
+          .
+        </p>
+      ) : null}
 
       <DirectoryConstructorPricing
         tariff={tariff}
         options={options}
         onChange={setOptions}
-        title={categoryTitle}
-        subtitle="ТОП, рамка и срок — итоговая сумма обновляется сразу."
+        title={isUpgrade ? 'Новые опции' : 'Тариф и срок'}
+        subtitle={
+          isUpgrade
+            ? 'Отметьте ТОП или рамку, если их ещё не было в тарифе.'
+            : 'Выберите срок и доп. опции — стоимость считается сразу.'
+        }
+        hidePeriods={isUpgrade}
+        hideTotal={isUpgrade}
       />
 
-      {error && <p className="dir-pricing__error">{error}</p>}
+      {error && <div className="auth-error">{error}</div>}
 
       <div className="cabinet-actions" style={{ marginTop: 16 }}>
         <button
           type="button"
           className="btn-primary"
-          disabled={paying || !tariff.enabled}
+          disabled={paying || !tariff.enabled || (isUpgrade && amount === 0)}
           onClick={pay}
         >
-          {paying ? 'Создаём платёж…' : `Оплатить ${formatRub(quote.total)}`}
+          {paying
+            ? 'Создаём платёж…'
+            : isUpgrade && amount === 0
+              ? 'Нет новых опций'
+              : isUpgrade
+                ? `Доплатить ${formatRub(amount)}`
+                : `Оплатить ${formatRub(amount)}`}
         </button>
         <Link className="btn-secondary" to={`/owner/directory/${item.id}/edit`}>
-          Редактировать карточку
+          К карточке
         </Link>
         <Link className="btn-secondary" to="/owner/directory">
           К списку

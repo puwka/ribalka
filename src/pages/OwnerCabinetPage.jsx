@@ -41,6 +41,8 @@ import {
   normalizeServiceTariff,
   calcConstructorTotal,
   calcServiceTotal,
+  calcListingUpgradeTotal,
+  calcDirectoryUpgradeTotal,
 } from '../lib/directoryPricing';
 import '../components/auth/AuthShared.css';
 import '../components/bases/BaseListingForm.css';
@@ -588,12 +590,17 @@ function OwnerBaseCreate() {
   const navigate = useNavigate();
   const [tariff, setTariff] = useState(() => normalizeConstructor({}));
   const [options, setOptions] = useState(DEFAULT_BASE_OPTIONS);
+  const [topSlots, setTopSlots] = useState(null);
 
   useEffect(() => {
     if (!apiDataEnabled) return;
     listingPaymentService
       .getPublicListingPrice()
       .then((p) => setTariff(normalizeConstructor(p)))
+      .catch(() => {});
+    listingPaymentService
+      .getTopSlots()
+      .then(setTopSlots)
       .catch(() => {});
   }, []);
 
@@ -610,7 +617,12 @@ function OwnerBaseCreate() {
       </p>
 
       {apiDataEnabled && (
-        <BaseConstructorPricing tariff={tariff} options={options} onChange={setOptions} />
+        <BaseConstructorPricing
+          tariff={tariff}
+          options={options}
+          onChange={setOptions}
+          topSlots={topSlots}
+        />
       )}
 
       <BaseListingForm
@@ -654,6 +666,8 @@ function OwnerBaseEdit() {
   const [loading, setLoading] = useState(true);
   const [tariff, setTariff] = useState(() => normalizeConstructor({}));
   const [options, setOptions] = useState(DEFAULT_BASE_OPTIONS);
+  const [topSlots, setTopSlots] = useState(null);
+  const [payingDaily, setPayingDaily] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -670,6 +684,12 @@ function OwnerBaseEdit() {
         extraPhotos: Math.max(prev.extraPhotos, Number(row.paid_extra_photos) || 0),
         extraVideos: Math.max(prev.extraVideos, Number(row.paid_extra_videos) || 0),
       }));
+      if (apiDataEnabled) {
+        listingPaymentService
+          .getTopSlots(baseId)
+          .then(setTopSlots)
+          .catch(() => setTopSlots(null));
+      }
     } catch (err) {
       setError(err.message);
       setRecord(null);
@@ -705,11 +725,47 @@ function OwnerBaseEdit() {
   const quote = calcConstructorTotal(tariff, options);
   const paidUntil = record.paid_until || record.paidUntil;
   const expired = isBaseExpired(record);
+  const canUpgrade = Boolean(apiDataEnabled && paidUntil && !expired);
+  const upgradeQuote = canUpgrade
+    ? calcListingUpgradeTotal(tariff, record, options)
+    : { canUpgrade: false, total: 0 };
   const payLabel = apiDataEnabled
     ? expired || paidUntil
       ? `Продлить за ${formatRub(quote.total)}`
       : `Оплатить ${formatRub(quote.total)}`
     : 'Сохранить и на модерацию';
+  const upgradeHref = `/owner/payment/${record.id}${buildPaymentQuery({
+    ...options,
+    mode: 'upgrade',
+  })}`;
+  const renewHref = `/owner/payment/${record.id}${buildPaymentQuery(options)}`;
+  const dailyPrice = Number(topSlots?.addonTopDaily ?? tariff.addonTopDaily) || 300;
+  const canBuyDaily =
+    apiDataEnabled &&
+    record.status === 'approved' &&
+    !expired &&
+    (topSlots == null || topSlots.dailyAvailable !== false || topSlots.alreadyTop);
+
+  const buyDailyTop = async () => {
+    setPayingDaily(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await listingPaymentService.checkoutTopDaily(record.id);
+      if (result.order?.status === 'paid') {
+        navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
+        return;
+      }
+      if (result.confirmationUrl) {
+        window.location.href = result.confirmationUrl;
+        return;
+      }
+      throw new Error('Не удалось получить ссылку на оплату');
+    } catch (err) {
+      setError(err.message || 'Ошибка оплаты');
+      setPayingDaily(false);
+    }
+  };
 
   return (
     <div className="cabinet-panel">
@@ -721,7 +777,8 @@ function OwnerBaseEdit() {
         </span>
         {paidUntil ? ` · оплачено до ${formatDate(paidUntil)}` : ''}
         {expired ? ' · срок истёк' : ''}
-        {' · '}можно править карточку и сразу видеть стоимость продления
+        {topSlots ? ` · ТОП на главной ${topSlots.used}/${topSlots.max}` : ''}
+        {' · '}можно править карточку, доплатить опции или продлить срок
       </p>
       {record.status === 'rejected' && record.rejection_reason && (
         <div className="auth-error" style={{ marginBottom: 12 }}>
@@ -735,9 +792,27 @@ function OwnerBaseEdit() {
           tariff={tariff}
           options={options}
           onChange={setOptions}
-          title={expired || paidUntil ? 'Продление и опции' : 'Тариф и опции размещения'}
+          topSlots={topSlots}
+          title={
+            canUpgrade
+              ? 'Опции: доплата или продление'
+              : expired || paidUntil
+                ? 'Продление и опции'
+                : 'Тариф и опции размещения'
+          }
         />
       )}
+
+      {canUpgrade && upgradeQuote.canUpgrade ? (
+        <div className="auth-success" style={{ marginBottom: 12 }}>
+          Новые опции к доплате (без продления срока):{' '}
+          <strong>{formatRub(upgradeQuote.total)}</strong>
+          {upgradeQuote.deltaPhotos ? ` · +${upgradeQuote.deltaPhotos} фото` : ''}
+          {upgradeQuote.deltaVideos ? ` · +${upgradeQuote.deltaVideos} видео` : ''}
+          {upgradeQuote.addTop ? ' · ТОП' : ''}
+          {upgradeQuote.addFrame ? ' · рамка' : ''}
+        </div>
+      ) : null}
 
       <BaseListingForm
         key={record.updated_at || record.id}
@@ -753,11 +828,19 @@ function OwnerBaseEdit() {
           addonVideo: tariff.addonVideo || 100,
           payHrefPhotos: `/owner/payment/${record.id}${buildPaymentQuery({
             ...options,
-            extraPhotos: Math.max(options.extraPhotos, (Number(record.paid_extra_photos) || 0) + 1),
+            mode: canUpgrade ? 'upgrade' : undefined,
+            extraPhotos: Math.max(
+              options.extraPhotos,
+              (Number(record.paid_extra_photos) || 0) + 1
+            ),
           })}`,
           payHrefVideos: `/owner/payment/${record.id}${buildPaymentQuery({
             ...options,
-            extraVideos: Math.max(options.extraVideos, (Number(record.paid_extra_videos) || 0) + 1),
+            mode: canUpgrade ? 'upgrade' : undefined,
+            extraVideos: Math.max(
+              options.extraVideos,
+              (Number(record.paid_extra_videos) || 0) + 1
+            ),
           })}`,
         }}
         onSubmit={async (form) => {
@@ -769,7 +852,7 @@ function OwnerBaseEdit() {
         onSubmitAndSend={async (form) => {
           const saved = await basesService.saveDraft(user.id, form, baseId);
           if (apiDataEnabled) {
-            navigate(`/owner/payment/${saved.id}${buildPaymentQuery(options)}`);
+            navigate(renewHref.replace(record.id, saved.id));
             return;
           }
           await basesService.submitForReview(user.id, saved.id);
@@ -778,6 +861,30 @@ function OwnerBaseEdit() {
         }}
       />
       <div className="cabinet-actions" style={{ marginTop: 12 }}>
+        {canUpgrade && upgradeQuote.canUpgrade ? (
+          <Link className="btn-primary" to={upgradeHref}>
+            Доплатить {formatRub(upgradeQuote.total)}
+          </Link>
+        ) : null}
+        {apiDataEnabled ? (
+          <Link className={canUpgrade && upgradeQuote.canUpgrade ? 'btn-secondary' : 'btn-primary'} to={renewHref}>
+            {payLabel}
+          </Link>
+        ) : null}
+        {canBuyDaily ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={payingDaily}
+            onClick={buyDailyTop}
+          >
+            {payingDaily
+              ? 'Создаём платёж…'
+              : topSlots?.alreadyTop
+                ? `Продлить ТОП на сутки ${formatRub(dailyPrice)}`
+                : `ТОП на сутки ${formatRub(dailyPrice)}`}
+          </button>
+        ) : null}
         <button type="button" className="btn-secondary" onClick={() => navigate('/owner/bases')}>
           К списку
         </button>
@@ -1135,6 +1242,15 @@ function OwnerDirectoryEdit() {
     service: 'Размещение сервиса',
     guide: 'Размещение гида / егеря',
   }[item.category] || 'Размещение в справочнике';
+  const canUpgrade = Boolean(apiDataEnabled && item.paidUntil && !item.expired);
+  const upgradeQuote = canUpgrade
+    ? calcDirectoryUpgradeTotal(tariff, item, options)
+    : { canUpgrade: false, total: 0 };
+  const renewHref = `/owner/directory/${item.id}/pay${buildDirectoryPaymentQuery(options)}`;
+  const upgradeHref = `/owner/directory/${item.id}/pay${buildDirectoryPaymentQuery({
+    ...options,
+    mode: 'upgrade',
+  })}`;
 
   return (
     <div className="cabinet-panel">
@@ -1143,6 +1259,7 @@ function OwnerDirectoryEdit() {
         {directoryStatusLabel(item.status)}
         {item.paidUntil ? ` · оплачено до ${formatDate(item.paidUntil)}` : ''}
         {item.expired ? ' · срок истёк, продлите оплату' : ''}
+        {canUpgrade ? ' · можно доплатить ТОП / рамку или продлить срок' : ''}
       </p>
       {error && <div className="auth-error">{error}</div>}
       {message && <div className="auth-success">{message}</div>}
@@ -1152,9 +1269,24 @@ function OwnerDirectoryEdit() {
           tariff={tariff}
           options={options}
           onChange={setOptions}
-          title={item.expired || item.paidUntil ? 'Продление и опции' : categoryTitle}
+          title={
+            canUpgrade
+              ? 'Опции: доплата или продление'
+              : item.expired || item.paidUntil
+                ? 'Продление и опции'
+                : categoryTitle
+          }
         />
       )}
+
+      {canUpgrade && upgradeQuote.canUpgrade ? (
+        <div className="auth-success" style={{ marginBottom: 12 }}>
+          Новые опции к доплате (без продления срока):{' '}
+          <strong>{formatRub(upgradeQuote.total)}</strong>
+          {upgradeQuote.addTop ? ' · ТОП' : ''}
+          {upgradeQuote.addFrame ? ' · рамка' : ''}
+        </div>
+      ) : null}
 
       <DirectoryListingForm
         initial={item}
@@ -1169,14 +1301,21 @@ function OwnerDirectoryEdit() {
         }}
       />
       <div className="cabinet-actions" style={{ marginTop: 16 }}>
+        {canUpgrade && upgradeQuote.canUpgrade ? (
+          <Link className="btn-primary" to={upgradeHref}>
+            Доплатить {formatRub(upgradeQuote.total)}
+          </Link>
+        ) : null}
         {apiDataEnabled && (
           <Link
-            className="btn-primary"
-            to={`/owner/directory/${item.id}/pay${buildDirectoryPaymentQuery(options)}`}
+            className={canUpgrade && upgradeQuote.canUpgrade ? 'btn-secondary' : 'btn-primary'}
+            to={renewHref}
           >
             {item.expired
               ? `Продлить за ${formatRub(quote.total)}`
-              : `Оплатить ${formatRub(quote.total)}`}
+              : item.paidUntil
+                ? `Продлить за ${formatRub(quote.total)}`
+                : `Оплатить ${formatRub(quote.total)}`}
           </Link>
         )}
         <button type="button" className="btn-secondary" onClick={() => navigate('/owner/directory')}>

@@ -89,6 +89,13 @@ export default function TariffsPage() {
             <ul className="tariff-card__list">
               <li>
                 Размещение в ТОП — <strong>+{formatRub(ctor.addonTop)}/мес</strong>
+                <span className="tariff-card__hint">
+                  {' '}
+                  (на главной 4 места; если заняты — недоступно)
+                </span>
+              </li>
+              <li>
+                ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
               </li>
               <li>
                 Выделение жёлтой рамкой — <strong>+{formatRub(ctor.addonFrame)}/мес</strong>

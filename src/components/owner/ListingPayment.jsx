@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   DIRECTORY_PERIODS,
   calcConstructorTotal,
+  calcListingUpgradeTotal,
   formatRub,
   normalizeConstructor,
 } from '../../lib/directoryPricing';
@@ -39,6 +40,7 @@ export function OwnerListingCheckoutPage() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isUpgrade = searchParams.get('mode') === 'upgrade';
   const [base, setBase] = useState(null);
   const [tariff, setTariff] = useState(null);
   const [extraPhotos, setExtraPhotos] = useState(() =>
@@ -56,7 +58,9 @@ export function OwnerListingCheckoutPage() {
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [payingDaily, setPayingDaily] = useState(false);
   const [error, setError] = useState('');
+  const [topSlots, setTopSlots] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -77,6 +81,16 @@ export function OwnerListingCheckoutPage() {
         if (!b || b.owner_id !== user.id) throw new Error('База не найдена');
         setBase(b);
         setTariff(normalizeConstructor(preview.settings || {}));
+        if (preview.topSlots) {
+          setTopSlots(preview.topSlots);
+        } else {
+          listingPaymentService
+            .getTopSlots(baseId)
+            .then((slots) => {
+              if (alive) setTopSlots(slots);
+            })
+            .catch(() => {});
+        }
 
         const opts = preview.activeOrder?.meta?.constructor_options || preview.quote?.options;
         const qPhotos = Math.max(0, Number(searchParams.get('extraPhotos')) || 0);
@@ -84,7 +98,17 @@ export function OwnerListingCheckoutPage() {
         const qMonths = Number(searchParams.get('months'));
         const qTop = searchParams.get('top') === '1';
         const qFrame = searchParams.get('frame') === '1';
-        if (opts) {
+
+        // Seed from already paid options so upgrade counters don't go below paid slots
+        const paidPhotos = Math.max(0, Number(b.paid_extra_photos) || 0);
+        const paidVideos = Math.max(0, Number(b.paid_extra_videos) || 0);
+
+        if (isUpgrade) {
+          setTop(qTop || Boolean(b.is_top));
+          setFrame(qFrame || Boolean(b.yellow_frame));
+          setExtraPhotos(Math.max(qPhotos, paidPhotos));
+          setExtraVideos(Math.max(qVideos, paidVideos));
+        } else if (opts) {
           if ([3, 6, 12].includes(Number(opts.months))) setMonths(Number(opts.months));
           setTop(Boolean(opts.top) || qTop);
           setFrame(Boolean(opts.frame) || qFrame);
@@ -98,7 +122,7 @@ export function OwnerListingCheckoutPage() {
           if (qVideos) setExtraVideos(qVideos);
         }
 
-        if (preview.frozen && preview.activeOrder?.confirmation_url) {
+        if (!isUpgrade && preview.frozen && preview.activeOrder?.confirmation_url) {
           setPendingPaymentUrl(preview.activeOrder.confirmation_url);
         }
       } catch (err) {
@@ -110,16 +134,45 @@ export function OwnerListingCheckoutPage() {
     return () => {
       alive = false;
     };
-  }, [baseId, user, searchParams]);
+  }, [baseId, user, searchParams, isUpgrade]);
 
-  const quote = useMemo(() => {
+  const renewQuote = useMemo(() => {
     if (!tariff) return null;
     return calcConstructorTotal(tariff, { months, top, frame, extraPhotos, extraVideos });
   }, [tariff, months, top, frame, extraPhotos, extraVideos]);
 
-  const amount = quote?.total ?? 0;
+  const upgradeQuote = useMemo(() => {
+    if (!tariff || !base || !isUpgrade) return null;
+    return calcListingUpgradeTotal(tariff, base, { top, frame, extraPhotos, extraVideos });
+  }, [tariff, base, isUpgrade, top, frame, extraPhotos, extraVideos]);
+
+  const amount = isUpgrade ? upgradeQuote?.total ?? 0 : renewQuote?.total ?? 0;
+  const monthlyTopLocked =
+    Boolean(topSlots) && !topSlots.available && !topSlots.alreadyTop && !(isUpgrade && base?.is_top);
+  const paidUntilMs = base?.paid_until || base?.paidUntil
+    ? new Date(base.paid_until || base.paidUntil).getTime()
+    : null;
+  const basePeriodActive = paidUntilMs == null || paidUntilMs > Date.now();
+  const dailyPrice =
+    Number(topSlots?.addonTopDaily ?? tariff?.addonTopDaily) || 300;
+  const canBuyDaily =
+    Boolean(base) &&
+    base.status === 'approved' &&
+    basePeriodActive &&
+    (topSlots == null || topSlots.dailyAvailable !== false || topSlots.alreadyTop);
+
+  useEffect(() => {
+    if (monthlyTopLocked && top) {
+      setTop(false);
+      setPendingPaymentUrl(null);
+    }
+  }, [monthlyTopLocked, top]);
 
   const pay = async () => {
+    if (top && monthlyTopLocked) {
+      setError('Все места в ТОП на главной заняты. Можно купить «ТОП на сутки».');
+      return;
+    }
     setPaying(true);
     setError('');
     try {
@@ -129,6 +182,7 @@ export function OwnerListingCheckoutPage() {
         frame,
         extraPhotos,
         extraVideos,
+        mode: isUpgrade ? 'upgrade' : undefined,
       });
       if (result.order?.status === 'paid') {
         navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
@@ -142,6 +196,26 @@ export function OwnerListingCheckoutPage() {
     } catch (err) {
       setError(err.message || 'Ошибка оплаты');
       setPaying(false);
+    }
+  };
+
+  const payDailyTop = async () => {
+    setPayingDaily(true);
+    setError('');
+    try {
+      const result = await listingPaymentService.checkoutTopDaily(baseId);
+      if (result.order?.status === 'paid') {
+        navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
+        return;
+      }
+      if (result.confirmationUrl) {
+        window.location.href = result.confirmationUrl;
+        return;
+      }
+      throw new Error('Не удалось получить ссылку на оплату');
+    } catch (err) {
+      setError(err.message || 'Ошибка оплаты');
+      setPayingDaily(false);
     }
   };
 
@@ -165,12 +239,16 @@ export function OwnerListingCheckoutPage() {
   }
 
   const ctor = tariff || normalizeConstructor({});
+  const minPhotos = Math.max(0, Number(base?.paid_extra_photos) || 0);
+  const minVideos = Math.max(0, Number(base?.paid_extra_videos) || 0);
 
   return (
     <div className="cabinet-panel listing-pay">
-      <h2>Размещение базы</h2>
+      <h2>{isUpgrade ? 'Доплата опций' : 'Размещение базы'}</h2>
       <p className="cabinet-panel__lead">
-        Тариф Конструктор: выберите срок и дополнительные опции, затем оплатите через ЮKassa.
+        {isUpgrade
+          ? 'Оплатите только новые опции — срок размещения не продлевается.'
+          : 'Тариф Конструктор: выберите срок и дополнительные опции, затем оплатите через ЮKassa.'}
       </p>
 
       <div className="listing-pay__card">
@@ -182,33 +260,49 @@ export function OwnerListingCheckoutPage() {
           <span>{ctor.title}</span>
           <strong>{formatRub(ctor.baseAmount)} / мес</strong>
         </div>
-        <p className="listing-pay__note" style={{ marginTop: 8 }}>
-          В базе: {ctor.includedPhotos} фото и {ctor.includedVideos} видео
-        </p>
+        {isUpgrade && upgradeQuote ? (
+          <p className="listing-pay__note" style={{ marginTop: 8 }}>
+            Осталось ≈ {upgradeQuote.remainingMonths} мес. до конца оплаченного периода
+            {upgradeQuote.deltaPhotos
+              ? ` · +${upgradeQuote.deltaPhotos} фото`
+              : ''}
+            {upgradeQuote.deltaVideos
+              ? ` · +${upgradeQuote.deltaVideos} видео`
+              : ''}
+            {upgradeQuote.addTop ? ' · ТОП' : ''}
+            {upgradeQuote.addFrame ? ' · рамка' : ''}
+          </p>
+        ) : (
+          <p className="listing-pay__note" style={{ marginTop: 8 }}>
+            В базе: {ctor.includedPhotos} фото и {ctor.includedVideos} видео
+          </p>
+        )}
       </div>
 
-      <div className="listing-pay__opts">
-        <p className="listing-pay__label">Срок оплаты</p>
-        <div className="listing-pay__period-btns">
-          {DIRECTORY_PERIODS.map((m) => {
-            const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
-            return (
-              <button
-                key={m}
-                type="button"
-                className={months === m ? 'is-active' : ''}
-                onClick={() => {
-                  setMonths(m);
-                  setPendingPaymentUrl(null);
-                }}
-              >
-                {m} мес.
-                {disc > 0 ? <small>−{disc}%</small> : null}
-              </button>
-            );
-          })}
+      {!isUpgrade && (
+        <div className="listing-pay__opts">
+          <p className="listing-pay__label">Срок оплаты</p>
+          <div className="listing-pay__period-btns">
+            {DIRECTORY_PERIODS.map((m) => {
+              const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  className={months === m ? 'is-active' : ''}
+                  onClick={() => {
+                    setMonths(m);
+                    setPendingPaymentUrl(null);
+                  }}
+                >
+                  {m} мес.
+                  {disc > 0 ? <small>−{disc}%</small> : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="listing-pay__opts">
         <p className="listing-pay__label">Дополнительные опции</p>
@@ -216,26 +310,44 @@ export function OwnerListingCheckoutPage() {
           <input
             type="checkbox"
             checked={top}
+            disabled={
+              (isUpgrade && Boolean(base?.is_top)) || monthlyTopLocked
+            }
             onChange={(e) => {
               setTop(e.target.checked);
               setPendingPaymentUrl(null);
             }}
           />
           <span>
-            Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
+            Размещение в ТОП{' '}
+            <em>
+              +{formatRub(ctor.addonTop)}
+              {isUpgrade ? ` × ${upgradeQuote?.remainingMonths || 1} мес.` : '/мес'}
+            </em>
+            {topSlots ? (
+              <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
+                На главной {topSlots.used}/{topSlots.max} мест
+                {monthlyTopLocked ? ' — помесячный ТОП недоступен' : ''}
+              </small>
+            ) : null}
           </span>
         </label>
         <label className="listing-pay__check">
           <input
             type="checkbox"
             checked={frame}
+            disabled={isUpgrade && Boolean(base?.yellow_frame)}
             onChange={(e) => {
               setFrame(e.target.checked);
               setPendingPaymentUrl(null);
             }}
           />
           <span>
-            Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
+            Жёлтая рамка{' '}
+            <em>
+              +{formatRub(ctor.addonFrame)}
+              {isUpgrade ? ` × ${upgradeQuote?.remainingMonths || 1} мес.` : '/мес'}
+            </em>
           </span>
         </label>
         <div className="listing-pay__counter">
@@ -246,7 +358,7 @@ export function OwnerListingCheckoutPage() {
             <button
               type="button"
               onClick={() => {
-                setExtraPhotos((n) => Math.max(0, n - 1));
+                setExtraPhotos((n) => Math.max(isUpgrade ? minPhotos : 0, n - 1));
                 setPendingPaymentUrl(null);
               }}
             >
@@ -272,7 +384,7 @@ export function OwnerListingCheckoutPage() {
             <button
               type="button"
               onClick={() => {
-                setExtraVideos((n) => Math.max(0, n - 1));
+                setExtraVideos((n) => Math.max(isUpgrade ? minVideos : 0, n - 1));
                 setPendingPaymentUrl(null);
               }}
             >
@@ -293,22 +405,26 @@ export function OwnerListingCheckoutPage() {
       </div>
 
       <div className="listing-pay__card listing-pay__card--total">
-        {quote && (
+        {!isUpgrade && renewQuote && (
           <>
             <div className="listing-pay__row">
               <span>В месяц</span>
-              <strong>{formatRub(quote.monthly)}</strong>
+              <strong>{formatRub(renewQuote.monthly)}</strong>
             </div>
-            {quote.discountPct > 0 && (
+            {renewQuote.discountPct > 0 && (
               <div className="listing-pay__row">
-                <span>Скидка {quote.discountPct}%</span>
-                <strong>−{formatRub(quote.discountAmount)}</strong>
+                <span>Скидка {renewQuote.discountPct}%</span>
+                <strong>−{formatRub(renewQuote.discountAmount)}</strong>
               </div>
             )}
           </>
         )}
         <div className="listing-pay__row listing-pay__row--total">
-          <span>Итого{quote ? ` за ${quote.months} мес.` : ''}</span>
+          <span>
+            {isUpgrade
+              ? 'К доплате'
+              : `Итого${renewQuote ? ` за ${renewQuote.months} мес.` : ''}`}
+          </span>
           <strong>{formatMoney(amount, 'RUB')}</strong>
         </div>
       </div>
@@ -330,15 +446,33 @@ export function OwnerListingCheckoutPage() {
         <button
           type="button"
           className="btn-primary"
-          disabled={paying || !ctor.enabled}
+          disabled={paying || payingDaily || !ctor.enabled || (isUpgrade && amount === 0)}
           onClick={pay}
         >
           {paying
             ? 'Создаём платёж…'
-            : amount === 0
-              ? 'Разместить бесплатно'
-              : `Оплатить ${formatMoney(amount, 'RUB')}`}
+            : isUpgrade && amount === 0
+              ? 'Нет новых опций'
+              : amount === 0
+                ? 'Разместить бесплатно'
+                : isUpgrade
+                  ? `Доплатить ${formatMoney(amount, 'RUB')}`
+                  : `Оплатить ${formatMoney(amount, 'RUB')}`}
         </button>
+        {canBuyDaily ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={paying || payingDaily || !ctor.enabled}
+            onClick={payDailyTop}
+          >
+            {payingDaily
+              ? 'Создаём платёж…'
+              : topSlots?.alreadyTop
+                ? `Продлить ТОП на сутки ${formatMoney(dailyPrice, 'RUB')}`
+                : `ТОП на сутки ${formatMoney(dailyPrice, 'RUB')}`}
+          </button>
+        ) : null}
         {pendingPaymentUrl && (
           <a className="btn-secondary" href={pendingPaymentUrl}>
             Продолжить оплату
@@ -350,7 +484,9 @@ export function OwnerListingCheckoutPage() {
       </div>
 
       <p className="listing-pay__note">
-        После оплаты заявка уйдёт на модерацию. Статус подтверждается сервером через ЮKassa.
+        На главной в блоке платных водоёмов — только {topSlots?.max || 4} места в ТОП. Суточный ТОП
+        действует 24 часа. После оплаты заявка уйдёт на модерацию (кроме уже одобренных баз при
+        доплате / суточном ТОП).
       </p>
     </div>
   );

@@ -15,7 +15,9 @@ async function ensurePromoColumns() {
       add column if not exists yellow_frame boolean not null default false,
       add column if not exists paid_extra_photos int not null default 0,
       add column if not exists paid_extra_videos int not null default 0,
-      add column if not exists paid_until timestamptz
+      add column if not exists paid_until timestamptz,
+      add column if not exists top_until timestamptz,
+      add column if not exists top_kind text
   `);
   promoColumnsReady = true;
 }
@@ -87,8 +89,15 @@ const BASE_SELECT = `
 
 function mapRow(row) {
   if (!row) return null;
+  const topUntil = row.top_until ? new Date(row.top_until).getTime() : null;
+  const topActive =
+    Boolean(row.is_top) && (topUntil == null || topUntil > Date.now());
   return {
     ...row,
+    is_top: topActive,
+    isTop: topActive,
+    top_until: row.top_until || null,
+    top_kind: row.top_kind || null,
     base_images: row.base_images || [],
     base_videos: row.base_videos || [],
     base_services: row.base_services || [],
@@ -227,7 +236,18 @@ router.get('/', async (req, res, next) => {
       params.push(type);
       sql += ` and b.type = $${params.length}`;
     }
-    sql += ` group by b.id order by b.is_top desc, b.name`;
+    sql += ` group by b.id
+      order by
+        case
+          when b.is_top and (b.top_until is null or b.top_until > now()) then 0
+          else 1
+        end,
+        case
+          when b.is_top and b.top_kind = 'daily' and (b.top_until is null or b.top_until > now()) then 0
+          else 1
+        end,
+        b.top_until asc nulls last,
+        b.name`;
     const { rows } = await pool.query(sql, params);
     res.json(rows.map(mapRow));
   } catch (err) {

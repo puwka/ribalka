@@ -23,6 +23,7 @@ export const listingPaymentService = {
         baseAmount: 2900,
         amount: 2900,
         addonTop: 1000,
+        addonTopDaily: 300,
         addonFrame: 390,
         addonPhoto: 100,
         addonVideo: 100,
@@ -61,7 +62,41 @@ export const listingPaymentService = {
       frame: options.frame,
       extraPhotos: options.extraPhotos,
       extraVideos: options.extraVideos,
+      mode: options.mode || undefined,
     });
+  },
+
+  async upgradeCheckout(baseId, options = {}) {
+    return this.checkout(baseId, { ...options, mode: 'upgrade' });
+  },
+
+  async getUpgradePreview(baseId, options = {}) {
+    const qs = new URLSearchParams({ baseId: String(baseId) });
+    if (options.top) qs.set('top', '1');
+    if (options.frame) qs.set('frame', '1');
+    if (options.extraPhotos) qs.set('extraPhotos', String(options.extraPhotos));
+    if (options.extraVideos) qs.set('extraVideos', String(options.extraVideos));
+    return api.get(`/api/payments/listing-upgrade-preview?${qs}`);
+  },
+
+  async getTopSlots(baseId) {
+    if (!apiDataEnabled) {
+      return {
+        max: 4,
+        used: 0,
+        free: 4,
+        available: true,
+        dailyAvailable: true,
+        alreadyTop: false,
+        addonTopDaily: 300,
+      };
+    }
+    const qs = baseId ? `?baseId=${encodeURIComponent(baseId)}` : '';
+    return api.get(`/api/payments/listing-top-slots${qs}`);
+  },
+
+  async checkoutTopDaily(baseId) {
+    return this.checkout(baseId, { mode: 'top_daily' });
   },
 
   async getOrder(orderId) {
@@ -105,6 +140,10 @@ export const listingPaymentService = {
       ...payload,
       returnUrl: `${origin}/owner/directory/payment/result/:orderId`,
     });
+  },
+
+  async directoryUpgradeCheckout(payload) {
+    return this.directoryCheckout({ ...payload, mode: 'upgrade' });
   },
 
   async getDirectoryOrder(orderId) {

@@ -18,6 +18,7 @@ export function buildDirectoryPaymentQuery(options) {
   if (options.months) qs.set('months', String(options.months));
   if (options.top) qs.set('top', '1');
   if (options.frame) qs.set('frame', '1');
+  if (options.mode) qs.set('mode', String(options.mode));
   const s = qs.toString();
   return s ? `?${s}` : '';
 }
@@ -31,6 +32,8 @@ export default function DirectoryConstructorPricing({
   onChange,
   title = 'Тариф и опции размещения',
   subtitle = 'Выберите срок и доп. опции — стоимость считается сразу, как у баз.',
+  hidePeriods = false,
+  hideTotal = false,
 }) {
   const t = normalizeServiceTariff(tariff || {});
   const { months, top, frame } = options;
@@ -61,7 +64,8 @@ export default function DirectoryConstructorPricing({
           <span>{formatRub(t.amountPerMonth)} / мес</span>
         </div>
         <p className="dir-pricing__hint" style={{ marginTop: 0 }}>
-          В карточке одно изображение. Ниже — продвижение и срок оплаты.
+          В карточке одно изображение. Ниже — продвижение
+          {hidePeriods ? '.' : ' и срок оплаты.'}
         </p>
         <div className="dir-pricing__addons">
           <p className="dir-pricing__label">Добавить:</p>
@@ -88,42 +92,46 @@ export default function DirectoryConstructorPricing({
         </div>
       </div>
 
-      <div className="dir-pricing__periods">
-        <p className="dir-pricing__label">Срок оплаты (от 3 месяцев):</p>
-        <div className="dir-pricing__period-btns">
-          {DIRECTORY_PERIODS.map((m) => {
-            const disc = m === 3 ? t.discount3 : m === 6 ? t.discount6 : t.discount12;
-            return (
-              <button
-                key={m}
-                type="button"
-                className={months === m ? 'is-active' : ''}
-                onClick={() => set({ months: m })}
-              >
-                {m} мес.
-                {disc > 0 ? ` (−${disc}%)` : ''}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="dir-pricing__total">
-        <div>
-          <span>В месяц</span>
-          <strong>{formatRub(quote.monthly)}</strong>
-        </div>
-        {quote.discountPct > 0 && (
-          <div>
-            <span>Скидка {quote.discountPct}%</span>
-            <strong>−{formatRub(quote.discountAmount)}</strong>
+      {!hidePeriods && (
+        <div className="dir-pricing__periods">
+          <p className="dir-pricing__label">Срок оплаты (от 3 месяцев):</p>
+          <div className="dir-pricing__period-btns">
+            {DIRECTORY_PERIODS.map((m) => {
+              const disc = m === 3 ? t.discount3 : m === 6 ? t.discount6 : t.discount12;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  className={months === m ? 'is-active' : ''}
+                  onClick={() => set({ months: m })}
+                >
+                  {m} мес.
+                  {disc > 0 ? ` (−${disc}%)` : ''}
+                </button>
+              );
+            })}
           </div>
-        )}
-        <div className="dir-pricing__grand">
-          <span>Итого за {quote.months} мес.</span>
-          <strong>{formatRub(quote.total)}</strong>
         </div>
-      </div>
+      )}
+
+      {!hideTotal && (
+        <div className="dir-pricing__total">
+          <div>
+            <span>В месяц</span>
+            <strong>{formatRub(quote.monthly)}</strong>
+          </div>
+          {quote.discountPct > 0 && (
+            <div>
+              <span>Скидка {quote.discountPct}%</span>
+              <strong>−{formatRub(quote.discountAmount)}</strong>
+            </div>
+          )}
+          <div className="dir-pricing__grand">
+            <span>Итого за {quote.months} мес.</span>
+            <strong>{formatRub(quote.total)}</strong>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -17,6 +17,7 @@ const DIRECTORY_DEFAULTS = {
     includedPhotos: 1,
     includedVideos: 1,
     addonTop: 1000,
+    addonTopDaily: 300,
     addonFrame: 390,
     addonPhoto: 100,
     addonVideo: 100,
@@ -40,6 +41,151 @@ const DIRECTORY_DEFAULTS = {
 };
 
 const ORDER_TTL_HOURS = 24;
+/** How many paid bases can be in homepage TOP at once */
+export const HOME_TOP_SLOTS = 4;
+
+async function ensureTopColumns(client = pool) {
+  await client.query(`
+    alter table public.bases
+      add column if not exists is_top boolean not null default false,
+      add column if not exists yellow_frame boolean not null default false,
+      add column if not exists paid_extra_photos int not null default 0,
+      add column if not exists paid_extra_videos int not null default 0,
+      add column if not exists paid_until timestamptz,
+      add column if not exists top_until timestamptz,
+      add column if not exists top_kind text
+  `);
+}
+
+export function baseHasActiveTop(base) {
+  if (!base || !base.is_top) return false;
+  if (!base.top_until) return true;
+  return new Date(base.top_until).getTime() > Date.now();
+}
+
+export async function countActiveTopSlots({ excludeBaseId = null } = {}) {
+  await ensureTopColumns();
+  const params = [];
+  let sql = `
+    select count(*)::int as cnt
+    from public.bases
+    where type = 'paid'
+      and status = 'approved'
+      and is_top = true
+      and (paid_until is null or paid_until > now())
+      and (top_until is null or top_until > now())
+  `;
+  if (excludeBaseId) {
+    params.push(excludeBaseId);
+    sql += ` and id <> $${params.length}`;
+  }
+  const { rows } = await pool.query(sql, params);
+  return Number(rows[0]?.cnt) || 0;
+}
+
+async function countDisplaceableDailyTops({ excludeBaseId = null } = {}) {
+  await ensureTopColumns();
+  const params = [];
+  let sql = `
+    select count(*)::int as cnt
+    from public.bases
+    where type = 'paid'
+      and status = 'approved'
+      and is_top = true
+      and coalesce(top_kind, '') = 'daily'
+      and (paid_until is null or paid_until > now())
+      and (top_until is null or top_until > now())
+  `;
+  if (excludeBaseId) {
+    params.push(excludeBaseId);
+    sql += ` and id <> $${params.length}`;
+  }
+  const { rows } = await pool.query(sql, params);
+  return Number(rows[0]?.cnt) || 0;
+}
+
+/** Clear earliest-expiring daily TOP to free a homepage slot. */
+async function displaceEarliestDailyTop(client, excludeBaseId) {
+  const { rows } = await client.query(
+    `update public.bases set
+       is_top = false,
+       top_kind = null,
+       top_until = null,
+       updated_at = now()
+     where id = (
+       select id from public.bases
+       where type = 'paid'
+         and status = 'approved'
+         and is_top = true
+         and coalesce(top_kind, '') = 'daily'
+         and (paid_until is null or paid_until > now())
+         and (top_until is null or top_until > now())
+         and ($1::uuid is null or id <> $1::uuid)
+       order by top_until asc nulls last, updated_at asc
+       limit 1
+     )
+     returning id`,
+    [excludeBaseId || null]
+  );
+  return rows[0]?.id || null;
+}
+
+export async function getTopAvailability({ baseId = null } = {}) {
+  await ensureTopColumns();
+  let base = null;
+  if (baseId) {
+    const { rows } = await pool.query(`select * from public.bases where id = $1 limit 1`, [baseId]);
+    base = rows[0] || null;
+  }
+  const alreadyTop = baseHasActiveTop(base);
+  const used = await countActiveTopSlots({
+    excludeBaseId: alreadyTop && baseId ? baseId : null,
+  });
+  const free = Math.max(0, HOME_TOP_SLOTS - (alreadyTop ? used + 1 : used));
+  const available = alreadyTop || used < HOME_TOP_SLOTS;
+  const displaceableDaily = await countDisplaceableDailyTops({
+    excludeBaseId: baseId || null,
+  });
+  // Daily can take a free slot, extend own TOP, or replace another daily TOP
+  const dailyAvailable = alreadyTop || used < HOME_TOP_SLOTS || displaceableDaily > 0;
+  return {
+    max: HOME_TOP_SLOTS,
+    used: alreadyTop ? used + 1 : used,
+    free,
+    available,
+    dailyAvailable,
+    alreadyTop,
+    displaceableDaily,
+  };
+}
+
+async function assertTopSlotAvailable(base, wantTop) {
+  if (!wantTop) return;
+  if (baseHasActiveTop(base)) return;
+  const used = await countActiveTopSlots({ excludeBaseId: base?.id || null });
+  if (used >= HOME_TOP_SLOTS) {
+    const err = new Error(
+      `Все ${HOME_TOP_SLOTS} места в ТОП на главной заняты. Выберите «ТОП на сутки» (если доступен) или подождите, пока освободится слот.`
+    );
+    err.status = 409;
+    err.code = 'top_slots_full';
+    throw err;
+  }
+}
+
+async function assertDailyTopAvailable(base) {
+  if (baseHasActiveTop(base)) return;
+  const used = await countActiveTopSlots({ excludeBaseId: base?.id || null });
+  if (used < HOME_TOP_SLOTS) return;
+  const displaceable = await countDisplaceableDailyTops({ excludeBaseId: base?.id || null });
+  if (displaceable > 0) return;
+  const err = new Error(
+    `Все ${HOME_TOP_SLOTS} места в ТОП заняты помесячными размещениями. Суточный ТОП станет доступен, когда освободится слот.`
+  );
+  err.status = 409;
+  err.code = 'top_slots_full';
+  throw err;
+}
 
 async function readSiteSettingRaw(key) {
   const { rows } = await pool.query('select value from public.site_settings where key = $1', [key]);
@@ -113,6 +259,9 @@ function normalizeConstructorSettings(raw = {}) {
     includedPhotos: Number(raw.includedPhotos ?? d.includedPhotos),
     includedVideos: Number(raw.includedVideos ?? d.includedVideos),
     addonTop: Number.isFinite(Number(raw.addonTop)) ? Number(raw.addonTop) : d.addonTop,
+    addonTopDaily: Number.isFinite(Number(raw.addonTopDaily))
+      ? Number(raw.addonTopDaily)
+      : d.addonTopDaily ?? 300,
     addonFrame: Number.isFinite(Number(raw.addonFrame)) ? Number(raw.addonFrame) : d.addonFrame,
     addonPhoto: Number.isFinite(Number(raw.addonPhoto)) ? Number(raw.addonPhoto) : d.addonPhoto,
     addonVideo: Number.isFinite(Number(raw.addonVideo)) ? Number(raw.addonVideo) : d.addonVideo,
@@ -158,6 +307,81 @@ function calcConstructorQuote(settings, options = {}) {
 
 export function quoteListingCheckout(settings, options) {
   return calcConstructorQuote(settings, options);
+}
+
+/** Whole months left in the paid period (at least 1 if still active). */
+export function remainingMonthsCeil(paidUntilIso) {
+  const end = new Date(paidUntilIso).getTime();
+  const ms = end - Date.now();
+  if (!(ms > 0)) return 0;
+  return Math.max(1, Math.ceil(ms / (30 * 86400000)));
+}
+
+/**
+ * Mid-period upgrade: only charge for NEW options.
+ * Extra photo/video — flat price for the rest of the period (matches «+100 ₽»).
+ * TOP / frame — addon × remaining months.
+ */
+export function calcListingUpgradeQuote(settings, base, options = {}) {
+  const t = normalizeConstructorSettings(settings);
+  const paidUntil = base?.paid_until || base?.paidUntil;
+  const rem = remainingMonthsCeil(paidUntil);
+  if (!rem) {
+    return {
+      kind: 'upgrade',
+      canUpgrade: false,
+      reason: 'no_active_period',
+      total: 0,
+      remainingMonths: 0,
+      deltaPhotos: 0,
+      deltaVideos: 0,
+      addTop: false,
+      addFrame: false,
+      options: null,
+    };
+  }
+
+  const paidPhotos = Math.max(0, Number(base.paid_extra_photos) || 0);
+  const paidVideos = Math.max(0, Number(base.paid_extra_videos) || 0);
+  const wantPhotos = Math.max(0, Number(options.extraPhotos) || 0);
+  const wantVideos = Math.max(0, Number(options.extraVideos) || 0);
+  const deltaPhotos = Math.max(0, wantPhotos - paidPhotos);
+  const deltaVideos = Math.max(0, wantVideos - paidVideos);
+  const hasTop = Boolean(base.is_top || base.isTop);
+  const hasFrame = Boolean(base.yellow_frame || base.yellowFrame);
+  const addTop = Boolean(options.top) && !hasTop;
+  const addFrame = Boolean(options.frame) && !hasFrame;
+
+  const mediaTotal = deltaPhotos * t.addonPhoto + deltaVideos * t.addonVideo;
+  const promoTotal =
+    (addTop ? t.addonTop * rem : 0) + (addFrame ? t.addonFrame * rem : 0);
+  const total = Math.max(0, Math.round(mediaTotal + promoTotal));
+
+  return {
+    kind: 'upgrade',
+    canUpgrade: total > 0,
+    reason: total > 0 ? null : 'nothing_new',
+    total,
+    remainingMonths: rem,
+    deltaPhotos,
+    deltaVideos,
+    addTop,
+    addFrame,
+    mediaTotal,
+    promoTotal,
+    options: {
+      months: rem,
+      top: hasTop || Boolean(options.top),
+      frame: hasFrame || Boolean(options.frame),
+      extraPhotos: Math.max(wantPhotos, paidPhotos),
+      extraVideos: Math.max(wantVideos, paidVideos),
+    },
+    paidUntil,
+  };
+}
+
+export function quoteListingUpgrade(settings, base, options) {
+  return calcListingUpgradeQuote(settings, base, options);
 }
 
 function normalizeServiceSettings(raw = {}) {
@@ -208,7 +432,12 @@ export async function getListingPriceSettings() {
 }
 
 export async function saveListingPriceSettings(adminId, input) {
-  if (input?.baseAmount != null || input?.addonTop != null || input?.kind === 'constructor') {
+  if (
+    input?.baseAmount != null ||
+    input?.addonTop != null ||
+    input?.addonTopDaily != null ||
+    input?.kind === 'constructor'
+  ) {
     const value = normalizeConstructorSettings(input);
     await writeJsonSetting(BASE_CONSTRUCTOR_KEY, adminId, value);
     await writeSiteSetting(
@@ -285,6 +514,7 @@ export async function getActiveOrderForBase(userId, baseId) {
      where o.user_id = $1 and o.base_id = $2
        and o.status in ('pending', 'waiting_for_payment')
        and (o.expires_at is null or o.expires_at > now())
+       and coalesce(o.meta->>'kind', 'renew') not in ('upgrade', 'top_daily')
      order by o.created_at desc
      limit 1`,
     [userId, baseId]
@@ -332,12 +562,15 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
     throw err;
   }
 
+  await assertTopSlotAvailable(base, Boolean(quote.options.top));
+
   // Reuse active unpaid order for this base only if options match
   const { rows: existing } = await pool.query(
     `select * from public.listing_orders
      where base_id = $1 and user_id = $2
        and status in ('pending', 'waiting_for_payment')
        and (expires_at is null or expires_at > now())
+       and coalesce(meta->>'kind', 'renew') not in ('upgrade', 'top_daily')
      order by created_at desc
      limit 1`,
     [baseId, userId]
@@ -346,6 +579,7 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
 
   const description = `${settings.title}: «${base.name}» (${quote.months} мес.)`.slice(0, 128);
   const metaPatch = {
+    kind: 'renew',
     constructor_options: quote.options,
     monthly: quote.monthly,
     discountPct: quote.discountPct,
@@ -524,15 +758,433 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
   };
 }
 
+/**
+ * Pay only for new options during an active paid period (does not extend paid_until).
+ */
+export async function createListingUpgradeCheckout({ userId, baseId, returnUrl, options = {} }) {
+  const settings = await getListingPriceSettings();
+  if (!settings.enabled) {
+    const err = new Error('Размещение временно отключено');
+    err.status = 403;
+    throw err;
+  }
+
+  const base = await getBaseOwned(baseId, userId);
+  const quote = calcListingUpgradeQuote(settings, base, options);
+  if (!quote.canUpgrade) {
+    const err = new Error(
+      quote.reason === 'no_active_period'
+        ? 'Нет активного оплаченного периода — оформите продление'
+        : 'Нет новых опций для доплаты'
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  await assertTopSlotAvailable(base, Boolean(quote.addTop));
+
+  const amount = quote.total;
+  const description = `Доплата опций: «${base.name}»`.slice(0, 128);
+  const metaPatch = {
+    kind: 'upgrade',
+    constructor_options: quote.options,
+    upgrade: {
+      deltaPhotos: quote.deltaPhotos,
+      deltaVideos: quote.deltaVideos,
+      addTop: quote.addTop,
+      addFrame: quote.addFrame,
+      remainingMonths: quote.remainingMonths,
+    },
+  };
+
+  const { rows: existing } = await pool.query(
+    `select * from public.listing_orders
+     where base_id = $1 and user_id = $2
+       and status in ('pending', 'waiting_for_payment')
+       and (expires_at is null or expires_at > now())
+       and coalesce(meta->>'kind', 'renew') = 'upgrade'
+     order by created_at desc
+     limit 1`,
+    [baseId, userId]
+  );
+  let order = mapOrder(existing[0]);
+
+  const optionsKey = JSON.stringify(quote.options);
+  const existingOptionsKey = JSON.stringify(order?.meta?.constructor_options || null);
+  const optionsChanged = Boolean(order) && existingOptionsKey !== optionsKey;
+  const amountChanged = Boolean(order) && Number(order.amount) !== Number(amount);
+
+  if (order && !order.provider_payment_id && (amountChanged || optionsChanged)) {
+    const { rows: updated } = await pool.query(
+      `update public.listing_orders
+       set amount = $2, description = $3,
+           meta = coalesce(meta, '{}'::jsonb) || $4::jsonb,
+           updated_at = now()
+       where id = $1
+       returning *`,
+      [order.id, amount, description, JSON.stringify(metaPatch)]
+    );
+    order = mapOrder(updated[0]);
+  }
+
+  if (order && order.provider_payment_id && (amountChanged || optionsChanged)) {
+    await pool.query(
+      `update public.listing_orders
+       set status = 'cancelled', updated_at = now(),
+           meta = coalesce(meta, '{}'::jsonb) || '{"reason":"upgrade_options_changed"}'::jsonb
+       where id = $1 and status in ('pending', 'waiting_for_payment')`,
+      [order.id]
+    );
+    order = null;
+  }
+
+  if (!order) {
+    const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
+    const { rows } = await pool.query(
+      `insert into public.listing_orders
+        (user_id, base_id, amount, currency, status, description, expires_at, payment_provider, meta)
+       values ($1, $2, $3, $4, 'pending', $5, $6, 'yookassa', $7::jsonb)
+       returning *`,
+      [userId, baseId, amount, settings.currency || 'RUB', description, expiresAt, JSON.stringify(metaPatch)]
+    );
+    order = mapOrder(rows[0]);
+  }
+
+  if (Number(order.amount) === 0) {
+    return markOrderPaid(order.id, { providerPaymentId: null, skipYoo: true });
+  }
+
+  if (!yookassa.isYooKassaConfigured()) {
+    const err = new Error('Платёжная система не настроена на сервере. Обратитесь к администратору.');
+    err.status = 503;
+    throw err;
+  }
+
+  if (order.provider_payment_id && order.confirmation_url && order.status === 'waiting_for_payment') {
+    const remote = await yookassa.getPayment(order.provider_payment_id).catch(() => null);
+    if (remote?.status === 'succeeded' && remote.paid) {
+      return finalizePaidFromYooKassa(order, remote);
+    }
+    if (remote && !['canceled', 'succeeded'].includes(remote.status)) {
+      return {
+        order: await getOrderById(order.id),
+        confirmationUrl: order.confirmation_url,
+        paymentId: order.provider_payment_id,
+      };
+    }
+  }
+
+  const publicSite = (process.env.PUBLIC_SITE_URL || '').replace(/\/$/, '');
+  let siteReturn =
+    returnUrl ||
+    process.env.YOOKASSA_RETURN_URL ||
+    (publicSite ? `${publicSite}/owner/payment/result/${order.id}` : '');
+  if (!siteReturn) {
+    const err = new Error('Не задан PUBLIC_SITE_URL / YOOKASSA_RETURN_URL');
+    err.status = 500;
+    throw err;
+  }
+  siteReturn = siteReturn.replace(':orderId', order.id).replace('{orderId}', order.id);
+  if (!siteReturn.includes(order.id)) {
+    siteReturn = `${siteReturn.replace(/\/$/, '')}/owner/payment/result/${order.id}`;
+  }
+
+  const idempotenceKey = yookassa.newIdempotenceKey();
+  const userRes = await pool.query(
+    `select u.email, p.phone
+     from public.users u
+     left join public.profiles p on p.user_id = u.id
+     where u.id = $1`,
+    [userId]
+  );
+  const buyer = userRes.rows[0] || {};
+  if (!buyer.email && !buyer.phone) {
+    const err = new Error('Укажите email в профиле — он нужен для чека оплаты');
+    err.status = 400;
+    throw err;
+  }
+
+  const { payment } = await yookassa.createPayment({
+    amount: order.amount,
+    currency: order.currency,
+    description: order.description,
+    returnUrl: siteReturn,
+    metadata: {
+      order_id: order.id,
+      base_id: baseId,
+      user_id: userId,
+      kind: 'upgrade',
+    },
+    customerEmail: buyer.email,
+    customerPhone: buyer.phone,
+    idempotenceKey,
+  });
+
+  const confirmationUrl = payment.confirmation?.confirmation_url || null;
+  await pool.query('begin');
+  try {
+    await pool.query(
+      `update public.listing_orders set
+         status = 'waiting_for_payment',
+         provider_payment_id = $2,
+         confirmation_url = $3,
+         idempotence_key = $4,
+         meta = coalesce(meta, '{}'::jsonb) || $5::jsonb,
+         updated_at = now()
+       where id = $1`,
+      [
+        order.id,
+        payment.id,
+        confirmationUrl,
+        idempotenceKey,
+        JSON.stringify({ yookassa_status: payment.status }),
+      ]
+    );
+    const payExists = await pool.query(
+      `select id from public.payments where provider = 'yookassa' and provider_payment_id = $1`,
+      [payment.id]
+    );
+    if (!payExists.rows[0]) {
+      await pool.query(
+        `insert into public.payments
+          (user_id, provider, provider_payment_id, amount, currency, status, listing_order_id, confirmation_url, meta)
+         values ($1, 'yookassa', $2, $3, $4, 'pending', $5, $6, $7::jsonb)`,
+        [
+          userId,
+          payment.id,
+          order.amount,
+          order.currency,
+          order.id,
+          confirmationUrl,
+          JSON.stringify({ order_id: order.id, base_id: baseId, kind: 'upgrade' }),
+        ]
+      );
+    }
+    await pool.query('commit');
+  } catch (err) {
+    await pool.query('rollback');
+    throw err;
+  }
+
+  console.log('[listing] upgrade checkout', order.id, payment.id, order.amount);
+  return {
+    order: await getOrderById(order.id),
+    confirmationUrl,
+    paymentId: payment.id,
+  };
+}
+
+/**
+ * One-day homepage TOP boost (24h). Uses free slot or displaces another daily TOP.
+ */
+export async function createTopDailyCheckout({ userId, baseId, returnUrl }) {
+  const settings = await getListingPriceSettings();
+  if (!settings.enabled) {
+    const err = new Error('Размещение временно отключено');
+    err.status = 403;
+    throw err;
+  }
+
+  const amount = Math.max(0, Number(settings.addonTopDaily) || 300);
+  const base = await getBaseOwned(baseId, userId);
+
+  if (base.status !== 'approved') {
+    const err = new Error('Суточный ТОП доступен только для одобренных баз');
+    err.status = 400;
+    throw err;
+  }
+  const paidUntil = base.paid_until ? new Date(base.paid_until).getTime() : null;
+  if (paidUntil != null && paidUntil <= Date.now()) {
+    const err = new Error('Сначала продлите размещение базы');
+    err.status = 400;
+    throw err;
+  }
+
+  await assertDailyTopAvailable(base);
+
+  const hours = 24;
+  const description = `ТОП на сутки: «${base.name}»`.slice(0, 128);
+  const metaPatch = {
+    kind: 'top_daily',
+    top_daily: { hours, amount },
+  };
+
+  const { rows: existing } = await pool.query(
+    `select * from public.listing_orders
+     where base_id = $1 and user_id = $2
+       and status in ('pending', 'waiting_for_payment')
+       and (expires_at is null or expires_at > now())
+       and coalesce(meta->>'kind', '') = 'top_daily'
+     order by created_at desc
+     limit 1`,
+    [baseId, userId]
+  );
+  let order = mapOrder(existing[0]);
+
+  const amountChanged = Boolean(order) && Number(order.amount) !== Number(amount);
+
+  if (order && !order.provider_payment_id && amountChanged) {
+    const { rows: updated } = await pool.query(
+      `update public.listing_orders
+       set amount = $2, description = $3,
+           meta = coalesce(meta, '{}'::jsonb) || $4::jsonb,
+           updated_at = now()
+       where id = $1
+       returning *`,
+      [order.id, amount, description, JSON.stringify(metaPatch)]
+    );
+    order = mapOrder(updated[0]);
+  }
+
+  if (order && order.provider_payment_id && amountChanged) {
+    await pool.query(
+      `update public.listing_orders
+       set status = 'cancelled', updated_at = now(),
+           meta = coalesce(meta, '{}'::jsonb) || '{"reason":"top_daily_price_changed"}'::jsonb
+       where id = $1 and status in ('pending', 'waiting_for_payment')`,
+      [order.id]
+    );
+    order = null;
+  }
+
+  if (!order) {
+    const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
+    const { rows } = await pool.query(
+      `insert into public.listing_orders
+        (user_id, base_id, amount, currency, status, description, expires_at, payment_provider, meta)
+       values ($1, $2, $3, $4, 'pending', $5, $6, 'yookassa', $7::jsonb)
+       returning *`,
+      [userId, baseId, amount, settings.currency || 'RUB', description, expiresAt, JSON.stringify(metaPatch)]
+    );
+    order = mapOrder(rows[0]);
+  }
+
+  if (Number(order.amount) === 0) {
+    return markOrderPaid(order.id, { providerPaymentId: null, skipYoo: true });
+  }
+
+  if (!yookassa.isYooKassaConfigured()) {
+    const err = new Error('Платёжная система не настроена на сервере. Обратитесь к администратору.');
+    err.status = 503;
+    throw err;
+  }
+
+  if (order.provider_payment_id && order.confirmation_url && order.status === 'waiting_for_payment') {
+    const remote = await yookassa.getPayment(order.provider_payment_id).catch(() => null);
+    if (remote?.status === 'succeeded' && remote.paid) {
+      return finalizePaidFromYooKassa(order, remote);
+    }
+    if (remote && !['canceled', 'succeeded'].includes(remote.status)) {
+      return {
+        order: await getOrderById(order.id),
+        confirmationUrl: order.confirmation_url,
+        paymentId: order.provider_payment_id,
+      };
+    }
+  }
+
+  const publicSite = (process.env.PUBLIC_SITE_URL || '').replace(/\/$/, '');
+  let siteReturn =
+    returnUrl ||
+    process.env.YOOKASSA_RETURN_URL ||
+    (publicSite ? `${publicSite}/owner/payment/result/${order.id}` : '');
+  if (!siteReturn) {
+    const err = new Error('Не задан PUBLIC_SITE_URL / YOOKASSA_RETURN_URL');
+    err.status = 500;
+    throw err;
+  }
+  siteReturn = siteReturn.replace(':orderId', order.id).replace('{orderId}', order.id);
+  if (!siteReturn.includes(order.id)) {
+    siteReturn = `${siteReturn.replace(/\/$/, '')}/owner/payment/result/${order.id}`;
+  }
+
+  const idempotenceKey = yookassa.newIdempotenceKey();
+  const userRes = await pool.query(
+    `select u.email, p.phone
+     from public.users u
+     left join public.profiles p on p.user_id = u.id
+     where u.id = $1`,
+    [userId]
+  );
+  const buyer = userRes.rows[0] || {};
+  if (!buyer.email && !buyer.phone) {
+    const err = new Error('Укажите email в профиле — он нужен для чека оплаты');
+    err.status = 400;
+    throw err;
+  }
+
+  const { payment } = await yookassa.createPayment({
+    amount: order.amount,
+    currency: order.currency,
+    description: order.description,
+    returnUrl: siteReturn,
+    metadata: {
+      order_id: order.id,
+      base_id: baseId,
+      user_id: userId,
+      kind: 'top_daily',
+    },
+    customerEmail: buyer.email,
+    customerPhone: buyer.phone,
+    idempotenceKey,
+  });
+
+  const confirmationUrl = payment.confirmation?.confirmation_url || null;
+  await pool.query('begin');
+  try {
+    await pool.query(
+      `update public.listing_orders set
+         status = 'waiting_for_payment',
+         provider_payment_id = $2,
+         confirmation_url = $3,
+         idempotence_key = $4,
+         meta = coalesce(meta, '{}'::jsonb) || $5::jsonb,
+         updated_at = now()
+       where id = $1`,
+      [
+        order.id,
+        payment.id,
+        confirmationUrl,
+        idempotenceKey,
+        JSON.stringify({ yookassa_status: payment.status }),
+      ]
+    );
+    const payExists = await pool.query(
+      `select id from public.payments where provider = 'yookassa' and provider_payment_id = $1`,
+      [payment.id]
+    );
+    if (!payExists.rows[0]) {
+      await pool.query(
+        `insert into public.payments
+          (user_id, provider, provider_payment_id, amount, currency, status, listing_order_id, confirmation_url, meta)
+         values ($1, 'yookassa', $2, $3, $4, 'pending', $5, $6, $7::jsonb)`,
+        [
+          userId,
+          payment.id,
+          order.amount,
+          order.currency,
+          order.id,
+          confirmationUrl,
+          JSON.stringify({ order_id: order.id, base_id: baseId, kind: 'top_daily' }),
+        ]
+      );
+    }
+    await pool.query('commit');
+  } catch (err) {
+    await pool.query('rollback');
+    throw err;
+  }
+
+  console.log('[listing] top_daily checkout', order.id, payment.id, order.amount);
+  return {
+    order: await getOrderById(order.id),
+    confirmationUrl,
+    paymentId: payment.id,
+  };
+}
+
 async function applyPaidSideEffects(client, order) {
-  await client.query(`
-    alter table public.bases
-      add column if not exists is_top boolean not null default false,
-      add column if not exists yellow_frame boolean not null default false,
-      add column if not exists paid_extra_photos int not null default 0,
-      add column if not exists paid_extra_videos int not null default 0,
-      add column if not exists paid_until timestamptz
-  `);
+  await ensureTopColumns(client);
 
   let meta = order.meta;
   if (typeof meta === 'string') {
@@ -543,11 +1195,105 @@ async function applyPaidSideEffects(client, order) {
     }
   }
   const opts = meta && typeof meta === 'object' ? meta.constructor_options || {} : {};
+  const kind = meta && typeof meta === 'object' ? meta.kind || 'renew' : 'renew';
   const isTop = Boolean(opts.top);
   const yellowFrame = Boolean(opts.frame);
   const extraPhotos = Math.max(0, Number(opts.extraPhotos) || 0);
   const extraVideos = Math.max(0, Number(opts.extraVideos) || 0);
   const months = Math.max(1, Number(opts.months) || 3);
+
+  if (kind === 'top_daily') {
+    const hours = Math.max(1, Number(meta.top_daily?.hours) || 24);
+    const { rows: curRows } = await client.query(
+      `select * from public.bases where id = $1 for update`,
+      [order.base_id]
+    );
+    const cur = curRows[0];
+    const already = baseHasActiveTop(cur);
+    if (!already) {
+      const { rows: cntRows } = await client.query(
+        `select count(*)::int as cnt
+         from public.bases
+         where type = 'paid'
+           and status = 'approved'
+           and is_top = true
+           and (paid_until is null or paid_until > now())
+           and (top_until is null or top_until > now())
+           and id <> $1`,
+        [order.base_id]
+      );
+      if ((Number(cntRows[0]?.cnt) || 0) >= HOME_TOP_SLOTS) {
+        await displaceEarliestDailyTop(client, order.base_id);
+      }
+    }
+    await client.query(
+      `update public.bases set
+         is_top = true,
+         top_kind = case
+           when coalesce(top_kind, '') = 'monthly'
+             and top_until is not null
+             and top_until > now()
+           then 'monthly'
+           else 'daily'
+         end,
+         top_until = greatest(coalesce(top_until, now()), now()) + make_interval(hours => $2::int),
+         updated_at = now()
+       where id = $1`,
+      [order.base_id, hours]
+    );
+    await client.query(
+      `insert into public.notifications (user_id, type, title, body, link_path, payload)
+       values ($1, 'payment', 'ТОП на сутки оплачен', $2, $3, $4::jsonb)`,
+      [
+        order.user_id,
+        `База поднята в ТОП на главной на ${hours} ч.`,
+        `/owner/bases/${order.base_id}/edit`,
+        JSON.stringify({ order_id: order.id, base_id: order.base_id, kind: 'top_daily' }),
+      ]
+    );
+    return;
+  }
+
+  if (kind === 'upgrade') {
+    await client.query(
+      `update public.bases set
+         is_top = is_top or $2,
+         yellow_frame = yellow_frame or $3,
+         paid_extra_photos = greatest(coalesce(paid_extra_photos, 0), $4::int),
+         paid_extra_videos = greatest(coalesce(paid_extra_videos, 0), $5::int),
+         top_kind = case
+           when $2::boolean then 'monthly'
+           else top_kind
+         end,
+         top_until = case
+           when $2::boolean then greatest(coalesce(top_until, now()), coalesce(paid_until, now()))
+           else top_until
+         end,
+         updated_at = now()
+       where id = $1`,
+      [order.base_id, isTop, yellowFrame, extraPhotos, extraVideos]
+    );
+
+    await client.query(
+      `insert into public.notifications (user_id, type, title, body, link_path, payload)
+       values ($1, 'payment', 'Доплата получена', $2, $3, $4::jsonb)`,
+      [
+        order.user_id,
+        `Доплата опций для базы прошла успешно. Можно добавить новые фото/видео в карточке.`,
+        `/owner/bases/${order.base_id}/edit`,
+        JSON.stringify({
+          order_id: order.id,
+          base_id: order.base_id,
+          kind: 'upgrade',
+          is_top: isTop,
+          yellow_frame: yellowFrame,
+          paid_extra_photos: extraPhotos,
+          paid_extra_videos: extraVideos,
+        }),
+      ]
+    );
+    return;
+  }
 
   await client.query(
     `update public.bases set
@@ -567,6 +1313,16 @@ async function applyPaidSideEffects(client, order) {
            else paid_until
          end
        ) + make_interval(months => $6::int),
+       top_kind = case when $2::boolean then 'monthly' else null end,
+       top_until = case
+         when $2::boolean then (
+           case
+             when paid_until is null or paid_until < now() then now()
+             else paid_until
+           end
+         ) + make_interval(months => $6::int)
+         else null
+       end,
        updated_at = now()
      where id = $1`,
     [order.base_id, isTop, yellowFrame, extraPhotos, extraVideos, months]

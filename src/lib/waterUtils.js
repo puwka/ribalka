@@ -98,12 +98,29 @@ export function sortWaters(items, sortBy, type) {
   return list.sort(byTopThen(byName));
 }
 
-/** Sort directory / catalog items: TOP first, then original order / name */
+/** Sort directory / catalog items: active TOP first (daily before monthly), then name */
 export function sortPromoFirst(items, nameKey = 'name') {
+  const topRank = (x) => {
+    const active = Boolean(x.isTop || x.is_top || x.top);
+    if (!active) return 2;
+    const kind = x.top_kind || x.topKind || '';
+    return kind === 'daily' ? 0 : 1;
+  };
+  const topUntilMs = (x) => {
+    const t = x.top_until || x.topUntil;
+    if (!t) return Number.POSITIVE_INFINITY;
+    const ms = new Date(t).getTime();
+    return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+  };
   return [...items].sort((a, b) => {
-    const ta = a.isTop || a.is_top || a.top ? 0 : 1;
-    const tb = b.isTop || b.is_top || b.top ? 0 : 1;
-    if (ta !== tb) return ta - tb;
+    const ra = topRank(a);
+    const rb = topRank(b);
+    if (ra !== rb) return ra - rb;
+    if (ra < 2) {
+      const ua = topUntilMs(a);
+      const ub = topUntilMs(b);
+      if (ua !== ub) return ua - ub;
+    }
     return String(a[nameKey] || '').localeCompare(String(b[nameKey] || ''), 'ru');
   });
 }

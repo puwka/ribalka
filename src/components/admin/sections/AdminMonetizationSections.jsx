@@ -111,6 +111,17 @@ export function AdminPlansSection() {
                     onChange={(e) => setListing((s) => ({ ...s, addonTop: Number(e.target.value) }))}
                   />
                 </AdminField>
+                <AdminField label="ТОП на сутки ₽">
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    value={listing.addonTopDaily ?? 300}
+                    onChange={(e) =>
+                      setListing((s) => ({ ...s, addonTopDaily: Number(e.target.value) }))
+                    }
+                  />
+                </AdminField>
                 <AdminField label="Жёлтая рамка ₽/мес">
                   <input
                     className="admin-input"

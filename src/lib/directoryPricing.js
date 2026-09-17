@@ -10,6 +10,7 @@ export const DEFAULT_CONSTRUCTOR = {
   includedPhotos: 1,
   includedVideos: 1,
   addonTop: 1000,
+  addonTopDaily: 300,
   addonFrame: 390,
   addonPhoto: 100,
   addonVideo: 100,
@@ -40,6 +41,7 @@ export function normalizeConstructor(raw = {}) {
     includedPhotos: Number(raw.includedPhotos ?? DEFAULT_CONSTRUCTOR.includedPhotos),
     includedVideos: Number(raw.includedVideos ?? DEFAULT_CONSTRUCTOR.includedVideos),
     addonTop: Number(raw.addonTop ?? DEFAULT_CONSTRUCTOR.addonTop),
+    addonTopDaily: Number(raw.addonTopDaily ?? DEFAULT_CONSTRUCTOR.addonTopDaily),
     addonFrame: Number(raw.addonFrame ?? DEFAULT_CONSTRUCTOR.addonFrame),
     addonPhoto: Number(raw.addonPhoto ?? DEFAULT_CONSTRUCTOR.addonPhoto),
     addonVideo: Number(raw.addonVideo ?? DEFAULT_CONSTRUCTOR.addonVideo),
@@ -121,3 +123,90 @@ export function calcServiceTotal(tariff, options = {}) {
 export function formatRub(n) {
   return `${Math.round(Number(n) || 0).toLocaleString('ru-RU')} ₽`;
 }
+
+/** Whole months left until paidUntil (min 1 if still active). */
+export function remainingMonthsCeil(paidUntilIso) {
+  if (!paidUntilIso) return 0;
+  const ms = new Date(paidUntilIso).getTime() - Date.now();
+  if (!(ms > 0)) return 0;
+  return Math.max(1, Math.ceil(ms / (30 * 86400000)));
+}
+
+/**
+ * Mid-period base upgrade quote (client preview; server is source of truth).
+ * Media: flat +N ₽ for the rest of the period. TOP/frame: × remaining months.
+ */
+export function calcListingUpgradeTotal(tariff, base, options = {}) {
+  const t = normalizeConstructor(tariff);
+  const paidUntil = base?.paid_until || base?.paidUntil;
+  const rem = remainingMonthsCeil(paidUntil);
+  if (!rem) {
+    return {
+      canUpgrade: false,
+      reason: 'no_active_period',
+      total: 0,
+      remainingMonths: 0,
+      deltaPhotos: 0,
+      deltaVideos: 0,
+      addTop: false,
+      addFrame: false,
+    };
+  }
+  const paidPhotos = Math.max(0, Number(base.paid_extra_photos) || 0);
+  const paidVideos = Math.max(0, Number(base.paid_extra_videos) || 0);
+  const wantPhotos = Math.max(0, Number(options.extraPhotos) || 0);
+  const wantVideos = Math.max(0, Number(options.extraVideos) || 0);
+  const deltaPhotos = Math.max(0, wantPhotos - paidPhotos);
+  const deltaVideos = Math.max(0, wantVideos - paidVideos);
+  const hasTop = Boolean(base.is_top || base.isTop);
+  const hasFrame = Boolean(base.yellow_frame || base.yellowFrame);
+  const addTop = Boolean(options.top) && !hasTop;
+  const addFrame = Boolean(options.frame) && !hasFrame;
+  const total = Math.max(
+    0,
+    Math.round(
+      deltaPhotos * t.addonPhoto +
+        deltaVideos * t.addonVideo +
+        (addTop ? t.addonTop * rem : 0) +
+        (addFrame ? t.addonFrame * rem : 0)
+    )
+  );
+  return {
+    canUpgrade: total > 0,
+    reason: total > 0 ? null : 'nothing_new',
+    total,
+    remainingMonths: rem,
+    deltaPhotos,
+    deltaVideos,
+    addTop,
+    addFrame,
+  };
+}
+
+/** Mid-period directory TOP/frame upgrade preview. */
+export function calcDirectoryUpgradeTotal(tariff, item, options = {}) {
+  const t = normalizeServiceTariff(tariff);
+  const rem = remainingMonthsCeil(item?.paidUntil);
+  if (!rem) {
+    return { canUpgrade: false, reason: 'no_active_period', total: 0, remainingMonths: 0 };
+  }
+  const hasTop = Boolean(item.isTop || item.top);
+  const hasFrame = Boolean(item.yellowFrame || item.highlight);
+  const addTop = Boolean(options.top) && !hasTop;
+  const addFrame = Boolean(options.frame) && !hasFrame;
+  const total = Math.max(
+    0,
+    Math.round(
+      (addTop ? t.addonTop : 0) * rem + (addFrame ? t.addonFrame : 0) * rem
+    )
+  );
+  return {
+    canUpgrade: total > 0,
+    reason: total > 0 ? null : 'nothing_new',
+    total,
+    remainingMonths: rem,
+    addTop,
+    addFrame,
+  };
+}
+

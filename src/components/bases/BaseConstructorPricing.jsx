@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import {
   DIRECTORY_PERIODS,
   calcConstructorTotal,
@@ -16,6 +16,7 @@ export default function BaseConstructorPricing({
   options,
   onChange,
   title = 'Тариф и опции размещения',
+  topSlots = null,
 }) {
   const ctor = normalizeConstructor(tariff || {});
   const { months, top, frame, extraPhotos, extraVideos } = options;
@@ -33,6 +34,13 @@ export default function BaseConstructorPricing({
   );
 
   const set = (patch) => onChange?.({ ...options, ...patch });
+  const monthlyTopLocked = Boolean(topSlots) && !topSlots.available && !topSlots.alreadyTop;
+  const alreadyHasTop = Boolean(topSlots?.alreadyTop);
+
+  useEffect(() => {
+    if (monthlyTopLocked && top) set({ top: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to slot lock
+  }, [monthlyTopLocked]);
 
   return (
     <section className="dir-pricing" style={{ marginTop: '1.5rem' }}>
@@ -60,14 +68,21 @@ export default function BaseConstructorPricing({
         </p>
         <div className="dir-pricing__addons">
           <p className="dir-pricing__label">Добавить:</p>
-          <label className="dir-pricing__check">
+          <label className={`dir-pricing__check${monthlyTopLocked ? ' is-disabled' : ''}`}>
             <input
               type="checkbox"
-              checked={Boolean(top)}
+              checked={Boolean(top) || alreadyHasTop}
+              disabled={monthlyTopLocked || alreadyHasTop}
               onChange={(e) => set({ top: e.target.checked })}
             />
             <span>
               Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
+              {topSlots ? (
+                <small style={{ display: 'block', opacity: 0.75 }}>
+                  Мест на главной: {topSlots.used}/{topSlots.max}
+                  {monthlyTopLocked ? ' — все заняты' : ''}
+                </small>
+              ) : null}
             </span>
           </label>
           <label className="dir-pricing__check">
@@ -164,6 +179,7 @@ export function buildPaymentQuery(options) {
   if (options.frame) qs.set('frame', '1');
   if (options.extraPhotos) qs.set('extraPhotos', String(options.extraPhotos));
   if (options.extraVideos) qs.set('extraVideos', String(options.extraVideos));
+  if (options.mode) qs.set('mode', String(options.mode));
   const s = qs.toString();
   return s ? `?${s}` : '';
 }

@@ -87,6 +87,12 @@ export function OwnerSubscriptionPanel() {
           <ul>
             <li>
               Размещение в ТОП — <strong>+{formatRub(ctor.addonTop)}/мес</strong>
+              <span style={{ display: 'block', opacity: 0.8, fontSize: '0.9em' }}>
+                на главной только 4 места; если заняты — опция недоступна
+              </span>
+            </li>
+            <li>
+              ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
             </li>
             <li>
               Жёлтая рамка — <strong>+{formatRub(ctor.addonFrame)}/мес</strong>
