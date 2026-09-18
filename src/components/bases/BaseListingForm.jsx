@@ -341,7 +341,7 @@ export default function BaseListingForm({
                   </p>
                   {payHrefVideos ? (
                     <Link to={payHrefVideos} className="media-upgrade-hint__link">
-                      Оплатить доп. видео
+                      Докупить видео за доплату
                     </Link>
                   ) : (
                     <p className="media-upgrade-hint__muted">

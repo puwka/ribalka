@@ -16,7 +16,6 @@ export const DEFAULT_DIRECTORY_OPTIONS = {
 export function buildDirectoryPaymentQuery(options) {
   const qs = new URLSearchParams();
   if (options.months) qs.set('months', String(options.months));
-  if (options.top) qs.set('top', '1');
   if (options.frame) qs.set('frame', '1');
   if (options.mode) qs.set('mode', String(options.mode));
   const s = qs.toString();
@@ -25,6 +24,7 @@ export function buildDirectoryPaymentQuery(options) {
 
 /**
  * Live tariff block for shops / services / guides — same UX as bases.
+ * TOP: only «ТОП на сутки», disabled when category slots are full.
  */
 export default function DirectoryConstructorPricing({
   tariff,
@@ -34,16 +34,20 @@ export default function DirectoryConstructorPricing({
   subtitle = 'Выберите срок и доп. опции — стоимость считается сразу, как у баз.',
   hidePeriods = false,
   hideTotal = false,
+  topSlots = null,
 }) {
   const t = normalizeServiceTariff(tariff || {});
-  const { months, top, frame } = options;
+  const { months, frame } = options;
+  const dailyPrice = Number(t.addonTopDaily ?? t.addonTop) || 300;
+  const topSlotsFull =
+    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
 
   const quote = useMemo(
-    () => calcServiceTotal(t, { months, top, frame }),
-    [t, months, top, frame]
+    () => calcServiceTotal(t, { months, top: false, frame }),
+    [t, months, frame]
   );
 
-  const set = (patch) => onChange?.({ ...options, ...patch });
+  const set = (patch) => onChange?.({ ...options, top: false, ...patch });
 
   return (
     <section className="dir-pricing" style={{ marginTop: '1.5rem' }}>
@@ -72,16 +76,6 @@ export default function DirectoryConstructorPricing({
           <label className="dir-pricing__check">
             <input
               type="checkbox"
-              checked={Boolean(top)}
-              onChange={(e) => set({ top: e.target.checked })}
-            />
-            <span>
-              Размещение в ТОП <em>+{formatRub(t.addonTop)}/мес</em>
-            </span>
-          </label>
-          <label className="dir-pricing__check">
-            <input
-              type="checkbox"
               checked={Boolean(frame)}
               onChange={(e) => set({ frame: e.target.checked })}
             />
@@ -89,6 +83,16 @@ export default function DirectoryConstructorPricing({
               Жёлтая рамка <em>+{formatRub(t.addonFrame)}/мес</em>
             </span>
           </label>
+          <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
+            ТОП на сутки — <strong>{formatRub(dailyPrice)}</strong>
+            {topSlots
+              ? ` · мест ${topSlots.used}/${topSlots.max}`
+              : ' · 4 места в категории'}
+            {topSlotsFull
+              ? ' · сейчас все заняты, кнопка у владельца неактивна'
+              : ' · кнопка «ТОП на сутки» после оплаты карточки'}
+            .
+          </p>
         </div>
       </div>
 

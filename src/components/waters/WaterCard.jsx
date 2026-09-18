@@ -131,6 +131,12 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
             </p>
 
             {item.short && <p className="water-card__excerpt">{item.short}</p>}
+            {(item.publishedAt || item.published_at) && (
+              <p className="water-card__published">
+                Опубликовано:{' '}
+                {new Date(item.publishedAt || item.published_at).toLocaleDateString('ru-RU')}
+              </p>
+            )}
           </div>
         </Link>
 
@@ -163,6 +169,13 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
           <h3 className="water-card__title">{item.name}</h3>
 
           {location && <p className="water-card__location">{location}</p>}
+
+          {(item.publishedAt || item.published_at) && (
+            <p className="water-card__published">
+              Опубликовано:{' '}
+              {new Date(item.publishedAt || item.published_at).toLocaleDateString('ru-RU')}
+            </p>
+          )}
 
           {item.short && <p className="water-card__excerpt">{item.short}</p>}
         </div>

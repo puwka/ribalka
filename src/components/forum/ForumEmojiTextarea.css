@@ -1,0 +1,82 @@
+.forum-emoji {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.forum-emoji textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.forum-emoji__bar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.forum-emoji__toggle {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.forum-emoji__toggle:hover,
+.forum-emoji__toggle.is-open {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.forum-emoji__toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.forum-emoji__panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.forum-emoji__group + .forum-emoji__group {
+  margin-top: 10px;
+}
+
+.forum-emoji__group-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.forum-emoji__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.forum-emoji__btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.forum-emoji__btn:hover {
+  background: #f1f5f9;
+}

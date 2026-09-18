@@ -241,6 +241,16 @@ export default function BaseDetailPage() {
                 {item.region && ` · ${item.region}`}
               </p>
               <h1>{item.name}</h1>
+              {(item.publishedAt || item.published_at) && (
+                <p className="water-detail__published">
+                  Дата публикации:{' '}
+                  {new Date(item.publishedAt || item.published_at).toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              )}
               {item.short && <p className="water-detail__lead">{item.short}</p>}
             </div>
             <div className="water-detail__actions">

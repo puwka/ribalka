@@ -753,4 +753,29 @@ export const localAuthStore = {
     writeStore(store);
     return user;
   },
+
+  setUserRole(adminId, targetUserId, role) {
+    const allowed = new Set(['user', 'owner', 'admin']);
+    const next = String(role || '').trim().toLowerCase();
+    if (!allowed.has(next)) throw new Error('Роль: user, owner или admin');
+
+    const store = readStore();
+    const admin = store.users.find((u) => u.id === adminId);
+    if (!admin?.roles?.includes('admin') && admin?.primary_role !== 'admin') {
+      throw new Error('Недостаточно прав');
+    }
+    if (String(targetUserId) === String(adminId) && next !== 'admin') {
+      throw new Error('Нельзя снять роль admin у себя');
+    }
+    const user = store.users.find((u) => u.id === targetUserId);
+    if (!user) throw new Error('Пользователь не найден');
+
+    user.primary_role = next;
+    if (next === 'admin') user.roles = ['user', 'owner', 'admin'];
+    else if (next === 'owner') user.roles = ['user', 'owner'];
+    else user.roles = ['user'];
+
+    writeStore(store);
+    return user;
+  },
 };

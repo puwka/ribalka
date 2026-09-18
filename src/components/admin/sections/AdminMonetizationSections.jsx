@@ -102,13 +102,15 @@ export function AdminPlansSection() {
                     }
                   />
                 </AdminField>
-                <AdminField label="ТОП ₽/мес">
+                <AdminField label="ТОП ₽/мес (устарело)">
                   <input
                     className="admin-input"
                     type="number"
                     min="0"
                     value={listing.addonTop ?? 1000}
                     onChange={(e) => setListing((s) => ({ ...s, addonTop: Number(e.target.value) }))}
+                    disabled
+                    title="Помесячный ТОП отключён — используйте «ТОП на сутки»"
                   />
                 </AdminField>
                 <AdminField label="ТОП на сутки ₽">
@@ -243,16 +245,20 @@ export function AdminPlansSection() {
                     }
                   />
                 </AdminField>
-                <AdminField label="ТОП ₽/мес">
+                <AdminField label="ТОП на сутки ₽">
                   <input
                     className="admin-input"
                     type="number"
                     min="0"
-                    value={directory.service?.addonTop ?? 500}
+                    value={directory.service?.addonTopDaily ?? directory.service?.addonTop ?? 300}
                     onChange={(e) =>
                       setDirectory((d) => ({
                         ...d,
-                        service: { ...d.service, addonTop: Number(e.target.value) },
+                        service: {
+                          ...d.service,
+                          addonTopDaily: Number(e.target.value),
+                          addonTop: Number(e.target.value),
+                        },
                       }))
                     }
                   />

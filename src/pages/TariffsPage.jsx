@@ -88,20 +88,18 @@ export default function TariffsPage() {
             <h4>Дополнительно на выбор</h4>
             <ul className="tariff-card__list">
               <li>
-                Размещение в ТОП — <strong>+{formatRub(ctor.addonTop)}/мес</strong>
+                ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
                 <span className="tariff-card__hint">
                   {' '}
-                  (на главной 4 места; если заняты — недоступно)
+                  (на главной 4 места; если заняты — кнопка неактивна)
                 </span>
-              </li>
-              <li>
-                ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
               </li>
               <li>
                 Выделение жёлтой рамкой — <strong>+{formatRub(ctor.addonFrame)}/мес</strong>
               </li>
               <li>
-                +1 фото — <strong>+{formatRub(ctor.addonPhoto)}</strong> за каждое
+                +1 фото — <strong>+{formatRub(ctor.addonPhoto)}</strong> за каждое (можно докупить в
+                любой момент)
               </li>
               <li>
                 +1 видео — <strong>+{formatRub(ctor.addonVideo)}</strong> за каждое
@@ -165,6 +163,14 @@ export default function TariffsPage() {
 
             <h4>Дополнительно</h4>
             <ul className="tariff-card__list">
+              <li>
+                ТОП на сутки —{' '}
+                <strong>{formatRub(dir.addonTopDaily ?? dir.addonTop ?? 300)}</strong>
+                <span className="tariff-card__hint">
+                  {' '}
+                  (4 места в категории; если заняты — кнопка неактивна)
+                </span>
+              </li>
               <li>
                 Выделение жёлтой рамкой — <strong>+{formatRub(dir.addonFrame)}/мес</strong>
               </li>

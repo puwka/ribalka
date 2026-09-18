@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { localAuthStore } from '../lib/localAuthStore';
+import { api, apiDataEnabled } from '../lib/apiClient';
+import { useAuth } from '../components/auth/AuthContext';
 import { reportSocialService } from '../services/reportSocialService';
 import { forumService } from '../services/forumService';
 import { gamificationService } from '../services/gamificationService';
@@ -20,26 +22,65 @@ function formatJoined(iso) {
   });
 }
 
+async function loadPublicProfile(userId) {
+  if (apiDataEnabled) {
+    return api.get(`/api/users/${encodeURIComponent(userId)}/public`);
+  }
+  return localAuthStore.getPublicProfile(userId);
+}
+
 export default function AuthorProfilePage() {
   const { userId } = useParams();
+  const { isAdmin } = useAuth();
   const [profile, setProfile] = useState(null);
   const [reports, setReports] = useState([]);
   const [topics, setTopics] = useState([]);
   const [progress, setProgress] = useState(null);
   const [showAllBadges, setShowAllBadges] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    setProfile(localAuthStore.getPublicProfile(userId));
-    reportSocialService.listByAuthor(userId).then(setReports).catch(() => setReports([]));
-    forumService.listByAuthor(userId).then(setTopics).catch(() => setTopics([]));
-    gamificationService.getProgress(userId).then(setProgress).catch(() => setProgress(null));
+    let alive = true;
+    setLoading(true);
+    setError('');
+    setProfile(null);
+    (async () => {
+      try {
+        const p = await loadPublicProfile(userId);
+        if (!alive) return;
+        setProfile(p);
+      } catch (err) {
+        if (!alive) return;
+        setProfile(null);
+        setError(err.message || 'Профиль не найден');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    reportSocialService.listByAuthor(userId).then((rows) => alive && setReports(rows || [])).catch(() => alive && setReports([]));
+    forumService.listByAuthor(userId).then((rows) => alive && setTopics(rows || [])).catch(() => alive && setTopics([]));
+    gamificationService.getProgress(userId).then((p) => alive && setProgress(p)).catch(() => alive && setProgress(null));
+    return () => {
+      alive = false;
+    };
   }, [userId]);
+
+  if (loading) {
+    return (
+      <div className="author-page">
+        <div className="author-page__inner">
+          <p className="author-empty">Загрузка…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
       <div className="author-page">
         <div className="author-page__inner">
-          <p className="author-empty">Профиль не найден или скрыт</p>
+          <p className="author-empty">{error || 'Профиль не найден или скрыт'}</p>
           <Link to="/forum" className="btn btn--secondary">
             На форум
           </Link>
@@ -49,6 +90,7 @@ export default function AuthorProfilePage() {
   }
 
   const isPrivate = profile.is_public === false;
+  const showDetails = !isPrivate || isAdmin;
   const badges = progress?.badges || [];
   const visibleBadges = showAllBadges ? badges : badges.slice(0, 6);
   const joined = formatJoined(profile.created_at);
@@ -65,17 +107,22 @@ export default function AuthorProfilePage() {
             <h1>{profile.display_name}</h1>
             <p className="author-head__meta">
               {[
-                isPrivate ? 'Профиль ограничен' : profile.city,
+                isPrivate && !isAdmin ? 'Профиль ограничен' : profile.city,
                 joined ? `на сайте с ${joined}` : null,
+                isAdmin && profile.email ? profile.email : null,
+                isAdmin && profile.status ? `статус: ${profile.status}` : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
-            {!isPrivate && profile.bio ? <p className="author-head__bio">{profile.bio}</p> : null}
+            {showDetails && profile.bio ? <p className="author-head__bio">{profile.bio}</p> : null}
+            {isPrivate && isAdmin ? (
+              <p className="author-head__meta">Профиль скрыт пользователем (видно только админу)</p>
+            ) : null}
           </div>
         </header>
 
-        {!isPrivate && progress && (
+        {showDetails && progress && (
           <section className="author-stats" aria-label="Статистика">
             <div>
               <span className="author-stats__value">{progress.ratingPoints}</span>
@@ -100,7 +147,7 @@ export default function AuthorProfilePage() {
           </section>
         )}
 
-        {!isPrivate && badges.length > 0 && (
+        {showDetails && badges.length > 0 && (
           <section className="author-block">
             <div className="author-block__head">
               <h2>Достижения</h2>

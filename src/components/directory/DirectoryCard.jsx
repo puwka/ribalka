@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { api, apiDataEnabled } from '../../lib/apiClient';
-import { getItemRegion } from '../../lib/directoryRegion';
+import { getItemRegion, isDirectoryTopActive } from '../../lib/directoryRegion';
 
 export function getCategoryLabel(category) {
   const labels = {
@@ -73,10 +73,11 @@ function hasWebsite(item) {
 export default function DirectoryCard({ item }) {
   const viewed = useRef(false);
   const region = getItemRegion(item);
+  const isTop = isDirectoryTopActive(item);
   const classes = [
     'directory-card',
     item.yellowFrame || item.highlight ? 'directory-card--frame' : '',
-    item.isTop || item.top ? 'directory-card--top' : '',
+    isTop ? 'directory-card--top' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -103,7 +104,7 @@ export default function DirectoryCard({ item }) {
       <div className="card-image">
         {item.image ? <img src={item.image} alt={item.name} /> : null}
         <div className="card-category">{getCategoryLabel(item.category)}</div>
-        {(item.isTop || item.top) && <div className="card-badge-top">ТОП</div>}
+        {isTop && <div className="card-badge-top">ТОП</div>}
         {region ? <div className="card-region">{region}</div> : null}
       </div>
 

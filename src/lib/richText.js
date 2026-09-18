@@ -1,6 +1,22 @@
 /** Lightweight HTML helpers for description fields. */
 
-const ALLOWED_TAGS = new Set(['P', 'BR', 'STRONG', 'B', 'EM', 'I', 'UL', 'OL', 'LI', 'DIV', 'SPAN']);
+const ALLOWED_TAGS = new Set([
+  'P',
+  'BR',
+  'STRONG',
+  'B',
+  'EM',
+  'I',
+  'U',
+  'UL',
+  'OL',
+  'LI',
+  'DIV',
+  'SPAN',
+  'H2',
+  'H3',
+  'A',
+]);
 
 function escapeHtml(text) {
   return String(text)
@@ -14,14 +30,16 @@ export function looksLikeHtml(value) {
   return /<[a-z][\s\S]*>/i.test(String(value || ''));
 }
 
-/** Convert plain text (with newlines) into simple HTML for the editor. */
+/** Convert plain text (with newlines / legacy **bold**) into simple HTML. */
 export function plainTextToHtml(value) {
   const text = String(value || '').replace(/\r\n/g, '\n').trim();
   if (!text) return '<p><br></p>';
   return text
     .split(/\n{2,}/)
     .map((block) => {
-      const lines = escapeHtml(block).replace(/\n/g, '<br>');
+      const lines = escapeHtml(block)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
       return `<p>${lines || '<br>'}</p>`;
     })
     .join('');
@@ -57,7 +75,23 @@ export function sanitizeRichHtml(html) {
           parent.removeChild(child);
           continue;
         }
-        [...child.attributes].forEach((attr) => child.removeAttribute(attr.name));
+
+        if (tag === 'A') {
+          const href = String(child.getAttribute('href') || '').trim();
+          [...child.attributes].forEach((attr) => child.removeAttribute(attr.name));
+          if (/^https?:\/\//i.test(href)) {
+            child.setAttribute('href', href);
+            child.setAttribute('target', '_blank');
+            child.setAttribute('rel', 'noopener noreferrer');
+          } else {
+            const parent = child.parentNode;
+            while (child.firstChild) parent.insertBefore(child.firstChild, child);
+            parent.removeChild(child);
+            continue;
+          }
+        } else {
+          [...child.attributes].forEach((attr) => child.removeAttribute(attr.name));
+        }
         walk(child);
       } else if (child.nodeType === 8) {
         child.remove();
@@ -85,4 +119,22 @@ export function normalizeRichHtml(html) {
     .replace(/\s+/g, ' ')
     .trim();
   return text ? cleaned : '';
+}
+
+/** Plain preview text from HTML or markdown-ish content. */
+export function stripRichText(value, maxLen = 280) {
+  let text = String(value || '');
+  if (looksLikeHtml(text)) {
+    text = text
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/p>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ');
+  }
+  text = text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (maxLen > 0 && text.length > maxLen) return `${text.slice(0, maxLen).trim()}…`;
+  return text;
 }

@@ -11,18 +11,7 @@ const LEGACY_HERO_TITLES = new Set([
   'Водоёмы и места для рыбалки в Пермском крае',
 ]);
 
-const STAT_TILES = [
-  { key: 'paid', label: 'Платных', to: '/paid-waters' },
-  { key: 'free', label: 'Бесплатных', to: '/free-waters' },
-  { key: 'total', label: 'На карте', to: '/map' },
-  { key: 'shops', label: 'Магазины', to: '/directory/shops' },
-  { key: 'services', label: 'Сервисы', to: '/directory/services' },
-  { key: 'guides', label: 'Гиды', to: '/directory/guides' },
-];
-
-export default function Hero({
-  stats = { paid: 0, free: 0, total: 0, shops: 0, services: 0, guides: 0 },
-}) {
+export default function Hero() {
   const { data: cms } = useCmsPage(CMS_PAGES.HOME);
   const hero = cms?.hero || {};
 
@@ -39,14 +28,11 @@ export default function Hero({
       : rawLead;
 
   const image = hero.image || '/img/hero/header-img.jpeg';
-  const showStats = hero.showStats !== false;
 
   const primaryLabel = hero.ctaPrimary?.label || 'Платные водоёмы';
   const primaryUrl = hero.ctaPrimary?.url || '/paid-waters';
   const secondaryLabel = hero.ctaSecondary?.label || 'Бесплатные места';
   const secondaryUrl = hero.ctaSecondary?.url || '/free-waters';
-
-  const hasAnyStat = STAT_TILES.some((tile) => Number(stats[tile.key]) > 0);
 
   return (
     <section className="hero" id="home">
@@ -63,17 +49,6 @@ export default function Hero({
               {secondaryLabel}
             </Link>
           </div>
-
-          {showStats && hasAnyStat && (
-            <div className="hero__stats" role="list" aria-label="Статистика каталога">
-              {STAT_TILES.map(({ key, label, to }) => (
-                <Link key={key} to={to} role="listitem" className="hero-stat">
-                  <span className="hero-stat__value">{Number(stats[key]) || 0}</span>
-                  <span className="hero-stat__label">{label}</span>
-                </Link>
-              ))}
-            </div>
-          )}
         </div>
 
         <figure className="hero__figure">

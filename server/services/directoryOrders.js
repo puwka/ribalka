@@ -5,6 +5,8 @@ import { getDirectoryListingPrices, remainingMonthsCeil } from './listingOrders.
 const ORDER_TTL_HOURS = 24;
 const PAGE_KEY = 'page:directory';
 const CATEGORIES = new Set(['shop', 'service', 'guide']);
+/** Max simultaneous TOP slots per directory category */
+export const DIRECTORY_TOP_SLOTS = 4;
 
 function mapOrder(row) {
   if (!row) return null;
@@ -18,12 +20,10 @@ function mapOrder(row) {
   };
 }
 
-function calcAmount(tariff, { months, frame, top }) {
+function calcAmount(tariff, { months, frame }) {
   const m = Number(months) || 3;
   const monthly =
-    Number(tariff.amountPerMonth || 0) +
-    (top ? Number(tariff.addonTop || 0) : 0) +
-    (frame ? Number(tariff.addonFrame || 0) : 0);
+    Number(tariff.amountPerMonth || 0) + (frame ? Number(tariff.addonFrame || 0) : 0);
   const full = monthly * m;
   const discountPct =
     m === 3
@@ -37,6 +37,14 @@ function calcAmount(tariff, { months, frame, top }) {
 
 function categoryLabel(category) {
   return { shop: 'Магазин', service: 'Сервис', guide: 'Гид / егерь' }[category] || category;
+}
+
+/** Active TOP: isTop + topUntil in future, or legacy isTop without topUntil while paid. */
+export function itemHasActiveTop(item) {
+  if (!item || !(item.isTop || item.top)) return false;
+  if (item.topUntil) return new Date(item.topUntil).getTime() > Date.now();
+  if (item.paidUntil) return new Date(item.paidUntil).getTime() > Date.now();
+  return true;
 }
 
 async function getCmsPage() {
@@ -182,9 +190,9 @@ export async function createDirectoryCheckout({
     throw err;
   }
 
-  const wantTop = Boolean(top);
   const wantFrame = Boolean(frame);
-  const amount = calcAmount(tariff, { months: m, frame: wantFrame, top: wantTop });
+  // Monthly TOP removed — only «ТОП на сутки»
+  const amount = calcAmount(tariff, { months: m, frame: wantFrame });
   const payload = {
     name,
     category,
@@ -202,7 +210,7 @@ export async function createDirectoryCheckout({
           .map((t) => t.trim())
           .filter(Boolean),
     yellowFrame: wantFrame,
-    isTop: wantTop,
+    isTop: false,
     months: m,
     renew: Boolean(existingItem),
   };
@@ -227,7 +235,7 @@ export async function createDirectoryCheckout({
       expiresAt,
       m,
       wantFrame,
-      wantTop,
+      false,
       JSON.stringify(payload),
       itemId || null,
     ]
@@ -388,16 +396,12 @@ export async function createDirectoryUpgradeCheckout({
     throw err;
   }
 
-  const hasTop = Boolean(existingItem.isTop || existingItem.top);
   const hasFrame = Boolean(existingItem.yellowFrame || existingItem.highlight);
-  const addTop = Boolean(top) && !hasTop;
+  const addTop = false;
   const addFrame = Boolean(frame) && !hasFrame;
   const amount = Math.max(
     0,
-    Math.round(
-      (addTop ? Number(tariff.addonTop) || 0 : 0) * rem +
-        (addFrame ? Number(tariff.addonFrame) || 0 : 0) * rem
-    )
+    Math.round((addFrame ? Number(tariff.addonFrame) || 0 : 0) * rem)
   );
 
   if (amount <= 0) {
@@ -420,7 +424,7 @@ export async function createDirectoryUpgradeCheckout({
     image: existingItem.image || '',
     tags: existingItem.tags || [],
     yellowFrame: hasFrame || addFrame,
-    isTop: hasTop || addTop,
+    isTop: Boolean(existingItem.isTop || existingItem.top),
     remainingMonths: rem,
     renew: true,
   };
@@ -445,7 +449,7 @@ export async function createDirectoryUpgradeCheckout({
       expiresAt,
       3,
       hasFrame || addFrame,
-      hasTop || addTop,
+      false,
       JSON.stringify(payload),
       itemId,
       JSON.stringify({ kind: 'upgrade', remainingMonths: rem }),
@@ -556,6 +560,7 @@ async function publishDirectoryItem(client, order) {
     }
   }
   const isUpgrade = payload.kind === 'upgrade' || meta?.kind === 'upgrade';
+  const isTopDaily = payload.kind === 'top_daily' || meta?.kind === 'top_daily';
   const itemId = order.directory_item_id || `dir-${order.id.slice(0, 8)}`;
   const months = Math.max(1, Number(order.months || 3));
 
@@ -574,6 +579,87 @@ async function publishDirectoryItem(client, order) {
   const items = Array.isArray(page.items) ? [...page.items] : [];
   const idx = items.findIndex((i) => String(i.id) === String(itemId));
   const existing = idx >= 0 ? items[idx] : null;
+
+  if (isTopDaily) {
+    if (!existing) {
+      const err = new Error('Карточка справочника не найдена');
+      err.status = 404;
+      throw err;
+    }
+    const hours = Math.max(1, Number(meta?.top_daily?.hours || payload.hours) || 24);
+    const already = itemHasActiveTop(existing);
+    if (!already) {
+      const used = items.filter(
+        (i) =>
+          String(i.id) !== String(itemId) &&
+          String(i.category) === String(existing.category) &&
+          itemHasActiveTop(i)
+      ).length;
+      if (used >= DIRECTORY_TOP_SLOTS) {
+        // Displace earliest daily TOP in this category
+        const dailies = items
+          .map((i, index) => ({ i, index }))
+          .filter(
+            ({ i }) =>
+              String(i.id) !== String(itemId) &&
+              String(i.category) === String(existing.category) &&
+              itemHasActiveTop(i) &&
+              (i.topKind === 'daily' || (i.topUntil && !i.topKind))
+          )
+          .sort(
+            (a, b) =>
+              new Date(a.i.topUntil || 0).getTime() - new Date(b.i.topUntil || 0).getTime()
+          );
+        if (dailies[0]) {
+          const d = dailies[0].i;
+          items[dailies[0].index] = {
+            ...d,
+            isTop: false,
+            top: false,
+            topUntil: null,
+            topKind: null,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      }
+    }
+    const baseUntil = already && existing.topUntil ? new Date(existing.topUntil) : new Date();
+    if (baseUntil.getTime() < Date.now()) baseUntil.setTime(Date.now());
+    baseUntil.setHours(baseUntil.getHours() + hours);
+    const row = {
+      ...existing,
+      isTop: true,
+      top: true,
+      topKind: 'daily',
+      topUntil: baseUntil.toISOString(),
+      updatedAt: new Date().toISOString(),
+      orderId: order.id,
+    };
+    items[idx] = row;
+    const next = {
+      title: page.title || 'Справочник рыболова',
+      description: page.description || '',
+      ...page,
+      items,
+    };
+    await client.query(
+      `insert into public.cms_kv (key, value, updated_at)
+       values ($1, $2::jsonb, now())
+       on conflict (key) do update set value = excluded.value, updated_at = now()`,
+      [PAGE_KEY, JSON.stringify(next)]
+    );
+    await client.query(
+      `insert into public.notifications (user_id, type, title, body, link_path, payload)
+       values ($1, 'payment', 'ТОП на сутки оплачен', $2, $3, $4::jsonb)`,
+      [
+        order.user_id,
+        `«${row.name}» поднята в ТОП справочника на ${hours} ч.`,
+        `/owner/directory/${itemId}/edit`,
+        JSON.stringify({ order_id: order.id, directory_item_id: itemId, kind: 'top_daily' }),
+      ]
+    );
+    return itemId;
+  }
 
   const now = new Date();
   let paidUntil = existing?.paidUntil || null;
@@ -596,6 +682,7 @@ async function publishDirectoryItem(client, order) {
       ? existing.status
       : 'pending';
 
+  const keepTop = itemHasActiveTop(existing);
   const row = {
     ...(existing || {}),
     id: itemId,
@@ -613,7 +700,10 @@ async function publishDirectoryItem(client, order) {
     yellowFrame: Boolean(
       order.addon_frame || payload.yellowFrame || existing?.yellowFrame
     ),
-    isTop: Boolean(order.addon_top || payload.isTop || existing?.isTop),
+    isTop: keepTop,
+    top: keepTop,
+    topUntil: keepTop ? existing?.topUntil || null : null,
+    topKind: keepTop ? existing?.topKind || null : null,
     ownerUserId: order.user_id,
     orderId: order.id,
     paidUntil: paidUntil || existing?.paidUntil || null,
@@ -803,4 +893,279 @@ export async function findOrderByProviderPaymentId(paymentId) {
     [paymentId]
   );
   return mapOrder(rows[0]);
+}
+
+export async function getDirectoryTopAvailability({ category, itemId = null } = {}) {
+  const page = await getCmsPage();
+  const cat = String(category || '').trim();
+  const peers = page.items.filter((i) => {
+    if (cat && String(i.category) !== cat) return false;
+    if ((i.status || 'published') !== 'published' && (i.status || '') !== 'approved') {
+      return false;
+    }
+    return itemHasActiveTop(i);
+  });
+  const alreadyTop = itemId
+    ? peers.some((i) => String(i.id) === String(itemId))
+    : false;
+  const othersUsed = peers.filter((i) => !itemId || String(i.id) !== String(itemId)).length;
+  const usedSlots = alreadyTop ? othersUsed + 1 : othersUsed;
+  const dailyAvailable = alreadyTop || othersUsed < DIRECTORY_TOP_SLOTS;
+  return {
+    max: DIRECTORY_TOP_SLOTS,
+    used: usedSlots,
+    free: Math.max(0, DIRECTORY_TOP_SLOTS - usedSlots),
+    available: dailyAvailable,
+    dailyAvailable,
+    alreadyTop,
+    category: cat || null,
+  };
+}
+
+/**
+ * One-day TOP boost for shop / service / guide cards (24h).
+ */
+export async function createDirectoryTopDailyCheckout({
+  userId,
+  directoryItemId,
+  returnUrl,
+}) {
+  const itemId = directoryItemId;
+  if (!itemId) {
+    const err = new Error('directoryItemId required');
+    err.status = 400;
+    throw err;
+  }
+
+  const page = await getCmsPage();
+  const existingItem = page.items.find((i) => String(i.id) === String(itemId));
+  if (!existingItem || String(existingItem.ownerUserId) !== String(userId)) {
+    const err = new Error('Карточка не найдена или нет доступа');
+    err.status = 404;
+    throw err;
+  }
+
+  const status = existingItem.status || 'draft';
+  if (status !== 'published' && status !== 'approved') {
+    const err = new Error('Суточный ТОП доступен только для опубликованных карточек');
+    err.status = 400;
+    throw err;
+  }
+  if (existingItem.paidUntil && new Date(existingItem.paidUntil).getTime() <= Date.now()) {
+    const err = new Error('Сначала продлите размещение карточки');
+    err.status = 400;
+    throw err;
+  }
+
+  const slots = await getDirectoryTopAvailability({
+    category: existingItem.category,
+    itemId,
+  });
+  if (!slots.dailyAvailable) {
+    const err = new Error(
+      `Все ${DIRECTORY_TOP_SLOTS} места в ТОП этой категории заняты. Попробуйте позже.`
+    );
+    err.status = 409;
+    throw err;
+  }
+
+  const prices = await getDirectoryListingPrices();
+  const tariff = prices.service;
+  if (!tariff?.enabled) {
+    const err = new Error('Размещение в справочнике временно отключено');
+    err.status = 403;
+    throw err;
+  }
+
+  const amount = Math.max(
+    0,
+    Number(tariff.addonTopDaily ?? tariff.addonTop) || 300
+  );
+  const hours = 24;
+  const description = `ТОП на сутки: ${categoryLabel(existingItem.category)} «${existingItem.name}»`.slice(
+    0,
+    128
+  );
+  const metaPatch = {
+    kind: 'top_daily',
+    top_daily: { hours, amount },
+  };
+  const payload = {
+    kind: 'top_daily',
+    hours,
+    name: existingItem.name,
+    category: existingItem.category,
+    isTop: true,
+  };
+
+  const { rows: existing } = await pool.query(
+    `select * from public.directory_listing_orders
+     where directory_item_id = $1 and user_id = $2
+       and status in ('pending', 'waiting_for_payment')
+       and (expires_at is null or expires_at > now())
+       and coalesce(meta->>'kind', '') = 'top_daily'
+     order by created_at desc
+     limit 1`,
+    [itemId, userId]
+  );
+  let order = mapOrder(existing[0]);
+  const amountChanged = Boolean(order) && Number(order.amount) !== Number(amount);
+
+  if (order && !order.provider_payment_id && amountChanged) {
+    const { rows: updated } = await pool.query(
+      `update public.directory_listing_orders
+       set amount = $2, description = $3,
+           meta = coalesce(meta, '{}'::jsonb) || $4::jsonb,
+           payload = $5::jsonb,
+           updated_at = now()
+       where id = $1
+       returning *`,
+      [order.id, amount, description, JSON.stringify(metaPatch), JSON.stringify(payload)]
+    );
+    order = mapOrder(updated[0]);
+  }
+
+  if (order && order.provider_payment_id && amountChanged) {
+    await pool.query(
+      `update public.directory_listing_orders
+       set status = 'cancelled', updated_at = now(),
+           meta = coalesce(meta, '{}'::jsonb) || '{"reason":"top_daily_price_changed"}'::jsonb
+       where id = $1 and status in ('pending', 'waiting_for_payment')`,
+      [order.id]
+    );
+    order = null;
+  }
+
+  if (!order) {
+    const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
+    const { rows } = await pool.query(
+      `insert into public.directory_listing_orders
+        (user_id, category, amount, currency, status, description, expires_at,
+         payment_provider, months, addon_frame, addon_top, payload, directory_item_id, meta)
+       values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',0,false,true,$6::jsonb,$7,$8::jsonb)
+       returning *`,
+      [
+        userId,
+        existingItem.category,
+        amount,
+        description,
+        expiresAt,
+        JSON.stringify(payload),
+        itemId,
+        JSON.stringify(metaPatch),
+      ]
+    );
+    order = mapOrder(rows[0]);
+  }
+
+  if (Number(order.amount) === 0) {
+    return markDirectoryOrderPaid(order.id, { skipYoo: true });
+  }
+
+  if (!yookassa.isYooKassaConfigured()) {
+    const err = new Error('Платёжная система не настроена на сервере');
+    err.status = 503;
+    throw err;
+  }
+
+  if (order.provider_payment_id && order.confirmation_url && order.status === 'waiting_for_payment') {
+    const remote = await yookassa.getPayment(order.provider_payment_id).catch(() => null);
+    if (remote?.status === 'succeeded' && remote.paid) {
+      return finalizeDirectoryPaidFromYooKassa(order, remote);
+    }
+    if (remote && !['canceled', 'succeeded'].includes(remote.status)) {
+      return {
+        order: await getOrderById(order.id),
+        confirmationUrl: order.confirmation_url,
+        paymentId: order.provider_payment_id,
+      };
+    }
+  }
+
+  const publicSite = (process.env.PUBLIC_SITE_URL || '').replace(/\/$/, '');
+  let siteReturn =
+    returnUrl ||
+    (publicSite ? `${publicSite}/owner/directory/payment/result/${order.id}` : '');
+  if (!siteReturn) {
+    const err = new Error('Не задан PUBLIC_SITE_URL');
+    err.status = 500;
+    throw err;
+  }
+  siteReturn = siteReturn.replace(':orderId', order.id).replace('{orderId}', order.id);
+  if (!siteReturn.includes(order.id)) {
+    siteReturn = `${siteReturn.replace(/\/$/, '')}/owner/directory/payment/result/${order.id}`;
+  }
+
+  const userRes = await pool.query(
+    `select u.email, p.phone
+     from public.users u
+     left join public.profiles p on p.user_id = u.id
+     where u.id = $1`,
+    [userId]
+  );
+  const buyer = userRes.rows[0] || {};
+  if (!buyer.email && !buyer.phone) {
+    const err = new Error('Укажите email в профиле — он нужен для чека оплаты');
+    err.status = 400;
+    throw err;
+  }
+
+  const idempotenceKey = `dir-top-daily-${order.id}`;
+  const payment = await yookassa.createPayment({
+    amount: order.amount,
+    currency: order.currency || 'RUB',
+    description: order.description,
+    returnUrl: siteReturn,
+    metadata: {
+      order_id: order.id,
+      order_kind: 'directory_top_daily',
+      directory_item_id: itemId,
+      user_id: userId,
+    },
+    customer: {
+      email: buyer.email || undefined,
+      phone: buyer.phone || undefined,
+    },
+    idempotenceKey,
+  });
+
+  const confirmationUrl = payment.confirmation?.confirmation_url || null;
+  await pool.query(
+    `update public.directory_listing_orders set
+       status = 'waiting_for_payment',
+       provider_payment_id = $2,
+       confirmation_url = $3,
+       idempotence_key = $4,
+       meta = coalesce(meta, '{}'::jsonb) || $5::jsonb,
+       updated_at = now()
+     where id = $1`,
+    [
+      order.id,
+      payment.id,
+      confirmationUrl,
+      idempotenceKey,
+      JSON.stringify({ yookassa_status: payment.status, kind: 'top_daily' }),
+    ]
+  );
+
+  await pool.query(
+    `insert into public.payments
+      (user_id, provider, provider_payment_id, amount, currency, status, confirmation_url, meta)
+     select $1, 'yookassa', $2, $3, $4, 'pending', $5, $6::jsonb
+     where not exists (
+       select 1 from public.payments where provider = 'yookassa' and provider_payment_id = $2
+     )`,
+    [
+      userId,
+      payment.id,
+      order.amount,
+      order.currency,
+      confirmationUrl,
+      JSON.stringify({ order_id: order.id, order_kind: 'directory_top_daily' }),
+    ]
+  );
+
+  order = await getOrderById(order.id);
+  console.log('[directory-listing] top_daily checkout', order.id, payment.id, order.amount);
+  return { order, confirmationUrl, paymentId: payment.id };
 }

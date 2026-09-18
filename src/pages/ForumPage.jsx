@@ -4,6 +4,8 @@ import { useAuth } from '../components/auth/AuthContext';
 import { getAnonId } from '../hooks/useReports';
 import { forumService } from '../services/forumService';
 import { basesService } from '../services/basesService';
+import SideBannerRails from '../components/ads/SideBannerRails';
+import ForumEmojiTextarea from '../components/forum/ForumEmojiTextarea';
 import './ForumPage.css';
 
 export default function ForumPage() {
@@ -96,6 +98,7 @@ export default function ForumPage() {
         </button>
       </header>
 
+      <SideBannerRails surface="forum">
       <div className="forum-wrap">
         {error && <div className="forum-error">{error}</div>}
 
@@ -113,11 +116,11 @@ export default function ForumPage() {
             </label>
             <label>
               Текст *
-              <textarea
+              <ForumEmojiTextarea
                 required
                 rows={5}
                 value={form.body}
-                onChange={(e) => setForm({ ...form, body: e.target.value })}
+                onChange={(body) => setForm({ ...form, body })}
               />
             </label>
             <label>
@@ -179,6 +182,7 @@ export default function ForumPage() {
           </ul>
         )}
       </div>
+      </SideBannerRails>
     </div>
   );
 }

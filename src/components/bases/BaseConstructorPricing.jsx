@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   DIRECTORY_PERIODS,
   calcConstructorTotal,
@@ -10,6 +10,7 @@ import '../directory/DirectoryPricingForm.css';
 /**
  * Live tariff constructor for bases (same UX idea as directory checkout).
  * Controlled: options + onChange.
+ * TOP is not sold monthly — only «ТОП на сутки» (+300 ₽) after payment.
  */
 export default function BaseConstructorPricing({
   tariff,
@@ -17,38 +18,34 @@ export default function BaseConstructorPricing({
   onChange,
   title = 'Тариф и опции размещения',
   topSlots = null,
+  mode = 'renew',
 }) {
   const ctor = normalizeConstructor(tariff || {});
-  const { months, top, frame, extraPhotos, extraVideos } = options;
+  const { months, frame, extraPhotos, extraVideos } = options;
+  const isUpgrade = mode === 'upgrade';
 
   const quote = useMemo(
     () =>
       calcConstructorTotal(ctor, {
         months,
-        top,
+        top: false,
         frame,
         extraPhotos,
         extraVideos,
       }),
-    [ctor, months, top, frame, extraPhotos, extraVideos]
+    [ctor, months, frame, extraPhotos, extraVideos]
   );
 
-  const set = (patch) => onChange?.({ ...options, ...patch });
-  const monthlyTopLocked = Boolean(topSlots) && !topSlots.available && !topSlots.alreadyTop;
-  const alreadyHasTop = Boolean(topSlots?.alreadyTop);
-
-  useEffect(() => {
-    if (monthlyTopLocked && top) set({ top: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to slot lock
-  }, [monthlyTopLocked]);
+  const set = (patch) => onChange?.({ ...options, top: false, ...patch });
 
   return (
     <section className="dir-pricing" style={{ marginTop: '1.5rem' }}>
       <header className="dir-pricing__head">
         <h2>{title}</h2>
         <p>
-          Выберите срок и доп. опции — стоимость считается сразу. После сохранения карточки можно
-          оплатить выбранный пакет.
+          {isUpgrade
+            ? `Доплата без продления срока: увеличьте число фото/видео (+${formatRub(ctor.addonPhoto)} / +${formatRub(ctor.addonVideo)}) или включите рамку.`
+            : 'Выберите срок и доп. опции — стоимость считается сразу. После сохранения карточки можно оплатить выбранный пакет.'}
         </p>
       </header>
 
@@ -68,23 +65,6 @@ export default function BaseConstructorPricing({
         </p>
         <div className="dir-pricing__addons">
           <p className="dir-pricing__label">Добавить:</p>
-          <label className={`dir-pricing__check${monthlyTopLocked ? ' is-disabled' : ''}`}>
-            <input
-              type="checkbox"
-              checked={Boolean(top) || alreadyHasTop}
-              disabled={monthlyTopLocked || alreadyHasTop}
-              onChange={(e) => set({ top: e.target.checked })}
-            />
-            <span>
-              Размещение в ТОП <em>+{formatRub(ctor.addonTop)}/мес</em>
-              {topSlots ? (
-                <small style={{ display: 'block', opacity: 0.75 }}>
-                  Мест на главной: {topSlots.used}/{topSlots.max}
-                  {monthlyTopLocked ? ' — все заняты' : ''}
-                </small>
-              ) : null}
-            </span>
-          </label>
           <label className="dir-pricing__check">
             <input
               type="checkbox"
@@ -95,31 +75,52 @@ export default function BaseConstructorPricing({
               Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
             </span>
           </label>
+          {topSlots ? (
+            <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
+              ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong> · мест на
+              главной {topSlots.used}/{topSlots.max}
+              {!topSlots.dailyAvailable && !topSlots.alreadyTop
+                ? ' · сейчас занято, кнопка неактивна'
+                : ' · кнопка ниже на странице карточки'}
+              .
+            </p>
+          ) : (
+            <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
+              ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>. Если все 4
+              места на главной заняты — кнопка неактивна.
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="dir-pricing__periods">
-        <p className="dir-pricing__label">Срок оплаты (от 3 месяцев):</p>
-        <div className="dir-pricing__period-btns">
-          {DIRECTORY_PERIODS.map((m) => {
-            const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
-            return (
-              <button
-                key={m}
-                type="button"
-                className={months === m ? 'is-active' : ''}
-                onClick={() => set({ months: m })}
-              >
-                {m} мес.
-                {disc > 0 ? ` (−${disc}%)` : ''}
-              </button>
-            );
-          })}
+      {!isUpgrade && (
+        <div className="dir-pricing__periods">
+          <p className="dir-pricing__label">Срок оплаты (от 3 месяцев):</p>
+          <div className="dir-pricing__period-btns">
+            {DIRECTORY_PERIODS.map((m) => {
+              const disc = m === 3 ? ctor.discount3 : m === 6 ? ctor.discount6 : ctor.discount12;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  className={months === m ? 'is-active' : ''}
+                  onClick={() => set({ months: m })}
+                >
+                  {m} мес.
+                  {disc > 0 ? ` (−${disc}%)` : ''}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="dir-pricing__addons" style={{ marginTop: '1rem' }}>
-        <p className="dir-pricing__label">Доп. медиа:</p>
+        <p className="dir-pricing__label">
+          {isUpgrade
+            ? 'Докупить фото / видео (только новые слоты):'
+            : 'Доп. медиа (можно докупить в любой момент за доплату):'}
+        </p>
         <div className="base-ctor__counters">
           <div className="base-ctor__counter">
             <span>
@@ -152,22 +153,24 @@ export default function BaseConstructorPricing({
         </div>
       </div>
 
-      <div className="dir-pricing__total">
-        <div>
-          <span>В месяц</span>
-          <strong>{formatRub(quote.monthly)}</strong>
-        </div>
-        {quote.discountPct > 0 && (
+      {!isUpgrade && (
+        <div className="dir-pricing__total">
           <div>
-            <span>Скидка {quote.discountPct}%</span>
-            <strong>−{formatRub(quote.discountAmount)}</strong>
+            <span>В месяц</span>
+            <strong>{formatRub(quote.monthly)}</strong>
           </div>
-        )}
-        <div className="dir-pricing__grand">
-          <span>Итого за {quote.months} мес.</span>
-          <strong>{formatRub(quote.total)}</strong>
+          {quote.discountPct > 0 && (
+            <div>
+              <span>Скидка {quote.discountPct}%</span>
+              <strong>−{formatRub(quote.discountAmount)}</strong>
+            </div>
+          )}
+          <div className="dir-pricing__grand">
+            <span>Итого за {quote.months} мес.</span>
+            <strong>{formatRub(quote.total)}</strong>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
@@ -175,7 +178,7 @@ export default function BaseConstructorPricing({
 export function buildPaymentQuery(options) {
   const qs = new URLSearchParams();
   if (options.months) qs.set('months', String(options.months));
-  if (options.top) qs.set('top', '1');
+  // Monthly TOP removed from constructor — only daily TOP is sold separately
   if (options.frame) qs.set('frame', '1');
   if (options.extraPhotos) qs.set('extraPhotos', String(options.extraPhotos));
   if (options.extraVideos) qs.set('extraVideos', String(options.extraVideos));

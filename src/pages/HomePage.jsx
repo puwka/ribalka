@@ -1,31 +1,15 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import WatersHomeSection from '../components/home/WatersHomeSection';
 import News from '../components/News/News';
-import { getHomeStatsSync, loadHomeStats } from '../services/homeStatsService';
 import { CMS_PAGES } from '../services/cmsService';
 import { useCmsPage } from '../hooks/useCms';
 import './HomePage.css';
 
 export default function HomePage() {
-  const [stats, setStats] = useState(getHomeStatsSync);
   const { data: cms } = useCmsPage(CMS_PAGES.HOME);
   const blocks = cms?.blocks || {};
 
-  useEffect(() => {
-    let alive = true;
-    loadHomeStats()
-      .then((next) => {
-        if (alive) setStats(next);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const showNav = blocks.navStrip?.enabled !== false;
   const showWaters = blocks.watersSection?.enabled !== false;
   const showNews = blocks.newsSection?.enabled !== false;
   const showCta = blocks.cta?.enabled !== false;
@@ -33,30 +17,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <Hero stats={stats} />
-
-      {showNav && (
-        <nav className="home-nav" aria-label="Разделы сервиса">
-          <div className="section-inner home-nav__inner">
-            <Link to="/map" className="home-nav__item">
-              <span className="home-nav__label">Карта водоёмов</span>
-              <span className="home-nav__meta">{stats.total} мест</span>
-            </Link>
-            <Link to="/paid-waters" className="home-nav__item">
-              <span className="home-nav__label">Платные водоёмы</span>
-              <span className="home-nav__meta">{stats.paid} объектов</span>
-            </Link>
-            <Link to="/free-waters" className="home-nav__item">
-              <span className="home-nav__label">Бесплатные водоёмы</span>
-              <span className="home-nav__meta">{stats.free} объектов</span>
-            </Link>
-            <Link to="/reports" className="home-nav__item">
-              <span className="home-nav__label">Отчёты рыбаков</span>
-              <span className="home-nav__meta">Сообщество</span>
-            </Link>
-          </div>
-        </nav>
-      )}
+      <Hero />
 
       {showWaters && <WatersHomeSection />}
 

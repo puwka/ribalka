@@ -23,7 +23,7 @@ const DRAWER_PRIMARY = [
   { href: '/paid-waters', label: 'Платные водоёмы' },
   { href: '/free-waters', label: 'Бесплатные водоёмы' },
   { href: '/map', label: 'Карта' },
-  { href: '/reports', label: 'Отчёты о рыбалке' },
+  { href: '/reports', label: 'Отчёты' },
   { href: '/forum', label: 'Форум' },
   { href: '/directory', label: 'Справочник' },
   { href: '/tariffs', label: 'Тарифы' },

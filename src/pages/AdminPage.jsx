@@ -18,6 +18,7 @@ import AdminMediaSection from '../components/admin/sections/AdminMediaSection';
 import AdminUsersSection from '../components/admin/sections/AdminUsersSection';
 import AdminReviewsSection from '../components/admin/sections/AdminReviewsSection';
 import { AdminPlansSection, AdminPaymentsSection } from '../components/admin/sections/AdminMonetizationSections';
+import AdminAdsSection from '../components/admin/sections/AdminAdsSection';
 import AdminSeoSection from '../components/admin/sections/AdminSeoSection';
 import AdminSettingsSection from '../components/admin/sections/AdminSettingsSection';
 import AdminDistrictsSection from '../components/admin/sections/AdminDistrictsSection';
@@ -46,6 +47,7 @@ export default function AdminPage() {
           <Route path="reviews" element={<AdminReviewsSection />} />
           <Route path="plans" element={<AdminPlansSection />} />
           <Route path="payments" element={<AdminPaymentsSection />} />
+          <Route path="ads" element={<AdminAdsSection />} />
           <Route path="seo" element={<AdminSeoSection />} />
           <Route path="settings" element={<AdminSettingsSection />} />
           <Route path="districts" element={<AdminDistrictsSection />} />

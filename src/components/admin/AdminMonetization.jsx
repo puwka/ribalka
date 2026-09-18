@@ -375,8 +375,9 @@ export function AdminAdsTab({ adminId }) {
             if (!createTitle.trim()) return;
             await advertisingService.adminCreate(adminId, {
               title: createTitle.trim(),
-              ad_type: 'banner',
+              ad_type: 'sidebar',
               status: 'active',
+              days: 1,
             });
             setCreateTitle('');
             setFilter('active');
@@ -394,43 +395,33 @@ export function AdminAdsTab({ adminId }) {
             style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, background: '#fff' }}
           >
             <strong>
-              {ad.title} · {ad.ad_type} · {ad.status}
+              {ad.title} · {ad.surface === 'forum' ? 'форум' : 'новости'} ·{' '}
+              {ad.placement === 'left' ? 'слева' : ad.placement === 'right' ? 'справа' : ad.ad_type} ·{' '}
+              {ad.status}
             </strong>
             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-              {ad.budget} ₽ · owner {ad.owner_id}
+              {ad.budget} ₽ · {ad.days || ad.months || 1} сут. · {ad.owner_email || ad.owner_id}
               <br />
-              {(ad.description || '').slice(0, 160)}
+              Просмотры: {ad.views_count || 0} · Клики: {ad.clicks_count || 0}
+              <br />
+              {ad.target_url || ad.targetUrl || ''}
             </div>
+            {(ad.image_url || ad.imageUrl) && (
+              <img
+                src={ad.image_url || ad.imageUrl}
+                alt=""
+                style={{ width: 120, marginTop: 8, borderRadius: 8 }}
+              />
+            )}
             <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
               <button type="button" className="admin-btn admin-btn-primary" onClick={() => act(ad.id, 'approve')}>
-                Одобрить
-              </button>
-              <button type="button" className="admin-btn admin-btn-primary" onClick={() => act(ad.id, 'enable')}>
-                Включить
+                Опубликовать
               </button>
               <button type="button" className="admin-btn admin-btn-secondary" onClick={() => act(ad.id, 'pause')}>
                 Пауза
               </button>
-              <button type="button" className="admin-btn admin-btn-secondary" onClick={() => act(ad.id, 'disable')}>
-                Выключить
-              </button>
               <button type="button" className="admin-btn admin-btn-danger" onClick={() => act(ad.id, 'reject')}>
                 Отклонить
-              </button>
-              <button
-                type="button"
-                className="admin-btn admin-btn-secondary"
-                onClick={async () => {
-                  const title = window.prompt('Новый заголовок', ad.title);
-                  if (!title) return;
-                  await advertisingService.moderate(adminId, ad.id, {
-                    action: ad.status === 'active' ? 'enable' : 'approve',
-                    patch: { title },
-                  });
-                  await load();
-                }}
-              >
-                Изменить
               </button>
             </div>
           </div>

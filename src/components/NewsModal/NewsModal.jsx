@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Comments from '../Comments/Comments';
+import RichText from '../ui/RichText';
 import './NewsModal.css';
 
 export default function NewsModal({ news, onClose }) {
@@ -66,12 +67,7 @@ export default function NewsModal({ news, onClose }) {
         {activeTab === 'article' && (
           <>
             <div className="news-modal__body">
-              <div 
-                className="news-modal__text"
-                dangerouslySetInnerHTML={{ 
-                  __html: news.content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                }}
-              />
+              <RichText value={news.content} className="news-modal__text" />
             </div>
 
             <div className="news-modal__share">

@@ -72,7 +72,11 @@ function mapMineItem(item) {
     tags: Array.isArray(item.tags) ? item.tags : [],
     status: item.status || 'draft',
     yellowFrame: Boolean(item.yellowFrame),
-    isTop: Boolean(item.isTop || item.top),
+    isTop: Boolean(item.isTop || item.top) && (
+      !item.topUntil || new Date(item.topUntil).getTime() > Date.now()
+    ),
+    topUntil: item.topUntil || null,
+    topKind: item.topKind || null,
     paidUntil,
     expired,
     active: isActiveListing(item),

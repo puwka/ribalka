@@ -69,7 +69,7 @@ export const DEFAULT_PLANS = [
     code: 'owner_constructor',
     name: 'Конструктор',
     description:
-      'Размещение платной базы: 1 фото и 1 видео в базе тарифа, опции ТОП / рамка / доп. медиа',
+      'Размещение платной базы: 1 фото и 1 видео в тарифе; ТОП на сутки / рамка / доп. медиа',
     price_month: 2900,
     price_year: 24360,
     currency: 'RUB',
@@ -79,7 +79,7 @@ export const DEFAULT_PLANS = [
     features: [
       'Размещение базы на сайте',
       '1 фото и 1 видео в базе',
-      'Опции: ТОП, жёлтая рамка, доп. медиа',
+      'Опции: ТОП на сутки, жёлтая рамка, доп. медиа',
       'Скидки при оплате за 3 / 6 / 12 мес.',
     ],
     limits: { bases: 5, ads_active: 0, featured: false, search_boost: false, mailing: false },

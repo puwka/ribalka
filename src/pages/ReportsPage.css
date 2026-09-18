@@ -23,16 +23,25 @@
 
 .reports-header h1 {
   color: white;
-  font-size: 2.5rem;
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 3rem);
   margin-bottom: 12px;
   font-weight: 800;
   font-family: 'Rubik', sans-serif;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  max-width: 18ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .reports-header p {
   color: rgba(255, 255, 255, 0.85);
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 0.85rem + 0.25vw, 1.05rem);
   margin-bottom: 30px;
+  line-height: 1.45;
+  max-width: 36em;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .reports-stats {

@@ -11,6 +11,7 @@ import {
 } from '../AdminUI';
 import { ImageUploadField } from '../../media/ImageUpload';
 import { uploadService } from '../../../services/uploadService';
+import RichTextEditor from '../../ui/RichTextEditor';
 
 export default function AdminNewsSection() {
   const { user, profile } = useAuth();
@@ -185,8 +186,17 @@ export default function AdminNewsSection() {
                 <AdminField label="Краткое описание">
                   <textarea className="admin-textarea" rows={2} value={form.excerpt} onChange={(e) => setField('excerpt', e.target.value)} />
                 </AdminField>
-                <AdminField label="Текст (Markdown)">
-                  <textarea className="admin-textarea" rows={12} value={form.content} onChange={(e) => setField('content', e.target.value)} />
+                <AdminField
+                  label="Текст новости"
+                  hint="Расширенный редактор: абзацы, жирный/курсив, списки, подзаголовки и ссылки"
+                >
+                  <RichTextEditor
+                    variant="extended"
+                    value={form.content}
+                    onChange={(html) => setField('content', html)}
+                    minHeight={280}
+                    placeholder="Текст новости… Можно оформить аккуратно: заголовки, списки, ссылки."
+                  />
                 </AdminField>
                 <ImageUploadField
                   label="Обложка"

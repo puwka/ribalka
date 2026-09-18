@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../components/auth/AuthContext';
 import { getAnonId } from '../hooks/useReports';
 import { forumService } from '../services/forumService';
+import SideBannerRails from '../components/ads/SideBannerRails';
+import ForumEmojiTextarea from '../components/forum/ForumEmojiTextarea';
 import './ForumPage.css';
 
 function nestMessages(messages) {
@@ -124,10 +126,12 @@ export default function ForumTopicPage() {
   if (error) {
     return (
       <div className="forum-page">
-        <div className="forum-wrap">
-          <p>{error}</p>
-          <Link to="/forum">← К форуму</Link>
-        </div>
+        <SideBannerRails surface="forum">
+          <div className="forum-wrap">
+            <p>{error}</p>
+            <Link to="/forum">← К форуму</Link>
+          </div>
+        </SideBannerRails>
       </div>
     );
   }
@@ -135,7 +139,9 @@ export default function ForumTopicPage() {
   if (!data) {
     return (
       <div className="forum-page">
-        <div className="forum-wrap">Загрузка…</div>
+        <SideBannerRails surface="forum">
+          <div className="forum-wrap">Загрузка…</div>
+        </SideBannerRails>
       </div>
     );
   }
@@ -144,6 +150,7 @@ export default function ForumTopicPage() {
 
   return (
     <div className="forum-page">
+      <SideBannerRails surface="forum">
       <div className="forum-wrap forum-topic">
         <Link to="/forum" className="forum-back">
           ← Форум
@@ -168,11 +175,11 @@ export default function ForumTopicPage() {
               </label>
               <label>
                 Текст
-                <textarea
+                <ForumEmojiTextarea
                   required
                   rows={6}
                   value={editBody}
-                  onChange={(e) => setEditBody(e.target.value)}
+                  onChange={setEditBody}
                 />
               </label>
               <div className="forum-actions">
@@ -302,11 +309,11 @@ export default function ForumTopicPage() {
                   Отменить вложенность
                 </button>
               )}
-              <textarea
+              <ForumEmojiTextarea
                 required
                 rows={4}
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={setBody}
                 placeholder="Ваш текст…"
               />
               <button type="submit" className="forum-btn" disabled={busy}>
@@ -326,6 +333,7 @@ export default function ForumTopicPage() {
           )}
         </section>
       </div>
+      </SideBannerRails>
     </div>
   );
 }

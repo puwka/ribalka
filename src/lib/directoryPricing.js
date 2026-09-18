@@ -24,6 +24,7 @@ export const DEFAULT_SERVICE_TARIFF = {
   title: 'Тариф справочника',
   amountPerMonth: 590,
   addonTop: 500,
+  addonTopDaily: 300,
   addonFrame: 100,
   discount3: 10,
   discount6: 20,
@@ -58,6 +59,9 @@ export function normalizeServiceTariff(raw = {}) {
     ...raw,
     amountPerMonth: Number(raw.amountPerMonth ?? DEFAULT_SERVICE_TARIFF.amountPerMonth),
     addonTop: Number(raw.addonTop ?? DEFAULT_SERVICE_TARIFF.addonTop),
+    addonTopDaily: Number(
+      raw.addonTopDaily ?? raw.addonTop ?? DEFAULT_SERVICE_TARIFF.addonTopDaily
+    ),
     addonFrame: Number(raw.addonFrame ?? DEFAULT_SERVICE_TARIFF.addonFrame),
     discount3: Number(raw.discount3 ?? DEFAULT_SERVICE_TARIFF.discount3),
     discount6: Number(raw.discount6 ?? DEFAULT_SERVICE_TARIFF.discount6),
@@ -76,13 +80,11 @@ export function discountPercentForMonths(tariff, months) {
 /** Monthly package before period discount */
 export function calcConstructorMonthly(tariff, options = {}) {
   const t = normalizeConstructor(tariff);
-  const top = options.top ? t.addonTop : 0;
   const frame = options.frame ? t.addonFrame : 0;
   const extraPhotos = Math.max(0, Number(options.extraPhotos) || 0);
   const extraVideos = Math.max(0, Number(options.extraVideos) || 0);
   return (
     t.baseAmount +
-    top +
     frame +
     extraPhotos * t.addonPhoto +
     extraVideos * t.addonVideo
@@ -109,10 +111,7 @@ export function calcConstructorTotal(tariff, options = {}) {
 export function calcServiceTotal(tariff, options = {}) {
   const t = normalizeServiceTariff(tariff);
   const months = Number(options.months) || 3;
-  const monthly =
-    t.amountPerMonth +
-    (options.top ? t.addonTop : 0) +
-    (options.frame ? t.addonFrame : 0);
+  const monthly = t.amountPerMonth + (options.frame ? t.addonFrame : 0);
   const full = monthly * months;
   const discountPct = discountPercentForMonths(t, months);
   const discountAmount = Math.round((full * discountPct) / 100);
@@ -158,16 +157,14 @@ export function calcListingUpgradeTotal(tariff, base, options = {}) {
   const wantVideos = Math.max(0, Number(options.extraVideos) || 0);
   const deltaPhotos = Math.max(0, wantPhotos - paidPhotos);
   const deltaVideos = Math.max(0, wantVideos - paidVideos);
-  const hasTop = Boolean(base.is_top || base.isTop);
   const hasFrame = Boolean(base.yellow_frame || base.yellowFrame);
-  const addTop = Boolean(options.top) && !hasTop;
+  const addTop = false;
   const addFrame = Boolean(options.frame) && !hasFrame;
   const total = Math.max(
     0,
     Math.round(
       deltaPhotos * t.addonPhoto +
         deltaVideos * t.addonVideo +
-        (addTop ? t.addonTop * rem : 0) +
         (addFrame ? t.addonFrame * rem : 0)
     )
   );
@@ -183,23 +180,17 @@ export function calcListingUpgradeTotal(tariff, base, options = {}) {
   };
 }
 
-/** Mid-period directory TOP/frame upgrade preview. */
+/** Mid-period directory frame upgrade preview (TOP — only daily). */
 export function calcDirectoryUpgradeTotal(tariff, item, options = {}) {
   const t = normalizeServiceTariff(tariff);
   const rem = remainingMonthsCeil(item?.paidUntil);
   if (!rem) {
     return { canUpgrade: false, reason: 'no_active_period', total: 0, remainingMonths: 0 };
   }
-  const hasTop = Boolean(item.isTop || item.top);
   const hasFrame = Boolean(item.yellowFrame || item.highlight);
-  const addTop = Boolean(options.top) && !hasTop;
+  const addTop = false;
   const addFrame = Boolean(options.frame) && !hasFrame;
-  const total = Math.max(
-    0,
-    Math.round(
-      (addTop ? t.addonTop : 0) * rem + (addFrame ? t.addonFrame : 0) * rem
-    )
-  );
+  const total = Math.max(0, Math.round((addFrame ? t.addonFrame : 0) * rem));
   return {
     canUpgrade: total > 0,
     reason: total > 0 ? null : 'nothing_new',

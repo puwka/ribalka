@@ -5,6 +5,7 @@ import { paymentService } from '../../services/paymentService';
 import { advertisingService } from '../../services/advertisingService';
 import { basesService } from '../../services/basesService';
 import { listingPaymentService } from '../../services/listingPaymentService';
+import { uploadService } from '../../services/uploadService';
 import {
   DEFAULT_CONSTRUCTOR,
   DEFAULT_SERVICE_TARIFF,
@@ -86,19 +87,17 @@ export function OwnerSubscriptionPanel() {
           <h4>Дополнительно</h4>
           <ul>
             <li>
-              Размещение в ТОП — <strong>+{formatRub(ctor.addonTop)}/мес</strong>
-              <span style={{ display: 'block', opacity: 0.8, fontSize: '0.9em' }}>
-                на главной только 4 места; если заняты — опция недоступна
-              </span>
-            </li>
-            <li>
               ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
+              <span style={{ display: 'block', opacity: 0.8, fontSize: '0.9em' }}>
+                на главной 4 места; если заняты — кнопка неактивна
+              </span>
             </li>
             <li>
               Жёлтая рамка — <strong>+{formatRub(ctor.addonFrame)}/мес</strong>
             </li>
             <li>
-              +1 фото — <strong>+{formatRub(ctor.addonPhoto)}</strong>
+              +1 фото — <strong>+{formatRub(ctor.addonPhoto)}</strong> (можно докупить в любой
+              момент)
             </li>
             <li>
               +1 видео — <strong>+{formatRub(ctor.addonVideo)}</strong>
@@ -156,11 +155,13 @@ export function OwnerSubscriptionPanel() {
 
           <h4>Дополнительно</h4>
           <ul>
-            {(Number(dir.addonTop) || 0) > 0 ? (
-              <li>
-                Размещение в ТОП — <strong>+{formatRub(dir.addonTop)}/мес</strong>
-              </li>
-            ) : null}
+            <li>
+              ТОП на сутки —{' '}
+              <strong>{formatRub(dir.addonTopDaily ?? dir.addonTop ?? 300)}</strong>
+              <span style={{ display: 'block', opacity: 0.8, fontSize: '0.9em' }}>
+                4 места в категории; если заняты — кнопка неактивна
+              </span>
+            </li>
             <li>
               Жёлтая рамка — <strong>+{formatRub(dir.addonFrame)}/мес</strong>
             </li>

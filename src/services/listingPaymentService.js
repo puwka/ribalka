@@ -143,7 +143,33 @@ export const listingPaymentService = {
   },
 
   async directoryUpgradeCheckout(payload) {
-    return this.directoryCheckout({ ...payload, mode: 'upgrade' });
+    return this.directoryCheckout({ ...payload, mode: 'upgrade', top: false });
+  },
+
+  async getDirectoryTopSlots({ category, itemId } = {}) {
+    if (!apiDataEnabled) {
+      return {
+        max: 4,
+        used: 0,
+        free: 4,
+        available: true,
+        dailyAvailable: true,
+        alreadyTop: false,
+        addonTopDaily: 300,
+      };
+    }
+    const qs = new URLSearchParams();
+    if (category) qs.set('category', String(category));
+    if (itemId) qs.set('itemId', String(itemId));
+    const q = qs.toString();
+    return api.get(`/api/payments/directory-top-slots${q ? `?${q}` : ''}`);
+  },
+
+  async checkoutDirectoryTopDaily(directoryItemId) {
+    return this.directoryCheckout({
+      directoryItemId,
+      mode: 'top_daily',
+    });
   },
 
   async getDirectoryOrder(orderId) {

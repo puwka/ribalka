@@ -6,6 +6,13 @@ export function getItemRegion(item) {
   return '';
 }
 
+/** Active TOP badge (respects topUntil expiry). */
+export function isDirectoryTopActive(item) {
+  if (!item || !(item.isTop || item.top)) return false;
+  if (item.topUntil) return new Date(item.topUntil).getTime() > Date.now();
+  return true;
+}
+
 export function collectRegions(items, districtNames = []) {
   const set = new Set(
     [...districtNames, ...items.map(getItemRegion)].filter(Boolean)
@@ -16,8 +23,8 @@ export function collectRegions(items, districtNames = []) {
 /** TOP first, then by region (empty last), then by name. */
 export function sortDirectoryItems(items, { byRegion = true } = {}) {
   return [...items].sort((a, b) => {
-    const topA = a.isTop || a.top ? 0 : 1;
-    const topB = b.isTop || b.top ? 0 : 1;
+    const topA = isDirectoryTopActive(a) ? 0 : 1;
+    const topB = isDirectoryTopActive(b) ? 0 : 1;
     if (topA !== topB) return topA - topB;
     if (byRegion) {
       const ra = getItemRegion(a) || 'яяя';

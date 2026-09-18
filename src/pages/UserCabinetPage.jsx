@@ -8,6 +8,7 @@ import { reportSocialService } from '../services/reportSocialService';
 import { reviewsService } from '../services/reviewsService';
 import NotificationsPanel from '../components/notifications/NotificationsPanel';
 import FavoritesPage from './FavoritesPage';
+import OwnerAdvertisingPanel from '../components/owner/OwnerAdvertising';
 import '../components/auth/AuthShared.css';
 
 function useUserNav() {
@@ -24,6 +25,7 @@ function useUserNav() {
           { to: '/cabinet/favorites', label: 'Избранное' },
           { to: '/cabinet/reports', label: 'Отчёты' },
           { to: '/cabinet/reviews', label: 'Мои отзывы' },
+          { to: '/cabinet/advertising', label: 'Реклама' },
         ],
       },
       {
@@ -632,6 +634,7 @@ export default function UserCabinetPage() {
           <Route path="reviews" element={<MyReviewsPanel />} />
           <Route path="achievements" element={<AchievementsPanel />} />
           <Route path="notifications" element={<NotificationsPanel />} />
+          <Route path="advertising" element={<OwnerAdvertisingPanel />} />
           <Route path="*" element={<Navigate to="/cabinet" replace />} />
         </Route>
       </Routes>

@@ -47,10 +47,9 @@ const DEFAULT_PAGES = {
       ctaPrimary: { label: 'Платные водоёмы', url: '/paid-waters' },
       ctaSecondary: { label: 'Бесплатные места', url: '/free-waters' },
       ctaTertiary: { label: 'Карта', url: '/map' },
-      showStats: true,
+      showStats: false,
     },
     blocks: {
-      navStrip: { enabled: true },
       watersSection: { enabled: true, title: 'Водоёмы', subtitle: '' },
       newsSection: { enabled: true, title: 'Новости', subtitle: '' },
       cta: {
@@ -65,7 +64,7 @@ const DEFAULT_PAGES = {
         ],
       },
     },
-    blockOrder: ['navStrip', 'watersSection', 'newsSection', 'cta'],
+    blockOrder: ['watersSection', 'newsSection', 'cta'],
   },
   [CMS_PAGES.PAID_WATERS]: {
     title: 'Платные водоёмы',

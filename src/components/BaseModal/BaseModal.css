@@ -83,6 +83,13 @@
   white-space: nowrap;
 }
 
+.base-modal__published {
+  width: 100%;
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
 .base-modal__gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

@@ -166,8 +166,8 @@ export default function ReportsPage() {
     <div className="reports-page">
       <div className="reports-header" id="reports-top">
         <div className="reports-header__content">
-          <h1>Отчёты о рыбалке</h1>
-          <p>Лучшие уловы и истории с водоёмов Прикамья</p>
+          <h1>Отчёты об активном отдыхе в Пермском крае</h1>
+          <p>Рыбалка, охота и отдых в Перми и Пермском крае</p>
           <div className="reports-stats">
             <div className="stat-item">
               <div className="stat-number">{sortedReports.length}</div>

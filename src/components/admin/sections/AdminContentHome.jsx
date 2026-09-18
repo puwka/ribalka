@@ -104,13 +104,11 @@ export default function AdminContentHome() {
             <input className="admin-input" value={page.hero.ctaPrimary?.url} onChange={(e) => setHero('ctaPrimary', { ...page.hero.ctaPrimary, url: e.target.value })} />
           </AdminField>
         </div>
-        <BlockToggle label="Показывать статистику водоёмов" checked={page.hero.showStats} onChange={(v) => setHero('showStats', v)} />
       </section>
 
       <section className="admin-panel">
         <h3>Секции</h3>
         <div style={{ display: 'grid', gap: 12 }}>
-          <BlockToggle label="Навигационная полоса" checked={page.blocks.navStrip?.enabled} onChange={(v) => setBlock('navStrip', { enabled: v })} />
           <BlockToggle label="Блок водоёмов" checked={page.blocks.watersSection?.enabled} onChange={(v) => setBlock('watersSection', { enabled: v })} />
           <BlockToggle label="Новости" checked={page.blocks.newsSection?.enabled} onChange={(v) => setBlock('newsSection', { enabled: v })} />
           <BlockToggle label="CTA внизу" checked={page.blocks.cta?.enabled} onChange={(v) => setBlock('cta', { enabled: v })} />

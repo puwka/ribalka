@@ -25,7 +25,6 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
   const [tariff, setTariff] = useState(DEFAULT_SERVICE_TARIFF);
   const [category, setCategory] = useState(defaultCategory);
   const [months, setMonths] = useState(3);
-  const [top, setTop] = useState(false);
   const [frame, setFrame] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -74,8 +73,8 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
   }, []);
 
   const quote = useMemo(
-    () => calcServiceTotal(tariff, { months, frame, top }),
-    [tariff, months, frame, top]
+    () => calcServiceTotal(tariff, { months, frame, top: false }),
+    [tariff, months, frame]
   );
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -101,7 +100,7 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
       const result = await listingPaymentService.directoryCheckout({
         category,
         months,
-        top,
+        top: false,
         frame,
         listing: form,
       });
@@ -159,17 +158,16 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
           <div className="dir-pricing__addons">
             <p className="dir-pricing__label">Добавить:</p>
             <label className="dir-pricing__check">
-              <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} />
-              <span>
-                Размещение в ТОП <em>+{formatRub(tariff.addonTop)}/мес</em>
-              </span>
-            </label>
-            <label className="dir-pricing__check">
               <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} />
               <span>
                 Выделение рамкой жёлтого цвета <em>+{formatRub(tariff.addonFrame)}/мес</em>
               </span>
             </label>
+            <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
+              ТОП на сутки — отдельно после оплаты карточки,{' '}
+              {formatRub(tariff.addonTopDaily ?? tariff.addonTop ?? 300)}. Если все места заняты —
+              кнопка у владельца неактивна.
+            </p>
           </div>
         </div>
 

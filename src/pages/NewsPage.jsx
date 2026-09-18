@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { newsService } from '../services/newsService';
+import SideBannerRails from '../components/ads/SideBannerRails';
+import RichText from '../components/ui/RichText';
 import './NewsPage.css';
 
 export default function NewsPage() {
@@ -65,9 +67,11 @@ export default function NewsPage() {
   if (loading) {
     return (
       <div className="news-page">
-        <div className="news-page__container">
-          <p>Загрузка…</p>
-        </div>
+        <SideBannerRails surface="news">
+          <div className="news-page__container news-page__container--flush">
+            <p>Загрузка…</p>
+          </div>
+        </SideBannerRails>
       </div>
     );
   }
@@ -75,12 +79,14 @@ export default function NewsPage() {
   if (!news) {
     return (
       <div className="news-page">
-        <div className="news-page__container">
-          <h2>{error || 'Новость не найдена'}</h2>
-          <Link to="/news/all" className="back-link">
-            ← Все новости
-          </Link>
-        </div>
+        <SideBannerRails surface="news">
+          <div className="news-page__container news-page__container--flush">
+            <h2>{error || 'Новость не найдена'}</h2>
+            <Link to="/news/all" className="back-link">
+              ← Все новости
+            </Link>
+          </div>
+        </SideBannerRails>
       </div>
     );
   }
@@ -97,68 +103,63 @@ export default function NewsPage() {
 
   return (
     <div className="news-page">
-      <div className="news-page__container">
-        <Link to="/news/all" className="back-link">
-          ← Все новости
-        </Link>
+      <SideBannerRails surface="news">
+        <div className="news-page__container news-page__container--flush">
+          <Link to="/news/all" className="back-link">
+            ← Все новости
+          </Link>
 
-        <article className="news-article">
-          <div className="news-article__header" id="news-top">
-            {news.category && <div className="news-article__category">{news.category}</div>}
-            <h1>{news.title}</h1>
-            <div className="news-article__meta">
-              <span>📅 {formatDate(news.date)}</span>
-              <span>✍️ {news.author}</span>
-              <span>👁 {news.views ?? 0} просмотров</span>
+          <article className="news-article">
+            <div className="news-article__header" id="news-top">
+              {news.category && <div className="news-article__category">{news.category}</div>}
+              <h1>{news.title}</h1>
+              <div className="news-article__meta">
+                <span>📅 {formatDate(news.date)}</span>
+                <span>✍️ {news.author}</span>
+                <span>👁 {news.views ?? 0} просмотров</span>
+              </div>
             </div>
-          </div>
 
-          {news.image && (
-            <div className="news-article__image">
-              <img src={news.image} alt={news.title} />
+            {news.image && (
+              <div className="news-article__image">
+                <img src={news.image} alt={news.title} />
+              </div>
+            )}
+
+            <RichText value={news.content} className="news-article__content" />
+
+            <div className="news-article__share">
+              <h3>Поделиться:</h3>
+              <div className="share-buttons">
+                <a
+                  href={`https://vk.com/share.php?url=${shareUrl}&title=${shareTitle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="share-btn vk"
+                >
+                  VK
+                </a>
+                <a
+                  href={`https://t.me/share/url?url=${shareUrl}&text=${shareTitle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="share-btn telegram"
+                >
+                  Telegram
+                </a>
+                <a
+                  href={`https://max.ru/share?url=${shareUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="share-btn max"
+                >
+                  MAX
+                </a>
+              </div>
             </div>
-          )}
-
-          <div
-            className="news-article__content"
-            dangerouslySetInnerHTML={{
-              __html: (news.content || '')
-                .replace(/\n/g, '<br>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
-            }}
-          />
-
-          <div className="news-article__share">
-            <h3>Поделиться:</h3>
-            <div className="share-buttons">
-              <a
-                href={`https://vk.com/share.php?url=${shareUrl}&title=${shareTitle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="share-btn vk"
-              >
-                VK
-              </a>
-              <a
-                href={`https://t.me/share/url?url=${shareUrl}&text=${shareTitle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="share-btn telegram"
-              >
-                Telegram
-              </a>
-              <a
-                href={`https://max.ru/share?url=${shareUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="share-btn max"
-              >
-                MAX
-              </a>
-            </div>
-          </div>
-        </article>
-      </div>
+          </article>
+        </div>
+      </SideBannerRails>
     </div>
   );
 }

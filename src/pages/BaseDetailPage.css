@@ -128,6 +128,12 @@
   letter-spacing: -0.01em;
 }
 
+.water-detail__published {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted, #64748b);
+}
+
 .water-detail__lead {
   font-size: var(--text-base);
   color: var(--color-text-secondary);

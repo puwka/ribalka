@@ -65,6 +65,8 @@ export function mapBaseToUi(row, rels = {}) {
     status: row.status,
     ownerId: row.owner_id,
     rejection_reason: row.rejection_reason ?? null,
+    publishedAt: row.published_at || row.publishedAt || null,
+    createdAt: row.created_at || row.createdAt || null,
   };
 }
 

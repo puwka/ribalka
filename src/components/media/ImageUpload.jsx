@@ -163,7 +163,7 @@ export function ImageUploadListField({
             <p>{upgradeHint}</p>
             {upgradeHref ? (
               <Link to={upgradeHref} className="media-upgrade-hint__link">
-                Оплатить доп. фото
+                Докупить фото за доплату
               </Link>
             ) : (
               <p style={{ fontWeight: 500, color: '#a16207' }}>

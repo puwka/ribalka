@@ -35,3 +35,32 @@
 .rich-text i {
   font-style: italic;
 }
+
+.rich-text u {
+  text-decoration: underline;
+}
+
+.rich-text h2 {
+  margin: 1em 0 0.5em;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: inherit;
+}
+
+.rich-text h3 {
+  margin: 0.9em 0 0.45em;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: inherit;
+}
+
+.rich-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text a:hover {
+  color: #1d4ed8;
+}

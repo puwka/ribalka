@@ -31,6 +31,7 @@ const DIRECTORY_DEFAULTS = {
     title: 'Тариф справочника',
     amountPerMonth: 590,
     addonTop: 500,
+    addonTopDaily: 300,
     addonFrame: 100,
     discount3: 10,
     discount6: 20,
@@ -276,13 +277,13 @@ function normalizeConstructorSettings(raw = {}) {
 function calcConstructorQuote(settings, options = {}) {
   const t = normalizeConstructorSettings(settings);
   const months = [3, 6, 12].includes(Number(options.months)) ? Number(options.months) : 3;
-  const top = Boolean(options.top);
+  // Monthly TOP removed — only «ТОП на сутки» via createTopDailyCheckout
+  const top = false;
   const frame = Boolean(options.frame);
   const extraPhotos = Math.max(0, Number(options.extraPhotos) || 0);
   const extraVideos = Math.max(0, Number(options.extraVideos) || 0);
   const monthly =
     t.baseAmount +
-    (top ? t.addonTop : 0) +
     (frame ? t.addonFrame : 0) +
     extraPhotos * t.addonPhoto +
     extraVideos * t.addonVideo;
@@ -347,14 +348,13 @@ export function calcListingUpgradeQuote(settings, base, options = {}) {
   const wantVideos = Math.max(0, Number(options.extraVideos) || 0);
   const deltaPhotos = Math.max(0, wantPhotos - paidPhotos);
   const deltaVideos = Math.max(0, wantVideos - paidVideos);
-  const hasTop = Boolean(base.is_top || base.isTop);
   const hasFrame = Boolean(base.yellow_frame || base.yellowFrame);
-  const addTop = Boolean(options.top) && !hasTop;
+  // Monthly TOP not sold in upgrades — use top_daily instead
+  const addTop = false;
   const addFrame = Boolean(options.frame) && !hasFrame;
 
   const mediaTotal = deltaPhotos * t.addonPhoto + deltaVideos * t.addonVideo;
-  const promoTotal =
-    (addTop ? t.addonTop * rem : 0) + (addFrame ? t.addonFrame * rem : 0);
+  const promoTotal = addFrame ? t.addonFrame * rem : 0;
   const total = Math.max(0, Math.round(mediaTotal + promoTotal));
 
   return {
@@ -371,7 +371,7 @@ export function calcListingUpgradeQuote(settings, base, options = {}) {
     promoTotal,
     options: {
       months: rem,
-      top: hasTop || Boolean(options.top),
+      top: false,
       frame: hasFrame || Boolean(options.frame),
       extraPhotos: Math.max(wantPhotos, paidPhotos),
       extraVideos: Math.max(wantVideos, paidVideos),
@@ -391,6 +391,11 @@ function normalizeServiceSettings(raw = {}) {
     title: String(raw.title || d.title),
     amountPerMonth: Number.isFinite(perMonth) ? perMonth : d.amountPerMonth,
     addonTop: Number.isFinite(Number(raw.addonTop)) ? Number(raw.addonTop) : d.addonTop || 500,
+    addonTopDaily: Number.isFinite(Number(raw.addonTopDaily))
+      ? Number(raw.addonTopDaily)
+      : Number.isFinite(Number(raw.addonTop))
+        ? Number(raw.addonTop)
+        : d.addonTopDaily ?? 300,
     addonFrame: Number.isFinite(Number(raw.addonFrame)) ? Number(raw.addonFrame) : d.addonFrame,
     discount3: Number.isFinite(Number(raw.discount3)) ? Number(raw.discount3) : d.discount3,
     discount6: Number.isFinite(Number(raw.discount6)) ? Number(raw.discount6) : d.discount6,
@@ -1295,6 +1300,7 @@ async function applyPaidSideEffects(client, order) {
     return;
   }
 
+  // Preserve active daily TOP; monthly TOP is no longer sold with renew packages
   await client.query(
     `update public.bases set
        status = case
@@ -1303,29 +1309,30 @@ async function applyPaidSideEffects(client, order) {
        end,
        submitted_at = coalesce(submitted_at, now()),
        rejection_reason = null,
-       is_top = $2,
-       yellow_frame = $3,
-       paid_extra_photos = greatest(coalesce(paid_extra_photos, 0), $4::int),
-       paid_extra_videos = greatest(coalesce(paid_extra_videos, 0), $5::int),
+       is_top = case
+         when top_until is not null and top_until > now() then true
+         else false
+       end,
+       yellow_frame = $2,
+       paid_extra_photos = greatest(coalesce(paid_extra_photos, 0), $3::int),
+       paid_extra_videos = greatest(coalesce(paid_extra_videos, 0), $4::int),
        paid_until = (
          case
            when paid_until is null or paid_until < now() then now()
            else paid_until
          end
-       ) + make_interval(months => $6::int),
-       top_kind = case when $2::boolean then 'monthly' else null end,
+       ) + make_interval(months => $5::int),
+       top_kind = case
+         when top_until is not null and top_until > now() then coalesce(top_kind, 'daily')
+         else null
+       end,
        top_until = case
-         when $2::boolean then (
-           case
-             when paid_until is null or paid_until < now() then now()
-             else paid_until
-           end
-         ) + make_interval(months => $6::int)
+         when top_until is not null and top_until > now() then top_until
          else null
        end,
        updated_at = now()
      where id = $1`,
-    [order.base_id, isTop, yellowFrame, extraPhotos, extraVideos, months]
+    [order.base_id, yellowFrame, extraPhotos, extraVideos, months]
   );
 
   await client.query(
@@ -1544,6 +1551,31 @@ export async function handleYooKassaWebhook(event) {
         );
       }
       return { ok: true, paid: false, kind: 'directory', orderId: dirOrder.id };
+    }
+
+    const adId = object.metadata?.ad_id;
+    const isSidebarAd = object.metadata?.kind === 'sidebar_ad' && adId;
+    if (isSidebarAd) {
+      const { markAdPaid, getById: getAdById } = await import('./ads.js');
+      const ad = await getAdById(adId);
+      if (!ad) {
+        console.warn('[yookassa webhook] sidebar ad not found', adId);
+        return { ok: true, ignored: true };
+      }
+      if (ad.status === 'pending' || ad.status === 'active') {
+        return { ok: true, alreadyPaid: true, kind: 'sidebar_ad', adId };
+      }
+      let payment = object;
+      try {
+        payment = await yookassa.getPayment(object.id);
+      } catch (err) {
+        console.error('[yookassa webhook] getPayment failed', err.message);
+      }
+      if (payment.status === 'succeeded' && payment.paid) {
+        await markAdPaid(adId);
+        return { ok: true, paid: true, kind: 'sidebar_ad', adId };
+      }
+      return { ok: true, paid: false, kind: 'sidebar_ad', adId, status: payment.status };
     }
 
     console.warn('[yookassa webhook] order not found for payment', object.id);

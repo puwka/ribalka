@@ -10,6 +10,12 @@
   padding: 0 24px;
 }
 
+.all-news-page__container--flush {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 .all-news-page .back-link {
   display: inline-block;
   margin-bottom: 12px;

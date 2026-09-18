@@ -156,6 +156,16 @@ export default function BaseModal({ item, onClose }) {
         <div className="base-modal__header">
           <h2>{item.name}</h2>
           {item.price && <div className="base-modal__price">{item.price}</div>}
+          {(item.publishedAt || item.published_at) && (
+            <p className="base-modal__published">
+              Дата публикации:{' '}
+              {new Date(item.publishedAt || item.published_at).toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+          )}
         </div>
 
         <div className="base-modal__gallery">

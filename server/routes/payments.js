@@ -25,7 +25,7 @@ router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
     const activeOrder = await listingOrders.getActiveOrderForBase(req.user.sub, baseId);
     const options = {
       months: Number(req.query.months) || 3,
-      top: req.query.top === '1' || req.query.top === 'true',
+      top: false,
       frame: req.query.frame === '1' || req.query.frame === 'true',
       extraPhotos: Number(req.query.extraPhotos) || 0,
       extraVideos: Number(req.query.extraVideos) || 0,
@@ -82,6 +82,24 @@ router.get('/directory-prices', async (_req, res, next) => {
   }
 });
 
+router.get('/directory-top-slots', requireAuth, async (req, res, next) => {
+  try {
+    const directoryOrders = await import('../services/directoryOrders.js');
+    const prices = await listingOrders.getDirectoryListingPrices();
+    const tariff = prices.service || {};
+    const topSlots = await directoryOrders.getDirectoryTopAvailability({
+      category: req.query.category || null,
+      itemId: req.query.itemId || req.query.directoryItemId || null,
+    });
+    res.json({
+      ...topSlots,
+      addonTopDaily: Number(tariff.addonTopDaily ?? tariff.addonTop) || 300,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Public constructor tariff for base owners (read) */
 router.get('/listing-price-public', async (_req, res, next) => {
   try {
@@ -119,24 +137,30 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
         : null);
     const directoryOrders = await import('../services/directoryOrders.js');
     const result =
-      body.mode === 'upgrade'
-        ? await directoryOrders.createDirectoryUpgradeCheckout({
+      body.mode === 'top_daily'
+        ? await directoryOrders.createDirectoryTopDailyCheckout({
             userId: req.user.sub,
             directoryItemId: body.directoryItemId || body.directory_item_id || null,
-            top: Boolean(body.top),
-            frame: Boolean(body.frame),
             returnUrl,
           })
-        : await directoryOrders.createDirectoryCheckout({
-            userId: req.user.sub,
-            category: body.category,
-            months: body.months,
-            frame: Boolean(body.frame),
-            top: Boolean(body.top),
-            listing: body.listing || body,
-            directoryItemId: body.directoryItemId || body.directory_item_id || null,
-            returnUrl,
-          });
+        : body.mode === 'upgrade'
+          ? await directoryOrders.createDirectoryUpgradeCheckout({
+              userId: req.user.sub,
+              directoryItemId: body.directoryItemId || body.directory_item_id || null,
+              top: false,
+              frame: Boolean(body.frame),
+              returnUrl,
+            })
+          : await directoryOrders.createDirectoryCheckout({
+              userId: req.user.sub,
+              category: body.category,
+              months: body.months,
+              frame: Boolean(body.frame),
+              top: false,
+              listing: body.listing || body,
+              directoryItemId: body.directoryItemId || body.directory_item_id || null,
+              returnUrl,
+            });
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -207,7 +231,7 @@ router.post('/listing-checkout', requireAuth, async (req, res, next) => {
         ? `${site.replace(/\/$/, '')}/owner/payment/result/:orderId`
         : null);
 
-    const options = { months, top, frame, extraPhotos, extraVideos };
+    const options = { months, top: false, frame, extraPhotos, extraVideos };
     let result;
     if (mode === 'top_daily') {
       result = await listingOrders.createTopDailyCheckout({
@@ -250,7 +274,7 @@ router.get('/listing-upgrade-preview', requireAuth, async (req, res, next) => {
     if (!rows[0]) return res.status(404).json({ error: 'База не найдена' });
     const quote = listingOrders.quoteListingUpgrade(settings, rows[0], {
       months: Number(req.query.months) || 3,
-      top: req.query.top === '1' || req.query.top === 'true',
+      top: false,
       frame: req.query.frame === '1' || req.query.frame === 'true',
       extraPhotos: Number(req.query.extraPhotos) || 0,
       extraVideos: Number(req.query.extraVideos) || 0,
