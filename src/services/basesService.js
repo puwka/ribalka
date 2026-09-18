@@ -245,6 +245,8 @@ function enrichRemote(row) {
     top_kind: row.top_kind || null,
     topUntil: row.top_until || null,
     topKind: row.top_kind || null,
+    paid_until: row.paid_until || null,
+    paidUntil: row.paid_until || null,
     paid_extra_photos: Number(row.paid_extra_photos) || 0,
     paid_extra_videos: Number(row.paid_extra_videos) || 0,
     raw: row,

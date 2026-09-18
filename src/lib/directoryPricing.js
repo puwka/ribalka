@@ -137,29 +137,34 @@ export function remainingMonthsCeil(paidUntilIso) {
  */
 export function calcListingUpgradeTotal(tariff, base, options = {}) {
   const t = normalizeConstructor(tariff);
-  const paidUntil = base?.paid_until || base?.paidUntil;
+  const paidUntil = base?.paid_until || base?.paidUntil || base?.raw?.paid_until;
   const rem = remainingMonthsCeil(paidUntil);
+  const paidPhotos = Math.max(0, Number(base.paid_extra_photos ?? base.raw?.paid_extra_photos) || 0);
+  const paidVideos = Math.max(0, Number(base.paid_extra_videos ?? base.raw?.paid_extra_videos) || 0);
+  const wantPhotos = Math.max(0, Number(options.extraPhotos) || 0);
+  const wantVideos = Math.max(0, Number(options.extraVideos) || 0);
+  const deltaPhotos = Math.max(0, wantPhotos - paidPhotos);
+  const deltaVideos = Math.max(0, wantVideos - paidVideos);
+  const hasFrame = Boolean(
+    base.yellow_frame || base.yellowFrame || base.raw?.yellow_frame
+  );
+  const addTop = false;
+  const addFrame = Boolean(options.frame) && !hasFrame;
+
+  // Media is a flat fee for the rest of the period; still require an active period
   if (!rem) {
     return {
       canUpgrade: false,
       reason: 'no_active_period',
       total: 0,
       remainingMonths: 0,
-      deltaPhotos: 0,
-      deltaVideos: 0,
+      deltaPhotos,
+      deltaVideos,
       addTop: false,
       addFrame: false,
     };
   }
-  const paidPhotos = Math.max(0, Number(base.paid_extra_photos) || 0);
-  const paidVideos = Math.max(0, Number(base.paid_extra_videos) || 0);
-  const wantPhotos = Math.max(0, Number(options.extraPhotos) || 0);
-  const wantVideos = Math.max(0, Number(options.extraVideos) || 0);
-  const deltaPhotos = Math.max(0, wantPhotos - paidPhotos);
-  const deltaVideos = Math.max(0, wantVideos - paidVideos);
-  const hasFrame = Boolean(base.yellow_frame || base.yellowFrame);
-  const addTop = false;
-  const addFrame = Boolean(options.frame) && !hasFrame;
+
   const total = Math.max(
     0,
     Math.round(

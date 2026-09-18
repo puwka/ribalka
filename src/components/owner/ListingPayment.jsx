@@ -261,14 +261,19 @@ export function OwnerListingCheckoutPage() {
         )}
         {isUpgrade && upgradeQuote ? (
           <p className="listing-pay__note" style={{ marginTop: 8 }}>
-            Осталось ≈ {upgradeQuote.remainingMonths} мес. до конца оплаченного периода
-            {upgradeQuote.deltaPhotos
-              ? ` · +${upgradeQuote.deltaPhotos} фото`
-              : ''}
-            {upgradeQuote.deltaVideos
-              ? ` · +${upgradeQuote.deltaVideos} видео`
-              : ''}
-            {upgradeQuote.addFrame ? ' · рамка' : ''}
+            {upgradeQuote.reason === 'no_active_period' ? (
+              <>
+                Нет активного оплаченного периода — сначала продлите размещение, затем можно
+                докупить только фото/видео.
+              </>
+            ) : (
+              <>
+                Осталось ≈ {upgradeQuote.remainingMonths} мес. до конца оплаченного периода
+                {upgradeQuote.deltaPhotos ? ` · +${upgradeQuote.deltaPhotos} фото` : ''}
+                {upgradeQuote.deltaVideos ? ` · +${upgradeQuote.deltaVideos} видео` : ''}
+                {upgradeQuote.addFrame ? ' · рамка' : ''}
+              </>
+            )}
           </p>
         ) : (
           <p className="listing-pay__note" style={{ marginTop: 8 }}>
@@ -276,6 +281,12 @@ export function OwnerListingCheckoutPage() {
           </p>
         )}
       </div>
+
+      {isUpgrade && upgradeQuote?.reason === 'no_active_period' ? (
+        <div className="auth-error" style={{ marginBottom: 12 }}>
+          Доплата за фото доступна только пока размещение оплачено. Откройте «Продлить размещение».
+        </div>
+      ) : null}
 
       {!isUpgrade && (
         <div className="listing-pay__opts">
