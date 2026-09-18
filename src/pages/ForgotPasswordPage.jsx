@@ -9,6 +9,7 @@ function ForgotPasswordForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [devResetPath, setDevResetPath] = useState('');
+  const [mailMissing, setMailMissing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e) => {
@@ -17,12 +18,16 @@ function ForgotPasswordForm() {
     setError('');
     setSuccess('');
     setDevResetPath('');
+    setMailMissing(false);
     try {
       const result = await authService.requestPasswordReset(email);
       setSuccess(
         result?.message ||
           'Если аккаунт с таким email есть, мы отправили ссылку для восстановления пароля.'
       );
+      if (result && result.mailConfigured === false) {
+        setMailMissing(true);
+      }
       if (result?.devResetUrl) {
         try {
           const u = new URL(result.devResetUrl, window.location.origin);
@@ -60,6 +65,12 @@ function ForgotPasswordForm() {
 
           {error && <div className="auth-error">{error}</div>}
           {success && <div className="auth-success">{success}</div>}
+          {mailMissing && (
+            <div className="auth-error">
+              На сервере не настроен Resend (`RESEND_API_KEY`). Письмо не отправлено —
+              добавьте ключ в `.env` на VPS и перезапустите API.
+            </div>
+          )}
           {devResetPath && (
             <div className="auth-success">
               Письмо не настроено (dev).{' '}

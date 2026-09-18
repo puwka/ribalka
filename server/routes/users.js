@@ -1,10 +1,48 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { authMiddleware, requireAuth, requireAdmin } from '../middleware/auth.js';
+import {
+  sendMail,
+  isMailConfigured,
+  adminNotifyEmail,
+  fromAddressForLog,
+  publicSiteUrl,
+} from '../services/mail.js';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+/** Admin: send a test email to confirm Resend is wired on this server */
+router.post('/mail-test', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    if (!isMailConfigured()) {
+      return res.status(503).json({
+        error:
+          'RESEND_API_KEY не задан на сервере. Добавьте ключ в .env на VPS и перезапустите API.',
+        mailConfigured: false,
+        mailFrom: fromAddressForLog(),
+        adminNotify: adminNotifyEmail(),
+      });
+    }
+    const to = String(req.body?.to || adminNotifyEmail()).trim().toLowerCase();
+    const result = await sendMail({
+      to,
+      subject: 'Тест почты — Рыбалка Прикамье',
+      text: `Проверка отправки с ${publicSiteUrl()}. Если письмо пришло — Resend настроен верно.`,
+      html: `<p>Проверка отправки с <strong>${publicSiteUrl()}</strong>.</p><p>Если письмо пришло — Resend настроен верно.</p>`,
+    });
+    res.json({
+      ok: true,
+      to,
+      id: result?.id || null,
+      mailFrom: fromAddressForLog(),
+      mocked: Boolean(result?.mocked),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/', requireAuth, requireAdmin, async (_req, res, next) => {
   try {

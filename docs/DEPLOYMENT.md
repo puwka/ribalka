@@ -38,7 +38,36 @@
 | `UPLOAD_DIR` | папка загрузок, по умолчанию `./uploads` |
 | `YOOKASSA_SECRET_KEY` | секрет ЮKassa |
 | `ROBOKASSA_PASSWORD1` / `PASSWORD2` | подписи Robokassa |
-| `RESEND_API_KEY` / `EMAIL_FROM` | email |
+| `RESEND_API_KEY` | ключ Resend (обязателен для писем в prod) |
+| `EMAIL_FROM` | `Рыбалка Прикамье <noreply@ваш-домен.ru>` — домен verified в Resend |
+| `ADMIN_NOTIFY_EMAIL` | почта админа для модерации |
+| `PUBLIC_SITE_URL` | `https://ваш-домен.ru` — ссылки в письмах |
+
+### Почта (Resend) на VPS
+
+1. В `.env` на VPS (корне проекта, рядом с `package.json`):
+
+```env
+RESEND_API_KEY=re_xxxxxxxx
+EMAIL_FROM=Aktiv59 <noreply@aktiv59.ru>
+ADMIN_NOTIFY_EMAIL=mokrushinmix@yandex.ru
+PUBLIC_SITE_URL=https://aktiv59.ru
+```
+
+Имя в `EMAIL_FROM` лучше латиницей — так меньше проблем с кодировкой `.env` и спам-фильтрами. Домен должен быть **Verified** в [Resend → Domains](https://resend.com/domains).
+
+2. Перезапуск API: `pm2 restart rybalka-api`
+
+3. Проверка:
+
+```bash
+curl -s https://aktiv59.ru/api/health
+# mailConfigured: true
+```
+
+В [Resend → Emails](https://resend.com/emails) смотрите `delivered` / `bounced` / `complained`. Если `delivered`, а письма нет — проверьте **Спам** в Яндексе и добавьте `noreply@aktiv59.ru` в контакты.
+
+Тестовое письмо (JWT админа): `POST /api/users/mail-test` с телом `{"to":"ваш@email.ru"}`.
 
 ## База данных
 

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './loadEnv.js';
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
@@ -19,6 +19,7 @@ import forumRoutes from './routes/forum.js';
 import reviewsRoutes from './routes/reviews.js';
 import notificationsRoutes from './routes/notifications.js';
 import adsRoutes from './routes/ads.js';
+import { isMailConfigured, adminNotifyEmail, publicSiteUrl, fromAddressForLog } from './services/mail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -32,7 +33,14 @@ app.use(express.json({ limit: '2mb' }));
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('select 1');
-    res.json({ ok: true, db: 'connected' });
+    res.json({
+      ok: true,
+      db: 'connected',
+      mailConfigured: isMailConfigured(),
+      mailFrom: fromAddressForLog(),
+      adminNotify: adminNotifyEmail(),
+      publicSiteUrl: publicSiteUrl(),
+    });
   } catch (err) {
     res.status(503).json({ ok: false, error: err.message });
   }
@@ -62,4 +70,12 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`API http://localhost:${PORT} (uploads: ${uploadDir})`);
+  console.log(
+    `[mail] configured=${isMailConfigured()} from=${fromAddressForLog()} admin=${adminNotifyEmail()}`
+  );
+  if (!isMailConfigured()) {
+    console.warn(
+      '[mail] RESEND_API_KEY отсутствует в .env сервера — письма только в лог. Добавьте ключ и перезапустите API.'
+    );
+  }
 });

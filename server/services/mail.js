@@ -13,8 +13,15 @@ function fromAddress() {
   return (
     process.env.EMAIL_FROM ||
     process.env.RESEND_FROM ||
-    'Рыбалка Прикамье <onboarding@resend.dev>'
+    'Aktiv59 <noreply@aktiv59.ru>'
   );
+}
+
+/** Safe for logs / health — no secrets */
+export function fromAddressForLog() {
+  const raw = fromAddress();
+  const m = String(raw).match(/<([^>]+)>/);
+  return (m ? m[1] : raw).trim();
 }
 
 export function publicSiteUrl() {
@@ -77,6 +84,7 @@ export async function sendMail({ to, subject, html, text }) {
     err.details = data;
     throw err;
   }
+  console.log('[mail] sent', { id: data?.id, to: recipient, subject });
   return data;
 }
 
