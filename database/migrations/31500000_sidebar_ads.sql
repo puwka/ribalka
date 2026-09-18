@@ -1,10 +1,15 @@
 -- Sidebar banners: placement, budget, moderation workflow (status as text)
+-- Drop indexes that depend on enum-typed status before altering the column.
+
+drop index if exists public.advertising_active_window_idx;
+drop index if exists public.advertising_type_status_idx;
+drop index if exists public.advertising_placement_active_idx;
 
 alter table public.advertising
   alter column status drop default;
 
 alter table public.advertising
-  alter column status type text using status::text;
+  alter column status type text using (status::text);
 
 alter table public.advertising
   alter column status set default 'draft';
@@ -17,7 +22,7 @@ alter table public.advertising
   check (status in ('draft', 'pending', 'active', 'paused', 'expired', 'rejected'));
 
 alter table public.advertising
-  alter column ad_type type text using ad_type::text;
+  alter column ad_type type text using (ad_type::text);
 
 alter table public.advertising
   drop constraint if exists advertising_ad_type_check;
@@ -42,6 +47,13 @@ alter table public.advertising
 alter table public.advertising
   add constraint advertising_placement_check
   check (placement in ('left', 'right'));
+
+create index if not exists advertising_type_status_idx
+  on public.advertising (ad_type, status);
+
+create index if not exists advertising_active_window_idx
+  on public.advertising (starts_at, ends_at)
+  where status = 'active';
 
 create index if not exists advertising_placement_active_idx
   on public.advertising (placement, status)
