@@ -97,6 +97,12 @@ export async function requestPasswordReset(emailRaw) {
     // Still return OK to client; log for ops
   }
 
+  // Local/dev without Resend: surface the link so QA can finish the flow
+  if (!isMailConfigured() && process.env.NODE_ENV !== 'production') {
+    okPayload.devResetUrl = resetUrl;
+    console.info('[password-reset] dev link:', resetUrl);
+  }
+
   return okPayload;
 }
 

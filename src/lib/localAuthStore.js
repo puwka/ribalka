@@ -62,6 +62,7 @@ function emptyStore() {
     subscriptions: {},
     payments: {},
     ads: {},
+    passwordResetTokens: [],
   };
 }
 
@@ -777,5 +778,74 @@ export const localAuthStore = {
 
     writeStore(store);
     return user;
+  },
+
+  async requestPasswordReset(emailRaw) {
+    const email = String(emailRaw || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      throw new Error('Укажите корректный email');
+    }
+
+    const okPayload = {
+      ok: true,
+      message:
+        'Если аккаунт с таким email есть, мы отправили ссылку для восстановления пароля.',
+      mailConfigured: false,
+    };
+
+    const store = readStore();
+    const user = store.users.find(
+      (u) => String(u.email || '').toLowerCase() === email && u.status === 'active'
+    );
+    if (!user) return okPayload;
+
+    const now = Date.now();
+    store.passwordResetTokens = (store.passwordResetTokens || []).map((t) =>
+      t.user_id === user.id && !t.used_at ? { ...t, used_at: nowIso() } : t
+    );
+
+    const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const expiresAt = new Date(now + 60 * 60 * 1000).toISOString();
+    store.passwordResetTokens.push({
+      id: uid('prt'),
+      user_id: user.id,
+      token,
+      expires_at: expiresAt,
+      used_at: null,
+      created_at: nowIso(),
+    });
+    writeStore(store);
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return {
+      ...okPayload,
+      devResetUrl: `${origin}/reset-password?token=${encodeURIComponent(token)}`,
+    };
+  },
+
+  async resetPasswordWithToken(tokenRaw, newPassword) {
+    const token = String(tokenRaw || '').trim();
+    const password = String(newPassword || '');
+    if (!token) throw new Error('Ссылка недействительна');
+    if (password.length < 6) throw new Error('Пароль должен быть не короче 6 символов');
+
+    const store = readStore();
+    const row = (store.passwordResetTokens || []).find((t) => t.token === token);
+    if (!row || row.used_at || new Date(row.expires_at).getTime() <= Date.now()) {
+      throw new Error('Ссылка устарела или уже использована. Запросите новую.');
+    }
+
+    const user = store.users.find((u) => u.id === row.user_id);
+    if (!user) throw new Error('Ссылка устарела или уже использована. Запросите новую.');
+
+    user.password_hash = await sha256(password);
+    row.used_at = nowIso();
+    store.passwordResetTokens = store.passwordResetTokens.map((t) =>
+      t.user_id === user.id && !t.used_at && t.id !== row.id
+        ? { ...t, used_at: nowIso() }
+        : t
+    );
+    writeStore(store);
+    return { ok: true, message: 'Пароль обновлён. Можно войти.' };
   },
 };

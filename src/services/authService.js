@@ -96,6 +96,20 @@ export const authService = {
     return localAuthStore.updateProfile(userId, patch);
   },
 
+  async requestPasswordReset(email) {
+    if (isRemoteAuth()) {
+      return api.post('/api/auth/forgot-password', { email });
+    }
+    return localAuthStore.requestPasswordReset(email);
+  },
+
+  async resetPassword(token, password) {
+    if (isRemoteAuth()) {
+      return api.post('/api/auth/reset-password', { token, password });
+    }
+    return localAuthStore.resetPasswordWithToken(token, password);
+  },
+
   async getCurrentUserBundle() {
     return this.getSessionBundle();
   },

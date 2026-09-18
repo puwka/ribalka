@@ -21,6 +21,15 @@ export function publicSiteUrl() {
   return String(process.env.PUBLIC_SITE_URL || 'http://localhost:5173').replace(/\/$/, '');
 }
 
+/** Admin inbox for moderation alerts */
+export function adminNotifyEmail() {
+  return String(
+    process.env.ADMIN_NOTIFY_EMAIL || 'mokrushinmix@yandex.ru'
+  )
+    .trim()
+    .toLowerCase();
+}
+
 /**
  * @param {{ to: string, subject: string, html: string, text?: string }} opts
  */
@@ -62,17 +71,44 @@ export async function sendMail({ to, subject, html, text }) {
   return data;
 }
 
+/** Never throws — safe to fire-and-forget from routes. */
+export async function sendMailSafe(opts) {
+  try {
+    return await sendMail(opts);
+  } catch (err) {
+    console.error('[mail] send failed', err.message);
+    return null;
+  }
+}
+
+export async function sendAdminMail({ subject, html, text }) {
+  return sendMailSafe({ to: adminNotifyEmail(), subject, html, text });
+}
+
+function wrapHtml(body) {
+  return `
+    <div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.5;color:#0f172a;max-width:560px">
+      ${body}
+      <p style="margin-top:28px;color:#94a3b8;font-size:12px">Рыбалка Прикамье · автоматическое уведомление</p>
+    </div>
+  `;
+}
+
+function cta(href, label) {
+  return `<p><a href="${escapeAttr(href)}" style="display:inline-block;padding:12px 18px;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:8px">${escapeHtml(label)}</a></p>`;
+}
+
 export function passwordResetEmail({ resetUrl, displayName }) {
   const name = displayName || 'пользователь';
   const subject = 'Восстановление пароля — Рыбалка Прикамье';
   const text = `Здравствуйте, ${name}!\n\nЧтобы задать новый пароль, откройте ссылку (действует 1 час):\n${resetUrl}\n\nЕсли вы не запрашивали сброс — просто проигнорируйте это письмо.`;
-  const html = `
+  const html = wrapHtml(`
     <p>Здравствуйте, ${escapeHtml(name)}!</p>
     <p>Чтобы задать новый пароль, нажмите кнопку ниже. Ссылка действует <strong>1 час</strong>.</p>
-    <p><a href="${escapeAttr(resetUrl)}" style="display:inline-block;padding:12px 18px;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:8px">Восстановить пароль</a></p>
+    ${cta(resetUrl, 'Восстановить пароль')}
     <p style="color:#64748b;font-size:13px">Или скопируйте ссылку:<br/>${escapeHtml(resetUrl)}</p>
     <p style="color:#64748b;font-size:13px">Если вы не запрашивали сброс — проигнорируйте это письмо.</p>
-  `;
+  `);
   return { subject, html, text };
 }
 
@@ -99,12 +135,86 @@ export function paymentReminderEmail({
       : `Напоминание: продлите «${entityTitle}»`;
 
   const text = `Здравствуйте, ${name}!\n\n${when}: «${entityTitle}».\nПродлить: ${renewUrl}\n\nРыбалка Прикамье`;
-  const html = `
+  const html = wrapHtml(`
     <p>Здравствуйте, ${escapeHtml(name)}!</p>
     <p>${escapeHtml(when)}: <strong>${escapeHtml(entityTitle)}</strong>.</p>
-    <p><a href="${escapeAttr(renewUrl)}" style="display:inline-block;padding:12px 18px;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:8px">Продлить размещение</a></p>
-    <p style="color:#64748b;font-size:13px">Письмо отправлено автоматически. Отключить напоминания можно в настройках уведомлений кабинета.</p>
-  `;
+    ${cta(renewUrl, 'Продлить размещение')}
+  `);
+  return { subject, html, text };
+}
+
+/** Admin: something needs moderation */
+export function adminModerationEmail({ kindLabel, title, detail, adminUrl }) {
+  const subject = `Модерация: ${kindLabel} — ${title}`;
+  const text = `${kindLabel} ждёт проверки.\n\n${title}\n${detail || ''}\n\nОткрыть: ${adminUrl}`;
+  const html = wrapHtml(`
+    <p><strong>${escapeHtml(kindLabel)}</strong> ждёт проверки.</p>
+    <p><strong>${escapeHtml(title)}</strong></p>
+    ${detail ? `<p style="color:#475569">${escapeHtml(detail)}</p>` : ''}
+    ${cta(adminUrl, 'Открыть в админке')}
+  `);
+  return { subject, html, text };
+}
+
+/** Owner/user: content published or rejected */
+export function publicationEmail({ displayName, entityTitle, entityKind, approved, note, siteUrl }) {
+  const name = displayName || 'пользователь';
+  const kindRu =
+    entityKind === 'directory'
+      ? 'карточка справочника'
+      : entityKind === 'report'
+        ? 'отчёт'
+        : entityKind === 'comment'
+          ? 'комментарий'
+          : entityKind === 'review'
+            ? 'отзыв'
+            : 'база / водоём';
+  const subject = approved
+    ? `Опубликовано: «${entityTitle}»`
+    : `Отклонено: «${entityTitle}»`;
+  const lead = approved
+    ? `Ваша ${kindRu} «${entityTitle}» опубликована на сайте.`
+    : `Ваша ${kindRu} «${entityTitle}» отклонена модератором.`;
+  const text = `Здравствуйте, ${name}!\n\n${lead}${note ? `\nКомментарий: ${note}` : ''}\n\n${siteUrl}`;
+  const html = wrapHtml(`
+    <p>Здравствуйте, ${escapeHtml(name)}!</p>
+    <p>${escapeHtml(lead)}</p>
+    ${note ? `<p style="color:#64748b">Комментарий модератора: ${escapeHtml(note)}</p>` : ''}
+    ${cta(siteUrl, approved ? 'Смотреть на сайте' : 'Открыть кабинет')}
+  `);
+  return { subject, html, text };
+}
+
+/** Owner: placement paid / sent to moderation */
+export function placementEmail({ displayName, entityTitle, entityKind, pending, paidUntilLabel, cabinetUrl }) {
+  const name = displayName || 'владелец';
+  const kindRu = entityKind === 'directory' ? 'карточки в справочнике' : 'базы';
+  const subject = pending
+    ? `Размещение «${entityTitle}» оплачено — на модерации`
+    : `Размещение «${entityTitle}» оплачено`;
+  const lead = pending
+    ? `Оплата ${kindRu} «${entityTitle}» прошла успешно. Заявка отправлена на модерацию.`
+    : `Оплата ${kindRu} «${entityTitle}» прошла успешно.${paidUntilLabel ? ` Размещение до ${paidUntilLabel}.` : ''}`;
+  const text = `Здравствуйте, ${name}!\n\n${lead}\n\nКабинет: ${cabinetUrl}`;
+  const html = wrapHtml(`
+    <p>Здравствуйте, ${escapeHtml(name)}!</p>
+    <p>${escapeHtml(lead)}</p>
+    ${cta(cabinetUrl, 'Открыть кабинет')}
+  `);
+  return { subject, html, text };
+}
+
+/** Owner: new review on their base (pending or published) */
+export function ownerReviewEmail({ displayName, baseTitle, authorName, rating, body, siteUrl }) {
+  const name = displayName || 'владелец';
+  const subject = `Новый отзыв о «${baseTitle}»`;
+  const text = `Здравствуйте, ${name}!\n\nНовый отзыв (${rating}/5) от ${authorName} о «${baseTitle}»:\n${body}\n\n${siteUrl}`;
+  const html = wrapHtml(`
+    <p>Здравствуйте, ${escapeHtml(name)}!</p>
+    <p>Новый отзыв (<strong>${Number(rating)}/5</strong>) от ${escapeHtml(authorName)} о <strong>${escapeHtml(baseTitle)}</strong>:</p>
+    <blockquote style="margin:12px 0;padding:12px;background:#f8fafc;border-left:3px solid #94a3b8">${escapeHtml(body)}</blockquote>
+    ${cta(siteUrl, 'Открыть карточку')}
+  `);
   return { subject, html, text };
 }
 

@@ -137,4 +137,24 @@ router.patch('/profile', authMiddleware, requireAuth, async (req, res, next) => 
   }
 });
 
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { requestPasswordReset } = await import('../services/passwordReset.js');
+    const result = await requestPasswordReset(req.body?.email);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { resetPasswordWithToken } = await import('../services/passwordReset.js');
+    const result = await resetPasswordWithToken(req.body?.token, req.body?.password);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -99,7 +99,34 @@ router.post('/', async (req, res, next) => {
         rating,
       ]
     );
-    res.status(201).json(mapReview(rows[0]));
+    const review = rows[0];
+
+    const { notifyAdminModeration, notifyOwnerNewReview } = await import(
+      '../services/notifyMail.js'
+    );
+    notifyAdminModeration({
+      kindLabel: 'Новый отзыв',
+      title: body.target_name || body.base_name || targetId,
+      detail: `${authorName} · ${rating}/5 · ${text.slice(0, 200)}`,
+      adminPath: '/admin/reviews',
+    });
+
+    const { rows: owners } = await pool.query(
+      `select owner_id, name from public.bases where id::text = $1 limit 1`,
+      [targetId]
+    );
+    if (owners[0]?.owner_id) {
+      notifyOwnerNewReview({
+        ownerId: owners[0].owner_id,
+        baseTitle: owners[0].name || body.target_name || 'Объект',
+        baseId: targetId,
+        authorName,
+        rating,
+        body: text,
+      });
+    }
+
+    res.status(201).json(mapReview(review));
   } catch (err) {
     next(err);
   }
@@ -156,6 +183,21 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
       [req.params.id, status]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+
+    if (status === 'approved' || status === 'rejected') {
+      const review = rows[0];
+      const { notifyUserPublication } = await import('../services/notifyMail.js');
+      if (review.user_id) {
+        notifyUserPublication({
+          userId: review.user_id,
+          entityTitle: review.target_name || 'Отзыв',
+          entityKind: 'review',
+          approved: status === 'approved',
+          path: review.target_id ? `/waters/${review.target_id}` : '/cabinet',
+        });
+      }
+    }
+
     res.json(mapReview(rows[0]));
   } catch (err) {
     next(err);

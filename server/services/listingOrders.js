@@ -1352,6 +1352,34 @@ async function applyPaidSideEffects(client, order) {
       }),
     ]
   );
+
+  // Email: admin (needs approval) + owner (placement paid)
+  try {
+    const { rows: baseRows } = await client.query(
+      `select name, status from public.bases where id = $1`,
+      [order.base_id]
+    );
+    const baseName = baseRows[0]?.name || 'База';
+    const isPending = baseRows[0]?.status === 'pending';
+    const { notifyAdminModeration, notifyUserPlacement } = await import('./notifyMail.js');
+    if (isPending) {
+      notifyAdminModeration({
+        kindLabel: 'Новая база на модерации',
+        title: baseName,
+        detail: `Заказ ${order.id.slice(0, 8)} оплачен`,
+        adminPath: '/admin/bases',
+      });
+    }
+    notifyUserPlacement({
+      userId: order.user_id,
+      entityTitle: baseName,
+      entityKind: 'base',
+      pending: isPending,
+      cabinetPath: `/owner/bases/${order.base_id}/edit`,
+    });
+  } catch (err) {
+    console.error('[listingOrders] notify mail', err.message);
+  }
 }
 
 export async function markOrderPaid(orderId, { providerPaymentId = null, skipYoo = false } = {}) {

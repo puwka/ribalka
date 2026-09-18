@@ -25,6 +25,8 @@ import AuthorProfilePage from './pages/AuthorProfilePage';
 import LunarCalendarPage from './pages/LunarCalendarPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import UserCabinetPage from './pages/UserCabinetPage';
 import OwnerCabinetPage from './pages/OwnerCabinetPage';
 import PwaInstallPrompt from './components/pwa/PwaInstallPrompt';
@@ -101,6 +103,8 @@ function App() {
                     <Route path="/favorites" element={<Navigate to="/cabinet/favorites" replace />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/cabinet/*" element={<UserCabinetPage />} />
                     <Route path="/owner/*" element={<OwnerCabinetPage />} />
                     <Route path="*" element={<NotFoundPage />} />

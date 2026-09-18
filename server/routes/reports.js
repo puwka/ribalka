@@ -280,6 +280,18 @@ router.patch('/comments/:commentId/moderate', requireAuth, requireAdmin, async (
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
     const c = rows[0];
+
+    if ((status === 'approved' || status === 'rejected') && c.user_id) {
+      const { notifyUserPublication } = await import('../services/notifyMail.js');
+      notifyUserPublication({
+        userId: c.user_id,
+        entityTitle: 'Комментарий',
+        entityKind: 'comment',
+        approved: status === 'approved',
+        path: `/reports/${c.report_id}`,
+      });
+    }
+
     res.json({
       id: String(c.id),
       reportId: String(c.report_id),
@@ -359,6 +371,15 @@ router.post('/', requireAuth, async (req, res, next) => {
       );
     }
     await client.query('commit');
+
+    const { notifyAdminModeration } = await import('../services/notifyMail.js');
+    notifyAdminModeration({
+      kindLabel: 'Новый отчёт',
+      title: place || author,
+      detail: description.slice(0, 200),
+      adminPath: '/admin/reports',
+    });
+
     res.status(201).json(await buildReport(row));
   } catch (err) {
     await client.query('rollback');
@@ -625,6 +646,15 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       parentId: c.parent_id ? String(c.parent_id) : null,
       status: c.status,
     };
+
+    const { notifyAdminModeration } = await import('../services/notifyMail.js');
+    notifyAdminModeration({
+      kindLabel: 'Новый комментарий к отчёту',
+      title: author,
+      detail: text.slice(0, 280),
+      adminPath: '/admin/reports',
+    });
+
     const isAdmin = (req.user?.roles || []).includes('admin');
     res.status(201).json({
       comment,
@@ -657,6 +687,22 @@ router.patch('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) 
       [req.params.id, status, note]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+
+    if (status === 'approved' || status === 'rejected') {
+      const report = rows[0];
+      if (report.user_id) {
+        const { notifyUserPublication } = await import('../services/notifyMail.js');
+        notifyUserPublication({
+          userId: report.user_id,
+          entityTitle: report.place_name || 'Отчёт',
+          entityKind: 'report',
+          approved: status === 'approved',
+          note: note || null,
+          path: status === 'approved' ? `/reports/${report.id}` : '/cabinet/reports',
+        });
+      }
+    }
+
     res.json(await buildReport(rows[0]));
   } catch (err) {
     next(err);

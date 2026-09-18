@@ -479,6 +479,16 @@ router.post('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) =
          rejection_reason=null, reviewed_at=now(), reviewed_by=$2, updated_at=now() where id=$1`,
         [base.id, req.user.sub]
       );
+      const { notifyUserPublication } = await import('../services/notifyMail.js');
+      if (base.owner_id) {
+        notifyUserPublication({
+          userId: base.owner_id,
+          entityTitle: base.name || 'База',
+          entityKind: 'base',
+          approved: true,
+          path: `/waters/${base.id}`,
+        });
+      }
     } else if (action === 'reject') {
       if (!reason?.trim()) return res.status(400).json({ error: 'Укажите причину отказа' });
       await pool.query(
@@ -486,6 +496,17 @@ router.post('/:id/moderate', requireAuth, requireAdmin, async (req, res, next) =
          reviewed_at=now(), reviewed_by=$3, updated_at=now() where id=$1`,
         [base.id, reason.trim(), req.user.sub]
       );
+      const { notifyUserPublication } = await import('../services/notifyMail.js');
+      if (base.owner_id) {
+        notifyUserPublication({
+          userId: base.owner_id,
+          entityTitle: base.name || 'База',
+          entityKind: 'base',
+          approved: false,
+          note: reason.trim(),
+          path: `/owner/bases/${base.id}/edit`,
+        });
+      }
     } else if (action === 'archive') {
       await pool.query(
         `update public.bases set status='archived', reviewed_at=now(), reviewed_by=$2, updated_at=now() where id=$1`,

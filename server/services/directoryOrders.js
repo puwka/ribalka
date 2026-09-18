@@ -755,6 +755,32 @@ async function publishDirectoryItem(client, order) {
     ]
   );
 
+  try {
+    const { notifyAdminModeration, notifyUserPlacement } = await import('./notifyMail.js');
+    if (nextStatus === 'pending') {
+      notifyAdminModeration({
+        kindLabel: 'Новый магазин / услуга / гид',
+        title: row.name || 'Карточка справочника',
+        detail: `Категория: ${row.category || order.category || '—'}`,
+        adminPath: '/admin/content/directory',
+      });
+    }
+    if (!isUpgrade) {
+      notifyUserPlacement({
+        userId: order.user_id,
+        entityTitle: row.name || 'Карточка',
+        entityKind: 'directory',
+        pending: nextStatus === 'pending',
+        paidUntilLabel: paidUntil
+          ? new Date(paidUntil).toLocaleDateString('ru-RU')
+          : null,
+        cabinetPath: '/owner/directory',
+      });
+    }
+  } catch (err) {
+    console.error('[directoryOrders] notify mail', err.message);
+  }
+
   return itemId;
 }
 

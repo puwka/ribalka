@@ -67,6 +67,8 @@ function LoginForm() {
         </form>
 
         <div className="auth-links">
+          <Link to="/forgot-password">Забыли пароль?</Link>
+          <br />
           Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
         </div>
       </div>

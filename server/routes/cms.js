@@ -190,7 +190,13 @@ router.put('/kv', requireAuth, requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'value required' });
     }
     const value = req.body.value;
+    const isDirectory = key === 'page:directory';
+    const prev = isDirectory ? await getKv(key) : null;
     await setKv(key, value, req.user.sub);
+    if (isDirectory) {
+      const { notifyDirectoryPublishTransitions } = await import('../services/notifyMail.js');
+      notifyDirectoryPublishTransitions(prev, value);
+    }
     res.json({ value });
   } catch (err) {
     next(err);
@@ -217,7 +223,13 @@ router.put('/kv/:key', requireAuth, requireAdmin, async (req, res, next) => {
     if (value === undefined) {
       return res.status(400).json({ error: 'value required' });
     }
+    const isDirectory = key === 'page:directory';
+    const prev = isDirectory ? await getKv(key) : null;
     await setKv(key, value, req.user.sub);
+    if (isDirectory) {
+      const { notifyDirectoryPublishTransitions } = await import('../services/notifyMail.js');
+      notifyDirectoryPublishTransitions(prev, value);
+    }
     res.json({ value });
   } catch (err) {
     next(err);
