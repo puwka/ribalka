@@ -187,6 +187,25 @@ export function buildPaymentQuery(options) {
   return s ? `?${s}` : '';
 }
 
+/**
+ * Mid-period media-only upgrade (no renew, no accidental frame upsell).
+ * Charges only addonPhoto/addonVideo deltas on the server.
+ */
+export function buildMediaUpgradeQuery(base, patch = {}) {
+  const paidPhotos = Math.max(0, Number(base?.paid_extra_photos) || 0);
+  const paidVideos = Math.max(0, Number(base?.paid_extra_videos) || 0);
+  const hasFrame = Boolean(base?.yellow_frame || base?.yellowFrame);
+  return buildPaymentQuery({
+    mode: 'upgrade',
+    // Preserve already-paid frame; do not force buying a new one with photos
+    frame: hasFrame,
+    extraPhotos:
+      patch.extraPhotos != null ? Math.max(0, Number(patch.extraPhotos) || 0) : paidPhotos,
+    extraVideos:
+      patch.extraVideos != null ? Math.max(0, Number(patch.extraVideos) || 0) : paidVideos,
+  });
+}
+
 export const DEFAULT_BASE_OPTIONS = {
   months: 3,
   top: false,

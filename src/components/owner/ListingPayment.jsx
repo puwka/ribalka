@@ -236,10 +236,10 @@ export function OwnerListingCheckoutPage() {
 
   return (
     <div className="cabinet-panel listing-pay">
-      <h2>{isUpgrade ? 'Доплата опций' : 'Размещение базы'}</h2>
+      <h2>{isUpgrade ? 'Доплата за опции' : 'Размещение базы'}</h2>
       <p className="cabinet-panel__lead">
         {isUpgrade
-          ? 'Оплатите только новые опции — срок размещения не продлевается.'
+          ? 'Оплачивается только доплата (фото / видео / рамка). Полный тариф за месяцы не списывается, срок размещения не продлевается.'
           : 'Тариф Конструктор: выберите срок и дополнительные опции, затем оплатите через ЮKassa.'}
       </p>
 
@@ -248,10 +248,17 @@ export function OwnerListingCheckoutPage() {
           <span>База</span>
           <strong>{base.name}</strong>
         </div>
-        <div className="listing-pay__row">
-          <span>{ctor.title}</span>
-          <strong>{formatRub(ctor.baseAmount)} / мес</strong>
-        </div>
+        {!isUpgrade ? (
+          <div className="listing-pay__row">
+            <span>{ctor.title}</span>
+            <strong>{formatRub(ctor.baseAmount)} / мес</strong>
+          </div>
+        ) : (
+          <div className="listing-pay__row">
+            <span>К оплате сейчас</span>
+            <strong>{formatRub(amount)}</strong>
+          </div>
+        )}
         {isUpgrade && upgradeQuote ? (
           <p className="listing-pay__note" style={{ marginTop: 8 }}>
             Осталось ≈ {upgradeQuote.remainingMonths} мес. до конца оплаченного периода

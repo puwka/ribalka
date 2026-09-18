@@ -12,6 +12,7 @@ import BaseListingForm, { statusLabel } from '../components/bases/BaseListingFor
 import BaseConstructorPricing, {
   DEFAULT_BASE_OPTIONS,
   buildPaymentQuery,
+  buildMediaUpgradeQuery,
 } from '../components/bases/BaseConstructorPricing';
 import { LineChart, PeriodFilters } from '../components/owner/OwnerCharts';
 import {
@@ -580,17 +581,30 @@ function OwnerBases() {
                         Карточка
                       </Link>
                       {apiDataEnabled && (expired || b.status === 'approved') && (
-                        <Link
-                          className="btn-primary"
-                          to={`/owner/payment/${b.id}${buildPaymentQuery({
-                            months: 3,
-                            frame: Boolean(b.yellow_frame),
-                            extraPhotos: Math.max(0, Number(b.paid_extra_photos) || 0),
-                            extraVideos: Math.max(0, Number(b.paid_extra_videos) || 0),
-                          })}`}
-                        >
-                          {expired ? 'Продлить' : 'Продлить / доплатить'}
-                        </Link>
+                        <>
+                          {!expired && Boolean(b.paid_until || b.paidUntil) ? (
+                            <Link
+                              className="btn-secondary"
+                              to={`/owner/payment/${b.id}${buildMediaUpgradeQuery(b, {
+                                extraPhotos: (Number(b.paid_extra_photos) || 0) + 1,
+                                extraVideos: Number(b.paid_extra_videos) || 0,
+                              })}`}
+                            >
+                              Докупить фото
+                            </Link>
+                          ) : null}
+                          <Link
+                            className="btn-primary"
+                            to={`/owner/payment/${b.id}${buildPaymentQuery({
+                              months: 3,
+                              frame: Boolean(b.yellow_frame),
+                              extraPhotos: Math.max(0, Number(b.paid_extra_photos) || 0),
+                              extraVideos: Math.max(0, Number(b.paid_extra_videos) || 0),
+                            })}`}
+                          >
+                            {expired ? 'Продлить размещение' : 'Продлить срок'}
+                          </Link>
+                        </>
                       )}
                       <Link className="btn-secondary" to="/owner/analytics">
                         Статистика
@@ -753,14 +767,30 @@ function OwnerBaseEdit() {
     : { canUpgrade: false, total: 0 };
   const payLabel = apiDataEnabled
     ? expired || paidUntil
-      ? `Продлить за ${formatRub(quote.total)}`
-      : `Оплатить ${formatRub(quote.total)}`
+      ? `Продлить размещение за ${formatRub(quote.total)}`
+      : `Оплатить размещение ${formatRub(quote.total)}`
     : 'Сохранить и на модерацию';
+  const paidPhotos = Math.max(0, Number(record.paid_extra_photos) || 0);
+  const paidVideos = Math.max(0, Number(record.paid_extra_videos) || 0);
   const upgradeHref = `/owner/payment/${record.id}${buildPaymentQuery({
-    ...options,
     mode: 'upgrade',
+    frame: Boolean(options.frame) || Boolean(record.yellow_frame),
+    extraPhotos: Math.max(options.extraPhotos, paidPhotos),
+    extraVideos: Math.max(options.extraVideos, paidVideos),
   })}`;
   const renewHref = `/owner/payment/${record.id}${buildPaymentQuery(options)}`;
+  const photoOnlyHref = canUpgrade
+    ? `/owner/payment/${record.id}${buildMediaUpgradeQuery(record, {
+        extraPhotos: Math.max(options.extraPhotos, paidPhotos + 1),
+        extraVideos: Math.max(options.extraVideos, paidVideos),
+      })}`
+    : null;
+  const videoOnlyHref = canUpgrade
+    ? `/owner/payment/${record.id}${buildMediaUpgradeQuery(record, {
+        extraPhotos: Math.max(options.extraPhotos, paidPhotos),
+        extraVideos: Math.max(options.extraVideos, paidVideos + 1),
+      })}`
+    : null;
   const dailyPrice = Number(topSlots?.addonTopDaily ?? tariff.addonTopDaily) || 300;
   const topSlotsFull =
     Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
@@ -834,33 +864,13 @@ function OwnerBaseEdit() {
           style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
         >
           <span style={{ marginRight: 4 }}>
-            Докупить медиа без продления срока (уже оплачено фото:{' '}
-            {Number(record.paid_extra_photos) || 0}, видео: {Number(record.paid_extra_videos) || 0}):
+            Докупить медиа без продления срока (уже оплачено фото: {paidPhotos}, видео:{' '}
+            {paidVideos}). Оплачивается только доплата за фото/видео:
           </span>
-          <Link
-            className="btn-secondary"
-            to={`/owner/payment/${record.id}${buildPaymentQuery({
-              ...options,
-              mode: 'upgrade',
-              extraPhotos: Math.max(
-                options.extraPhotos,
-                (Number(record.paid_extra_photos) || 0) + 1
-              ),
-            })}`}
-          >
+          <Link className="btn-secondary" to={photoOnlyHref}>
             +1 фото {formatRub(tariff.addonPhoto || 100)}
           </Link>
-          <Link
-            className="btn-secondary"
-            to={`/owner/payment/${record.id}${buildPaymentQuery({
-              ...options,
-              mode: 'upgrade',
-              extraVideos: Math.max(
-                options.extraVideos,
-                (Number(record.paid_extra_videos) || 0) + 1
-              ),
-            })}`}
-          >
+          <Link className="btn-secondary" to={videoOnlyHref}>
             +1 видео {formatRub(tariff.addonVideo || 100)}
           </Link>
         </div>
@@ -884,26 +894,12 @@ function OwnerBaseEdit() {
         mediaQuota={{
           includedPhotos: tariff.includedPhotos || 1,
           includedVideos: tariff.includedVideos || 1,
-          extraPhotos: Math.max(options.extraPhotos, Number(record.paid_extra_photos) || 0),
-          extraVideos: Math.max(options.extraVideos, Number(record.paid_extra_videos) || 0),
+          extraPhotos: Math.max(options.extraPhotos, paidPhotos),
+          extraVideos: Math.max(options.extraVideos, paidVideos),
           addonPhoto: tariff.addonPhoto || 100,
           addonVideo: tariff.addonVideo || 100,
-          payHrefPhotos: `/owner/payment/${record.id}${buildPaymentQuery({
-            ...options,
-            mode: canUpgrade ? 'upgrade' : undefined,
-            extraPhotos: Math.max(
-              options.extraPhotos,
-              (Number(record.paid_extra_photos) || 0) + 1
-            ),
-          })}`,
-          payHrefVideos: `/owner/payment/${record.id}${buildPaymentQuery({
-            ...options,
-            mode: canUpgrade ? 'upgrade' : undefined,
-            extraVideos: Math.max(
-              options.extraVideos,
-              (Number(record.paid_extra_videos) || 0) + 1
-            ),
-          })}`,
+          payHrefPhotos: photoOnlyHref,
+          payHrefVideos: videoOnlyHref,
         }}
         onSubmit={async (form) => {
           const saved = await basesService.saveDraft(user.id, form, baseId);
@@ -914,6 +910,18 @@ function OwnerBaseEdit() {
         onSubmitAndSend={async (form) => {
           const saved = await basesService.saveDraft(user.id, form, baseId);
           if (apiDataEnabled) {
+            // If period is active and only media/options to add — charge upgrade only
+            if (canUpgrade && upgradeQuote.canUpgrade) {
+              navigate(
+                `/owner/payment/${saved.id}${buildPaymentQuery({
+                  mode: 'upgrade',
+                  frame: Boolean(options.frame) || Boolean(saved.yellow_frame),
+                  extraPhotos: Math.max(options.extraPhotos, Number(saved.paid_extra_photos) || 0),
+                  extraVideos: Math.max(options.extraVideos, Number(saved.paid_extra_videos) || 0),
+                })}`
+              );
+              return;
+            }
             navigate(renewHref.replace(record.id, saved.id));
             return;
           }
@@ -925,11 +933,14 @@ function OwnerBaseEdit() {
       <div className="cabinet-actions" style={{ marginTop: 12 }}>
         {canUpgrade && upgradeQuote.canUpgrade ? (
           <Link className="btn-primary" to={upgradeHref}>
-            Доплатить {formatRub(upgradeQuote.total)}
+            Доплатить только опции {formatRub(upgradeQuote.total)}
           </Link>
         ) : null}
         {apiDataEnabled ? (
-          <Link className={canUpgrade && upgradeQuote.canUpgrade ? 'btn-secondary' : 'btn-primary'} to={renewHref}>
+          <Link
+            className={canUpgrade && upgradeQuote.canUpgrade ? 'btn-secondary' : 'btn-primary'}
+            to={renewHref}
+          >
             {payLabel}
           </Link>
         ) : null}

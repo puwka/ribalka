@@ -31,9 +31,7 @@ function isBlankEditorHtml(html) {
 const BLOCK_TAGS = new Set(['P', 'H2', 'H3', 'UL', 'OL', 'LI', 'DIV', 'BLOCKQUOTE']);
 
 function hasBlockChild(el) {
-  return [...el.childNodes].some(
-    (n) => n.nodeType === 1 && BLOCK_TAGS.has(n.tagName)
-  );
+  return [...el.childNodes].some((n) => n.nodeType === 1 && BLOCK_TAGS.has(n.tagName));
 }
 
 /** Keep a real paragraph so typing/deleting always works without toolbar. */
@@ -45,13 +43,11 @@ function ensureEditorStructure(el) {
     return el.querySelector('p');
   }
 
-  // Loose text / only <br> at root → wrap into paragraph
   if (!hasBlockChild(el)) {
     const html = el.innerHTML.trim() || '<br>';
     el.innerHTML = `<p>${html}</p>`;
   }
 
-  // Empty <p></p> blocks need a <br> or caret disappears in some browsers
   el.querySelectorAll('p, h2, h3').forEach((block) => {
     if (!block.innerHTML || block.innerHTML === '') {
       block.innerHTML = '<br>';
@@ -140,6 +136,7 @@ export default function RichTextEditor({
 
   const run = (command, arg = null) => (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (disabled) return;
     const el = prepare();
     if (!el) return;
@@ -153,6 +150,12 @@ export default function RichTextEditor({
       document.execCommand(command, false, arg);
     }
     ensureEditorStructure(el);
+    // After list commands, ensure we still have a usable caret target
+    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+      if (!caretInside(el) || isBlankEditorHtml(el.innerHTML)) {
+        placeCaretInEmptyEditor(el);
+      }
+    }
     emit();
   };
 
@@ -166,7 +169,8 @@ export default function RichTextEditor({
     if (!el) return;
     const wasBlank = isBlankEditorHtml(el.innerHTML);
     ensureEditorStructure(el);
-    if (wasBlank || isBlankEditorHtml(el.innerHTML)) {
+    // Only force caret when recovering from empty state — avoid fighting normal typing
+    if (wasBlank) {
       placeCaretInEmptyEditor(el);
     }
     emit();
@@ -177,24 +181,12 @@ export default function RichTextEditor({
     const el = ref.current;
     if (!el) return;
 
-    // Always keep structure before typing / deleting
-    if (
-      e.key === 'Backspace' ||
-      e.key === 'Delete' ||
-      e.key === 'Enter' ||
-      (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey)
-    ) {
-      ensureEditorStructure(el);
-      if (!caretInside(el)) {
-        placeCaretInEmptyEditor(el);
-      }
-    }
-
-    // After clearing everything, restore empty paragraph so next key works
     if (e.key === 'Backspace' || e.key === 'Delete') {
       requestAnimationFrame(() => {
         if (!ref.current) return;
-        if (isBlankEditorHtml(ref.current.innerHTML) || !String(ref.current.textContent || '').trim()) {
+        const html = ref.current.innerHTML;
+        const text = String(ref.current.textContent || '').trim();
+        if (isBlankEditorHtml(html) || !text) {
           ensureEditorStructure(ref.current);
           placeCaretInEmptyEditor(ref.current);
         }
@@ -205,6 +197,12 @@ export default function RichTextEditor({
   return (
     <div
       className={`rich-editor${disabled ? ' is-disabled' : ''}${extended ? ' rich-editor--extended' : ''}`}
+      onMouseDown={(e) => {
+        // Toolbar clicks must not activate a parent <label> (steals caret)
+        if (e.target.closest('.rich-editor__toolbar')) {
+          e.preventDefault();
+        }
+      }}
     >
       <div className="rich-editor__toolbar" role="toolbar" aria-label="Форматирование">
         <ToolbarButton label="Ж" title="Жирный" onMouseDown={run('bold')} />
@@ -213,6 +211,11 @@ export default function RichTextEditor({
           <ToolbarButton label="Ч" title="Подчёркнутый" onMouseDown={run('underline')} />
         ) : null}
         <span className="rich-editor__sep" />
+        <ToolbarButton
+          label="Текст"
+          title="Обычный абзац (если курсор «застрял» в списке)"
+          onMouseDown={run('formatBlock', 'p')}
+        />
         <ToolbarButton
           label="• Список"
           title="Маркированный список"
@@ -226,11 +229,6 @@ export default function RichTextEditor({
         {extended ? (
           <>
             <span className="rich-editor__sep" />
-            <ToolbarButton
-              label="Обычный текст"
-              title="Убрать заголовок, обычный абзац"
-              onMouseDown={run('formatBlock', 'p')}
-            />
             <ToolbarButton label="H2" title="Подзаголовок" onMouseDown={run('formatBlock', 'h2')} />
             <ToolbarButton label="H3" title="Мелкий заголовок" onMouseDown={run('formatBlock', 'h3')} />
             <span className="rich-editor__sep" />
@@ -253,8 +251,8 @@ export default function RichTextEditor({
         data-placeholder={placeholder}
         suppressContentEditableWarning
         onFocus={handleFocus}
-        onMouseDown={() => {
-          // Ensure structure before browser places caret
+        onMouseDown={(e) => {
+          e.stopPropagation();
           if (disabled) return;
           const el = ref.current;
           if (!el) return;
@@ -262,7 +260,8 @@ export default function RichTextEditor({
             ensureEditorStructure(el);
           }
         }}
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           if (disabled) return;
           const el = ref.current;
           if (!el) return;
@@ -281,7 +280,7 @@ export default function RichTextEditor({
       <p className="rich-editor__hint">
         {extended
           ? 'Кликните в поле и пишите. Enter — новый абзац. Можно выделить текст и оформить (жирный, списки, заголовки, ссылки).'
-          : 'Кликните в поле и сразу пишите или удаляйте текст. Enter — новый абзац. Выделите текст, чтобы сделать жирным, курсивом или списком.'}
+          : 'Кликните в поле и сразу пишите. Enter — новый абзац. Кнопка «Текст» возвращает обычный абзац, если список мешает набору.'}
       </p>
     </div>
   );

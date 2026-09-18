@@ -158,8 +158,8 @@ export default function BaseListingForm({
             maxLength={180}
           />
         </label>
-        <label className="base-form__full">
-          Описание *
+        <div className="base-form__full">
+          <span className="base-form__field-label">Описание *</span>
           <RichTextEditor
             value={form.description}
             onChange={(html) => setForm((f) => ({ ...f, description: html }))}
@@ -167,7 +167,7 @@ export default function BaseListingForm({
             minHeight={180}
             placeholder="Полное описание базы…"
           />
-        </label>
+        </div>
         <label>
           Регион *
           <input required value={form.region} onChange={set('region')} disabled={disabled} />
@@ -295,7 +295,9 @@ export default function BaseListingForm({
             }
             upgradeHint={
               enforceQuota
-                ? `Лимит фото исчерпан. Оплатите +${formatRub(photoPrice)} за каждое дополнительное фото.`
+                ? payHrefPhotos
+                  ? `Лимит фото исчерпан. Доплата только за фото: +${formatRub(photoPrice)} за каждое (без повторной оплаты тарифа).`
+                  : `Лимит фото исчерпан. Сначала продлите размещение — после этого можно докупить только фото за доплату.`
                 : null
             }
             upgradeHref={payHrefPhotos}

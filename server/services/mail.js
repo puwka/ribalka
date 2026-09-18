@@ -42,7 +42,11 @@ export async function sendMail({ to, subject, html, text }) {
   }
 
   if (!isMailConfigured()) {
-    console.log('[mail:dev]', { to: recipient, subject, text: text || html?.slice(0, 200) });
+    console.log('[mail:dev] RESEND_API_KEY не задан — письмо не отправлено', {
+      to: recipient,
+      subject,
+      text: text || html?.slice(0, 200),
+    });
     return { id: 'dev-log', mocked: true };
   }
 
@@ -63,6 +67,11 @@ export async function sendMail({ to, subject, html, text }) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    console.error('[mail] Resend error', res.status, data, {
+      from: fromAddress(),
+      to: recipient,
+      subject,
+    });
     const err = new Error(data?.message || data?.error || `Resend HTTP ${res.status}`);
     err.status = 502;
     err.details = data;
