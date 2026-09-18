@@ -168,7 +168,9 @@ export function publicationEmail({ displayName, entityTitle, entityKind, approve
           ? 'комментарий'
           : entityKind === 'review'
             ? 'отзыв'
-            : 'база / водоём';
+            : entityKind === 'ad'
+              ? 'реклама'
+              : 'база / водоём';
   const subject = approved
     ? `Опубликовано: «${entityTitle}»`
     : `Отклонено: «${entityTitle}»`;
@@ -188,13 +190,38 @@ export function publicationEmail({ displayName, entityTitle, entityKind, approve
 /** Owner: placement paid / sent to moderation */
 export function placementEmail({ displayName, entityTitle, entityKind, pending, paidUntilLabel, cabinetUrl }) {
   const name = displayName || 'владелец';
-  const kindRu = entityKind === 'directory' ? 'карточки в справочнике' : 'базы';
+  const kindRu =
+    entityKind === 'directory'
+      ? 'карточки в справочнике'
+      : entityKind === 'ad'
+        ? 'рекламного баннера'
+        : 'базы';
   const subject = pending
-    ? `Размещение «${entityTitle}» оплачено — на модерации`
-    : `Размещение «${entityTitle}» оплачено`;
+    ? entityKind === 'ad'
+      ? `Баннер «${entityTitle}» оплачен — на модерации`
+      : `Размещение «${entityTitle}» оплачено — на модерации`
+    : entityKind === 'ad'
+      ? `Баннер «${entityTitle}» оплачен`
+      : `Размещение «${entityTitle}» оплачено`;
   const lead = pending
     ? `Оплата ${kindRu} «${entityTitle}» прошла успешно. Заявка отправлена на модерацию.`
     : `Оплата ${kindRu} «${entityTitle}» прошла успешно.${paidUntilLabel ? ` Размещение до ${paidUntilLabel}.` : ''}`;
+  const text = `Здравствуйте, ${name}!\n\n${lead}\n\nКабинет: ${cabinetUrl}`;
+  const html = wrapHtml(`
+    <p>Здравствуйте, ${escapeHtml(name)}!</p>
+    <p>${escapeHtml(lead)}</p>
+    ${cta(cabinetUrl, 'Открыть кабинет')}
+  `);
+  return { subject, html, text };
+}
+
+/** User: banner sent/resubmitted to moderation (no payment wording) */
+export function adModerationEmail({ displayName, title, days, surface, cabinetUrl }) {
+  const name = displayName || 'пользователь';
+  const where = surface === 'forum' ? 'форуме' : 'новостях';
+  const d = Math.max(1, Number(days) || 1);
+  const subject = `Баннер «${title}» на модерации`;
+  const lead = `Ваш рекламный баннер «${title}» отправлен на модерацию (${d} сут., раздел: ${where}). После проверки он появится на сайте.`;
   const text = `Здравствуйте, ${name}!\n\n${lead}\n\nКабинет: ${cabinetUrl}`;
   const html = wrapHtml(`
     <p>Здравствуйте, ${escapeHtml(name)}!</p>

@@ -414,7 +414,7 @@ export default function AdminBasesSection() {
 
                   <button type="button" className="admin-btn" onClick={() => runModeration('pending')}>
 
-                    В pending
+                    В «На модерации»
 
                   </button>
 

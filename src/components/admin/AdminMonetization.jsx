@@ -285,6 +285,23 @@ export function AdminPlansTab({ adminId }) {
   );
 }
 
+const PAYMENT_STATUS_RU = {
+  pending: 'Ожидает оплаты',
+  waiting_for_payment: 'Ожидает оплаты',
+  paid: 'Оплачен',
+  cancelled: 'Отменён',
+  failed: 'Ошибка',
+  refunded: 'Возврат',
+  expired: 'Истёк',
+};
+
+const PROVIDER_RU = {
+  yookassa: 'ЮKassa',
+  robokassa: 'Robokassa',
+  simulated: 'Тест',
+  local: 'Локально',
+};
+
 export function AdminPaymentsTab() {
   const [items, setItems] = useState([]);
   useEffect(() => {
@@ -295,7 +312,7 @@ export function AdminPaymentsTab() {
     <div className="admin-info">
       <h3>Платежи</h3>
       <p style={{ color: '#64748b' }}>
-        Архитектура: ЮKassa / Robokassa через Edge Function. Секреты только на сервере.
+        Архитектура: ЮKassa / Robokassa через сервер. Секреты только на сервере.
       </p>
       <div className="mon-admin-grid">
         {items.length === 0 && <p>Платежей нет</p>}
@@ -305,13 +322,15 @@ export function AdminPaymentsTab() {
             style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, background: '#fff' }}
           >
             <strong>
-              {p.amount} {p.currency} · {p.status} · {p.provider}
+              {p.amount} {p.currency === 'RUB' ? '₽' : p.currency} ·{' '}
+              {PAYMENT_STATUS_RU[p.status] || p.status} ·{' '}
+              {PROVIDER_RU[p.provider] || p.provider}
             </strong>
             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-              {p.plan_name} · {p.billing_period} · user {p.user_id}
+              {p.plan_name} · {p.billing_period} · пользователь {p.user_id}
               <br />
               {new Date(p.created_at).toLocaleString('ru-RU')}
-              {p.paid_at ? ` · paid ${new Date(p.paid_at).toLocaleString('ru-RU')}` : ''}
+              {p.paid_at ? ` · оплачен ${new Date(p.paid_at).toLocaleString('ru-RU')}` : ''}
             </div>
           </div>
         ))}
@@ -319,6 +338,19 @@ export function AdminPaymentsTab() {
     </div>
   );
 }
+
+const AD_FILTERS = [
+  { id: 'pending', label: 'На модерации' },
+  { id: 'approved', label: 'Одобрено' },
+  { id: 'active', label: 'Активно' },
+  { id: 'rejected', label: 'Отклонено' },
+  { id: 'paused', label: 'Пауза' },
+  { id: 'disabled', label: 'Отключено' },
+  { id: 'draft', label: 'Черновик' },
+  { id: 'all', label: 'Все' },
+];
+
+const AD_STATUS_RU = Object.fromEntries(AD_FILTERS.map((f) => [f.id, f.label]));
 
 export function AdminAdsTab({ adminId }) {
   const [filter, setFilter] = useState('pending');
@@ -344,25 +376,28 @@ export function AdminAdsTab({ adminId }) {
     }
   };
 
+  const statusRu = (status) =>
+    advertisingService.statusLabels?.[status] || AD_STATUS_RU[status] || status;
+
   return (
     <div className="admin-info">
       <h3>Рекламные размещения</h3>
       {error && <div className="login-error">{error}</div>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '12px 0' }}>
-        {['pending', 'approved', 'active', 'rejected', 'paused', 'disabled', 'draft', 'all'].map((s) => (
+        {AD_FILTERS.map((f) => (
           <button
-            key={s}
+            key={f.id}
             type="button"
-            className={`admin-btn ${filter === s ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-            onClick={() => setFilter(s)}
+            className={`admin-btn ${filter === f.id ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+            onClick={() => setFilter(f.id)}
           >
-            {s}
+            {f.label}
           </button>
         ))}
       </div>
 
       <div className="mon-admin-form">
-        <strong>Создать размещение (ADMIN)</strong>
+        <strong>Создать размещение</strong>
         <input
           value={createTitle}
           onChange={(e) => setCreateTitle(e.target.value)}
@@ -396,8 +431,12 @@ export function AdminAdsTab({ adminId }) {
           >
             <strong>
               {ad.title} · {ad.surface === 'forum' ? 'форум' : 'новости'} ·{' '}
-              {ad.placement === 'left' ? 'слева' : ad.placement === 'right' ? 'справа' : ad.ad_type} ·{' '}
-              {ad.status}
+              {ad.placement === 'left'
+                ? 'слева'
+                : ad.placement === 'right'
+                  ? 'справа'
+                  : advertisingService.typeLabels?.[ad.ad_type] || ad.ad_type}{' '}
+              · {statusRu(ad.status)}
             </strong>
             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
               {ad.budget} ₽ · {ad.days || ad.months || 1} сут. · {ad.owner_email || ad.owner_id}

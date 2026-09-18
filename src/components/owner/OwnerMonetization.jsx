@@ -6,6 +6,7 @@ import { advertisingService } from '../../services/advertisingService';
 import { basesService } from '../../services/basesService';
 import { listingPaymentService } from '../../services/listingPaymentService';
 import { uploadService } from '../../services/uploadService';
+import { directoryOwnerService } from '../../services/directoryOwnerService';
 import {
   DEFAULT_CONSTRUCTOR,
   DEFAULT_SERVICE_TARIFF,
@@ -27,27 +28,34 @@ function formatDate(iso) {
 }
 
 export function OwnerSubscriptionPanel() {
+  const { user } = useAuth();
   const [baseTariff, setBaseTariff] = useState(() => normalizeConstructor(DEFAULT_CONSTRUCTOR));
   const [directoryTariff, setDirectoryTariff] = useState(() =>
     normalizeServiceTariff(DEFAULT_SERVICE_TARIFF)
   );
   const [loading, setLoading] = useState(true);
+  const [bases, setBases] = useState([]);
+  const [directoryItems, setDirectoryItems] = useState([]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [ctor, directory] = await Promise.all([
+        const [ctor, directory, mineBases, mineDir] = await Promise.all([
           listingPaymentService
             .getPublicListingPrice()
             .catch(() => listingPaymentService.getPrice().catch(() => null)),
           listingPaymentService.getDirectoryPrices().catch(() => null),
+          user?.id ? basesService.listMine(user.id).catch(() => []) : Promise.resolve([]),
+          directoryOwnerService.listMine().catch(() => []),
         ]);
         if (!alive) return;
         if (ctor) setBaseTariff(normalizeConstructor(ctor));
         if (directory?.service || directory?.directory) {
           setDirectoryTariff(normalizeServiceTariff(directory.service || directory.directory));
         }
+        setBases(Array.isArray(mineBases) ? mineBases : []);
+        setDirectoryItems(Array.isArray(mineDir) ? mineDir : mineDir?.items || []);
       } finally {
         if (alive) setLoading(false);
       }
@@ -55,10 +63,11 @@ export function OwnerSubscriptionPanel() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [user?.id]);
 
   const ctor = baseTariff;
   const dir = directoryTariff;
+  const now = Date.now();
 
   return (
     <div className="cabinet-panel mon-panel owner-tariffs">
@@ -68,6 +77,81 @@ export function OwnerSubscriptionPanel() {
         опции подключаются при оформлении конкретной карточки.
       </p>
       {loading ? <p className="owner-tariffs__loading">Загружаем актуальные цены…</p> : null}
+
+      {!loading && (bases.length > 0 || directoryItems.length > 0) ? (
+        <section className="owner-tariffs__mine" style={{ marginBottom: 24 }}>
+          <h3 style={{ marginTop: 0 }}>Мои размещения</h3>
+          <p className="cabinet-panel__lead" style={{ marginTop: 0 }}>
+            Продление, доплата рамки/медиа и ТОП на сутки — по кнопке у карточки.
+          </p>
+          <div className="cabinet-list">
+            {bases.map((b) => {
+              const until = b.paid_until || b.paidUntil;
+              const untilMs = until ? new Date(until).getTime() : 0;
+              const active = untilMs > now;
+              const expired = untilMs > 0 && untilMs <= now;
+              return (
+                <div key={`base-${b.id}`} className="cabinet-row">
+                  <div>
+                    <div className="cabinet-row__title">
+                      База: {b.name || 'Без названия'}
+                    </div>
+                    <div className="cabinet-row__meta">
+                      {active
+                        ? `Оплачено до ${formatDate(until)}`
+                        : expired
+                          ? `Срок истёк ${formatDate(until)}`
+                          : 'Ещё не оплачивалось'}
+                      {b.yellow_frame ? ' · жёлтая рамка' : ''}
+                    </div>
+                  </div>
+                  <div className="cabinet-row__actions">
+                    <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
+                      Карточка
+                    </Link>
+                    <Link
+                      className="btn-primary"
+                      to={`/owner/payment/${b.id}?months=3${b.yellow_frame ? '&frame=1' : ''}`}
+                    >
+                      {expired || !until ? 'Оплатить' : 'Продлить'}
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+            {directoryItems.map((item) => {
+              const id = item.id;
+              const until = item.paidUntil || item.paid_until;
+              const untilMs = until ? new Date(until).getTime() : 0;
+              const active = untilMs > now;
+              const expired = untilMs > 0 && untilMs <= now;
+              const title = item.title || item.name || 'Карточка справочника';
+              return (
+                <div key={`dir-${id}`} className="cabinet-row">
+                  <div>
+                    <div className="cabinet-row__title">Справочник: {title}</div>
+                    <div className="cabinet-row__meta">
+                      {active
+                        ? `Оплачено до ${formatDate(until)}`
+                        : expired
+                          ? `Срок истёк ${formatDate(until)}`
+                          : 'Ещё не оплачивалось'}
+                    </div>
+                  </div>
+                  <div className="cabinet-row__actions">
+                    <Link className="btn-secondary" to={`/owner/directory/${id}/edit`}>
+                      Карточка
+                    </Link>
+                    <Link className="btn-primary" to={`/owner/directory/${id}/pay`}>
+                      {expired || !until ? 'Оплатить' : 'Продлить'}
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <div className="owner-tariffs__grid">
         <article className="owner-tariff-card">

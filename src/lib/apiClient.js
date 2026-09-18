@@ -4,6 +4,7 @@
  */
 
 const TOKEN_KEY = 'rybalka_auth_token';
+const DEFAULT_TIMEOUT_MS = 15000;
 
 export const apiBaseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
@@ -46,38 +47,61 @@ async function parseResponse(res) {
   return data;
 }
 
+/**
+ * @param {string} path
+ * @param {RequestInit & { timeoutMs?: number }} [options]
+ */
 export async function apiRequest(path, options = {}) {
   if (!apiDataEnabled) {
     throw new Error('API mode is disabled');
   }
-  const headers = { ...(options.headers || {}) };
-  if (options.body && !(options.body instanceof FormData)) {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOpts } = options;
+  const headers = { ...(fetchOpts.headers || {}) };
+  if (fetchOpts.body && !(fetchOpts.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    ...options,
-    headers,
-    body:
-      options.body && !(options.body instanceof FormData)
-        ? JSON.stringify(options.body)
-        : options.body,
-  });
-  return parseResponse(res);
+  const controller = new AbortController();
+  const timer =
+    timeoutMs > 0
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
+  try {
+    const res = await fetch(`${apiBaseUrl}${path}`, {
+      ...fetchOpts,
+      headers,
+      signal: controller.signal,
+      body:
+        fetchOpts.body && !(fetchOpts.body instanceof FormData)
+          ? JSON.stringify(fetchOpts.body)
+          : fetchOpts.body,
+    });
+    return await parseResponse(res);
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      const timeoutErr = new Error('Сервер не отвечает. Проверьте интернет и попробуйте ещё раз.');
+      timeoutErr.status = 408;
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export const api = {
-  get: (path) => apiRequest(path),
-  post: (path, body) => apiRequest(path, { method: 'POST', body }),
-  put: (path, body) => apiRequest(path, { method: 'PUT', body }),
-  patch: (path, body) => apiRequest(path, { method: 'PATCH', body }),
-  delete: (path) => apiRequest(path, { method: 'DELETE' }),
+  get: (path, opts) => apiRequest(path, opts),
+  post: (path, body, opts) => apiRequest(path, { ...opts, method: 'POST', body }),
+  put: (path, body, opts) => apiRequest(path, { ...opts, method: 'PUT', body }),
+  patch: (path, body, opts) => apiRequest(path, { ...opts, method: 'PATCH', body }),
+  delete: (path, opts) => apiRequest(path, { ...opts, method: 'DELETE' }),
   upload: (bucket, file) => {
     const fd = new FormData();
     fd.append('file', file);
-    return apiRequest(`/api/uploads/${bucket}`, { method: 'POST', body: fd });
+    return apiRequest(`/api/uploads/${bucket}`, { method: 'POST', body: fd, timeoutMs: 60000 });
   },
 };
 

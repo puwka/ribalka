@@ -179,7 +179,7 @@ function Overview() {
 }
 
 function ProfilePanel() {
-  const { profile, user, updateProfile, refresh } = useAuth();
+  const { profile, user, updateProfile, changePassword, refresh } = useAuth();
   const [form, setForm] = useState({
     display_name: '',
     bio: '',
@@ -191,6 +191,15 @@ function ProfilePanel() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
+
+  const [pwd, setPwd] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [pwdMessage, setPwdMessage] = useState('');
+  const [pwdError, setPwdError] = useState('');
+  const [pwdSaving, setPwdSaving] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -221,6 +230,40 @@ function ProfilePanel() {
       setError(err.message || 'Ошибка сохранения');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onChangePassword = async (e) => {
+    e.preventDefault();
+    setPwdError('');
+    setPwdMessage('');
+
+    if (!pwd.currentPassword || !pwd.newPassword) {
+      setPwdError('Укажите текущий и новый пароль');
+      return;
+    }
+    if (pwd.newPassword.length < 6) {
+      setPwdError('Новый пароль должен быть не короче 6 символов');
+      return;
+    }
+    if (pwd.newPassword !== pwd.confirmPassword) {
+      setPwdError('Новые пароли не совпадают');
+      return;
+    }
+    if (pwd.currentPassword === pwd.newPassword) {
+      setPwdError('Новый пароль должен отличаться от текущего');
+      return;
+    }
+
+    setPwdSaving(true);
+    try {
+      const result = await changePassword(pwd.currentPassword, pwd.newPassword);
+      setPwdMessage(result?.message || 'Пароль сохранён');
+      setPwd({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      setPwdError(err.message || 'Не удалось сменить пароль');
+    } finally {
+      setPwdSaving(false);
     }
   };
 
@@ -303,6 +346,55 @@ function ProfilePanel() {
 
         <button className="btn-primary" type="submit" disabled={saving}>
           {saving ? 'Сохранение…' : 'Сохранить'}
+        </button>
+      </form>
+
+      <form className="cabinet-form" onSubmit={onChangePassword} style={{ marginTop: 28 }}>
+        <div className="cabinet-form__section" style={{ borderTop: 'none', paddingTop: 0, marginTop: 0 }}>
+          <h3>Смена пароля</h3>
+          <p className="cabinet-panel__lead" style={{ marginTop: 0 }}>
+            Email для входа: <strong>{user?.email || '—'}</strong>
+          </p>
+          <label>
+            Текущий пароль
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={pwd.currentPassword}
+              onChange={(e) => setPwd((p) => ({ ...p, currentPassword: e.target.value }))}
+              required
+            />
+          </label>
+          <label>
+            Новый пароль
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={6}
+              value={pwd.newPassword}
+              onChange={(e) => setPwd((p) => ({ ...p, newPassword: e.target.value }))}
+              required
+            />
+            <span className="cabinet-form__hint">Не меньше 6 символов</span>
+          </label>
+          <label>
+            Повторите новый пароль
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={6}
+              value={pwd.confirmPassword}
+              onChange={(e) => setPwd((p) => ({ ...p, confirmPassword: e.target.value }))}
+              required
+            />
+          </label>
+        </div>
+
+        {pwdError && <div className="auth-error">{pwdError}</div>}
+        {pwdMessage && <div className="auth-success">{pwdMessage}</div>}
+
+        <button className="btn-primary" type="submit" disabled={pwdSaving}>
+          {pwdSaving ? 'Сохранение…' : 'Сохранить пароль'}
         </button>
       </form>
     </div>
@@ -543,10 +635,19 @@ function FavoritesEmbedded() {
 }
 
 function MyReviewsPanel() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ body: '', rating: 5, author_name: '' });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const rows = await reviewsService.listMine(user.id);
+    setItems(Array.isArray(rows) ? rows : []);
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -554,8 +655,7 @@ function MyReviewsPanel() {
     (async () => {
       setLoading(true);
       try {
-        const rows = await reviewsService.listMine(user.id);
-        if (alive) setItems(Array.isArray(rows) ? rows : []);
+        await load();
       } catch (err) {
         if (alive) setError(err.message || 'Не удалось загрузить отзывы');
       } finally {
@@ -572,11 +672,53 @@ function MyReviewsPanel() {
     s ||
     '—');
 
+  const startEdit = (r) => {
+    setEditingId(r.id);
+    setForm({
+      body: r.body || '',
+      rating: Number(r.rating) || 5,
+      author_name: r.author_name || profile?.display_name || '',
+    });
+    setError('');
+    setMessage('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({ body: '', rating: 5, author_name: '' });
+  };
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await reviewsService.updateMine(editingId, {
+        body: form.body,
+        rating: form.rating,
+        authorName: form.author_name,
+      });
+      setMessage('Изменения сохранены — отзыв снова на модерации.');
+      cancelEdit();
+      await load();
+    } catch (err) {
+      setError(err.message || 'Не удалось сохранить');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="cabinet-panel">
       <h2>Мои отзывы</h2>
-      <p className="cabinet-panel__lead">Отзывы, которые вы оставляли о водоёмах и базах.</p>
+      <p className="cabinet-panel__lead">
+        Отзывы, которые вы оставляли о водоёмах и базах. После правки отзыв снова уходит на
+        модерацию.
+      </p>
       {error && <div className="auth-error">{error}</div>}
+      {message && <div className="auth-success">{message}</div>}
       {loading ? (
         <p>Загрузка…</p>
       ) : items.length === 0 ? (
@@ -585,23 +727,81 @@ function MyReviewsPanel() {
         <div className="cabinet-list">
           {items.map((r) => (
             <div key={r.id} className="cabinet-item">
-              <div className="cabinet-item__title">
-                {r.target_name || r.base_name || 'Водоём'} · ★ {r.rating}
-              </div>
-              <div className="cabinet-item__meta">
-                {statusLabel(r.status)}
-                {r.created_at
-                  ? ` · ${new Date(r.created_at).toLocaleDateString('ru-RU')}`
-                  : ''}
-                <br />
-                {r.body}
-                {r.owner_reply ? (
-                  <>
+              {editingId === r.id ? (
+                <form className="cabinet-form" onSubmit={saveEdit} style={{ margin: 0 }}>
+                  <div className="cabinet-item__title">
+                    {r.target_name || r.base_name || 'Водоём'}
+                  </div>
+                  <label>
+                    Имя
+                    <input
+                      value={form.author_name}
+                      onChange={(e) => setForm((f) => ({ ...f, author_name: e.target.value }))}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Оценка
+                    <select
+                      value={form.rating}
+                      onChange={(e) => setForm((f) => ({ ...f, rating: Number(e.target.value) }))}
+                    >
+                      {[5, 4, 3, 2, 1].map((n) => (
+                        <option key={n} value={n}>
+                          {n} ★
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Текст отзыва
+                    <textarea
+                      rows={4}
+                      value={form.body}
+                      onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                      required
+                    />
+                  </label>
+                  <div className="cabinet-actions" style={{ marginTop: 8 }}>
+                    <button className="btn-primary" type="submit" disabled={saving}>
+                      {saving ? 'Сохранение…' : 'Сохранить'}
+                    </button>
+                    <button className="btn-secondary" type="button" onClick={cancelEdit} disabled={saving}>
+                      Отмена
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="cabinet-item__title">
+                    {r.target_name || r.base_name || 'Водоём'} · ★ {r.rating}
+                  </div>
+                  <div className="cabinet-item__meta">
+                    {statusLabel(r.status)}
+                    {r.created_at
+                      ? ` · ${new Date(r.created_at).toLocaleDateString('ru-RU')}`
+                      : ''}
                     <br />
-                    <em>Ответ владельца: {r.owner_reply}</em>
-                  </>
-                ) : null}
-              </div>
+                    {r.body}
+                    {r.owner_reply ? (
+                      <>
+                        <br />
+                        <em>Ответ владельца: {r.owner_reply}</em>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="cabinet-actions" style={{ marginTop: 10 }}>
+                    <button type="button" className="btn-secondary" onClick={() => startEdit(r)}>
+                      Редактировать
+                    </button>
+                    {(r.target_id || r.base_id) && (
+                      <Link className="btn-secondary" to={`/waters/${r.target_id || r.base_id}`}>
+                        Открыть водоём
+                      </Link>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

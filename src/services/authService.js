@@ -37,7 +37,7 @@ export const authService = {
     if (isRemoteAuth()) {
       if (!getToken()) return null;
       try {
-        const data = await api.get('/api/auth/me');
+        const data = await api.get('/api/auth/me', { timeoutMs: 10000 });
         return mapBundle(data);
       } catch {
         setToken(null);
@@ -58,7 +58,7 @@ export const authService = {
 
   async signIn(email, password) {
     if (isRemoteAuth()) {
-      const data = await api.post('/api/auth/login', { email, password });
+      const data = await api.post('/api/auth/login', { email, password }, { timeoutMs: 12000 });
       setToken(data.token);
       return mapBundle(data);
     }
@@ -68,12 +68,16 @@ export const authService = {
   async signUp(email, password, displayName, role = 'user') {
     const safeRole = role === 'owner' ? 'owner' : 'user';
     if (isRemoteAuth()) {
-      const data = await api.post('/api/auth/register', {
-        email,
-        password,
-        displayName,
-        role: safeRole,
-      });
+      const data = await api.post(
+        '/api/auth/register',
+        {
+          email,
+          password,
+          displayName,
+          role: safeRole,
+        },
+        { timeoutMs: 15000 }
+      );
       setToken(data.token);
       return mapBundle(data);
     }
@@ -94,6 +98,13 @@ export const authService = {
       return mapBundle({ ...data, user: data.user, token: getToken() });
     }
     return localAuthStore.updateProfile(userId, patch);
+  },
+
+  async changePassword(userId, currentPassword, newPassword) {
+    if (isRemoteAuth()) {
+      return api.post('/api/auth/change-password', { currentPassword, newPassword });
+    }
+    return localAuthStore.changePassword(userId, currentPassword, newPassword);
   },
 
   async requestPasswordReset(email) {

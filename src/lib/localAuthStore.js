@@ -467,6 +467,29 @@ export const localAuthStore = {
     return buildBundle(store, user);
   },
 
+  async changePassword(userId, currentPassword, newPassword) {
+    const current = String(currentPassword || '');
+    const next = String(newPassword || '');
+    if (!current || !next) throw new Error('Укажите текущий и новый пароль');
+    if (next.length < 6) throw new Error('Новый пароль должен быть не короче 6 символов');
+
+    const store = readStore();
+    const user = store.users.find((u) => u.id === userId);
+    if (!user) throw new Error('Пользователь не найден');
+
+    const currentHash = await sha256(current);
+    if (!user.password_hash || currentHash !== user.password_hash) {
+      throw new Error('Неверный текущий пароль');
+    }
+
+    user.password_hash = await sha256(next);
+    store.passwordResetTokens = (store.passwordResetTokens || []).map((t) =>
+      t.user_id === user.id && !t.used_at ? { ...t, used_at: nowIso() } : t
+    );
+    writeStore(store);
+    return { ok: true, message: 'Пароль сохранён' };
+  },
+
   getFavorites(userId) {
     const store = readStore();
     return store.favorites[userId] || [];

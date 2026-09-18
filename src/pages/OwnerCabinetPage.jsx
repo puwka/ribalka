@@ -170,20 +170,34 @@ function OwnerDashboard() {
         </div>
 
         <div className="owner-dash__plan">
-          <h3>Тариф</h3>
+          <h3>Размещение</h3>
           <p>
-            {data.plan?.name || data.subscription?.plan_code || 'Не выбран'}
-            <br />
-            Статус: {data.subscription?.status || '—'}
-            <br />
-            До: {formatDate(data.subscription?.current_period_end)}
+            {data.listing?.activeCount > 0 ? (
+              <>
+                Активных баз: <strong>{data.listing.activeCount}</strong>
+                <br />
+                Оплачено до: {formatDate(data.listing.nearestEnd)}
+              </>
+            ) : data.listing?.expiredCount > 0 ? (
+              <>
+                Срок размещения истёк ({data.listing.expiredCount})
+                <br />
+                Продлите оплату, чтобы база снова была на сайте
+              </>
+            ) : (
+              <>
+                Оплаченных размещений пока нет
+                <br />
+                Добавьте базу и оплатите тариф
+              </>
+            )}
           </p>
           <div className="cabinet-actions" style={{ marginTop: 0 }}>
             <Link className="btn-secondary" to="/owner/subscription">
-              Управление
+              Тарифы и продление
             </Link>
-            <Link className="btn-primary" to="/owner/bases/new">
-              Добавить базу
+            <Link className="btn-primary" to="/owner/bases">
+              Мои базы
             </Link>
           </div>
           <p style={{ marginTop: 16, marginBottom: 0 }}>
@@ -566,7 +580,15 @@ function OwnerBases() {
                         Карточка
                       </Link>
                       {apiDataEnabled && (expired || b.status === 'approved') && (
-                        <Link className="btn-primary" to={`/owner/payment/${b.id}`}>
+                        <Link
+                          className="btn-primary"
+                          to={`/owner/payment/${b.id}${buildPaymentQuery({
+                            months: 3,
+                            frame: Boolean(b.yellow_frame),
+                            extraPhotos: Math.max(0, Number(b.paid_extra_photos) || 0),
+                            extraVideos: Math.max(0, Number(b.paid_extra_videos) || 0),
+                          })}`}
+                        >
                           {expired ? 'Продлить' : 'Продлить / доплатить'}
                         </Link>
                       )}

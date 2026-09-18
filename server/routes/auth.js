@@ -137,6 +137,49 @@ router.patch('/profile', authMiddleware, requireAuth, async (req, res, next) => 
   }
 });
 
+router.post('/change-password', authMiddleware, requireAuth, async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || '');
+    const newPassword = String(req.body?.newPassword || '');
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Укажите текущий и новый пароль' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Новый пароль должен быть не короче 6 символов' });
+    }
+
+    const { rows } = await pool.query(
+      'select id, password_hash from public.users where id = $1',
+      [req.user.sub]
+    );
+    const user = rows[0];
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    const ok = await bcrypt.compare(currentPassword, user.password_hash || '');
+    if (!ok) {
+      return res.status(400).json({ error: 'Неверный текущий пароль' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 12);
+    await pool.query('update public.users set password_hash = $2 where id = $1', [
+      user.id,
+      hash,
+    ]);
+
+    // Invalidate outstanding reset tokens after intentional password change
+    await pool.query(
+      `update public.password_reset_tokens
+       set used_at = coalesce(used_at, now())
+       where user_id = $1 and used_at is null`,
+      [user.id]
+    ).catch(() => {});
+
+    res.json({ ok: true, message: 'Пароль сохранён' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/forgot-password', async (req, res, next) => {
   try {
     const { requestPasswordReset } = await import('../services/passwordReset.js');

@@ -10,7 +10,7 @@ const AD_TYPE_LABELS = {
   banner: 'Баннер',
   sidebar: 'Боковой баннер',
   search_promo: 'Продвижение в поиске',
-  featured: 'Featured размещение',
+  featured: 'Избранное размещение',
   mailing: 'Рассылка',
   promo_campaign: 'Участие в акции',
 };
@@ -27,10 +27,13 @@ const AD_PRICES = {
 const STATUS_RU = {
   draft: 'Черновик',
   pending: 'На модерации',
-  active: 'Опубликован',
-  rejected: 'Отклонён',
+  approved: 'Одобрено',
+  active: 'Активно',
+  rejected: 'Отклонено',
   paused: 'Пауза',
+  disabled: 'Отключено',
   expired: 'Истёк',
+  all: 'Все',
 };
 
 export const advertisingService = {

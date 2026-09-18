@@ -31,6 +31,9 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let alive = true;
+    const safety = setTimeout(() => {
+      if (alive) setLoading(false);
+    }, 12000);
     (async () => {
       setLoading(true);
       try {
@@ -43,11 +46,13 @@ export function AuthProvider({ children }) {
           setError(err.message);
         }
       } finally {
+        clearTimeout(safety);
         if (alive) setLoading(false);
       }
     })();
     return () => {
       alive = false;
+      clearTimeout(safety);
     };
   }, []);
 
@@ -78,6 +83,14 @@ export function AuthProvider({ children }) {
     return next;
   }, [bundle]);
 
+  const changePassword = useCallback(
+    async (currentPassword, newPassword) => {
+      if (!bundle?.user?.id) throw new Error('Нужна авторизация');
+      return authService.changePassword(bundle.user.id, currentPassword, newPassword);
+    },
+    [bundle]
+  );
+
   const hasRole = useCallback(
     (role) => Boolean(bundle?.roles?.includes(role)),
     [bundle]
@@ -103,6 +116,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateProfile,
+      changePassword,
       refresh,
       authMode: authService.mode(),
     }),
@@ -115,6 +129,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateProfile,
+      changePassword,
       refresh,
     ]
   );

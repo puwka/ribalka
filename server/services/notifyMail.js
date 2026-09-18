@@ -84,6 +84,22 @@ export function notifyUserPlacement({
   });
 }
 
+/** User: banner went to moderation (after pay or re-edit) */
+export function notifyUserAdModeration({ userId, title, days, surface }) {
+  run(async () => {
+    const user = await loadUserContact(userId);
+    if (!user?.email) return;
+    const tpl = mail.adModerationEmail({
+      displayName: user.display_name,
+      title,
+      days,
+      surface,
+      cabinetUrl: `${site()}/cabinet/advertising`,
+    });
+    await mail.sendMailSafe({ to: user.email, ...tpl });
+  });
+}
+
 export function notifyOwnerNewReview({
   ownerId,
   baseTitle,

@@ -343,6 +343,25 @@ export async function updateSidebarAd(userId, adId, patch = {}) {
         JSON.stringify({ ad_id: updated.id, status: 'pending' }),
       ]
     );
+    try {
+      const { notifyAdminModeration, notifyUserAdModeration } = await import('./notifyMail.js');
+      const where = updated.surface === 'forum' ? 'форум' : 'новости';
+      const side = updated.placement === 'left' ? 'слева' : 'справа';
+      notifyAdminModeration({
+        kindLabel: 'Рекламный баннер на модерации',
+        title: updated.title,
+        detail: `${where}, ${side}, ${updated.days || 1} сут. · после правок`,
+        adminPath: '/admin/ads',
+      });
+      notifyUserAdModeration({
+        userId: updated.owner_id,
+        title: updated.title,
+        days: updated.days,
+        surface: updated.surface,
+      });
+    } catch (err) {
+      console.error('[ads] notify mail (update)', err.message);
+    }
   }
 
   return updated;
@@ -501,19 +520,50 @@ export async function markAdPaid(adId, { skipYoo = false } = {}) {
         JSON.stringify({ ad_id: ad.id, skipYoo }),
       ]
     );
+    try {
+      const { notifyAdminModeration, notifyUserPlacement } = await import('./notifyMail.js');
+      const where = ad.surface === 'forum' ? 'форум' : 'новости';
+      const side = ad.placement === 'left' ? 'слева' : 'справа';
+      notifyAdminModeration({
+        kindLabel: 'Рекламный баннер на модерации',
+        title: ad.title,
+        detail: `${where}, ${side}, ${days} сут. · оплачен`,
+        adminPath: '/admin/ads',
+      });
+      notifyUserPlacement({
+        userId: ad.owner_id,
+        entityTitle: ad.title,
+        entityKind: 'ad',
+        pending: true,
+        cabinetPath: '/cabinet/advertising',
+      });
+    } catch (err) {
+      console.error('[ads] notify mail (paid)', err.message);
+    }
   }
   return { ad, confirmationUrl: null };
 }
 
-export async function verifyAdPayment(adId, { paymentId } = {}) {
+export async function verifyAdPayment(adId, { userId, paymentId } = {}) {
   const ad = await getById(adId);
-  if (!ad) return null;
+  if (!ad) {
+    const err = new Error('Реклама не найдена');
+    err.status = 404;
+    throw err;
+  }
+  if (userId && ad.owner_id !== userId) {
+    const err = new Error('Нет доступа');
+    err.status = 403;
+    throw err;
+  }
 
+  // Already paid / in moderation — nothing to do
+  if (ad.paid_at || ['pending', 'active', 'paused'].includes(ad.status)) {
+    return ad;
+  }
+
+  // Without YooKassa do not mark paid on return URL alone (checkout handles offline pay)
   if (!yookassa.isYooKassaConfigured()) {
-    if (ad.status === 'draft' || ad.status === 'rejected') {
-      await markAdPaid(adId, { skipYoo: true });
-      return getById(adId);
-    }
     return ad;
   }
 
@@ -606,6 +656,21 @@ export async function moderateAd(adminId, adId, { action, note = '' }) {
         JSON.stringify({ ad_id: updated.id, status }),
       ]
     );
+    if (status === 'active' || status === 'rejected') {
+      try {
+        const { notifyUserPublication } = await import('./notifyMail.js');
+        notifyUserPublication({
+          userId: updated.owner_id,
+          entityTitle: updated.title,
+          entityKind: 'ad',
+          approved: status === 'active',
+          note: note || '',
+          path: '/cabinet/advertising',
+        });
+      } catch (err) {
+        console.error('[ads] notify mail (moderate)', err.message);
+      }
+    }
   }
   return updated;
 }

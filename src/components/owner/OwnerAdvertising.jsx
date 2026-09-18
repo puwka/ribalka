@@ -35,7 +35,7 @@ function formatEnds(ad) {
 
 export default function OwnerAdvertisingPanel() {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [price, setPrice] = useState({ amount: 300, unit: 'day' });
   const [slots, setSlots] = useState(null);
@@ -72,14 +72,45 @@ export default function OwnerAdvertisingPanel() {
   useEffect(() => {
     const paidId = searchParams.get('paid');
     if (!paidId || !user?.id) return;
-    setMessage(
-      'Оплата принята — баннер на модерации. После проверки он появится в выбранном разделе.'
-    );
-    advertisingService
-      .verify(user.id, paidId)
-      .catch(() => null)
-      .finally(() => load().catch(() => {}));
-  }, [searchParams, user?.id]);
+
+    let alive = true;
+    (async () => {
+      try {
+        const ad = await advertisingService.verify(user.id, paidId);
+        if (!alive) return;
+        const reallyPaid =
+          Boolean(ad?.paid_at) ||
+          ['pending', 'active', 'paused'].includes(String(ad?.status || ''));
+        if (reallyPaid) {
+          setError('');
+          setMessage(
+            'Оплата принята — баннер на модерации. После проверки он появится в выбранном разделе.'
+          );
+        } else {
+          setMessage('');
+          setError(
+            'Оплата не завершена. Если деньги списались — подождите минуту и обновите страницу, либо нажмите «Оплатить» у черновика.'
+          );
+        }
+        await load().catch(() => {});
+      } catch (err) {
+        if (!alive) return;
+        setMessage('');
+        setError(err.message || 'Не удалось подтвердить оплату');
+      } finally {
+        if (!alive) return;
+        const next = new URLSearchParams(searchParams);
+        if (next.has('paid')) {
+          next.delete('paid');
+          setSearchParams(next, { replace: true });
+        }
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [searchParams, user?.id, setSearchParams]);
 
   const dayPrice = Number(price.amount) || 300;
   const days = Math.max(1, Math.min(365, Math.round(Number(form.days) || 1)));

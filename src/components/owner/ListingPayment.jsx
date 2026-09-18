@@ -100,21 +100,22 @@ export function OwnerListingCheckoutPage() {
         // Seed from already paid options so upgrade counters don't go below paid slots
         const paidPhotos = Math.max(0, Number(b.paid_extra_photos) || 0);
         const paidVideos = Math.max(0, Number(b.paid_extra_videos) || 0);
+        const hasFrame = Boolean(b.yellow_frame);
 
         if (isUpgrade) {
-          setFrame(qFrame || Boolean(b.yellow_frame));
+          setFrame(qFrame || hasFrame);
           setExtraPhotos(Math.max(qPhotos, paidPhotos));
           setExtraVideos(Math.max(qVideos, paidVideos));
         } else if (opts) {
           if ([3, 6, 12].includes(Number(opts.months))) setMonths(Number(opts.months));
-          setFrame(Boolean(opts.frame) || qFrame);
-          setExtraPhotos(Math.max(qPhotos, Number(opts.extraPhotos) || 0));
-          setExtraVideos(Math.max(qVideos, Number(opts.extraVideos) || 0));
+          setFrame(Boolean(opts.frame) || qFrame || hasFrame);
+          setExtraPhotos(Math.max(qPhotos, Number(opts.extraPhotos) || 0, paidPhotos));
+          setExtraVideos(Math.max(qVideos, Number(opts.extraVideos) || 0, paidVideos));
         } else {
           if ([3, 6, 12].includes(qMonths)) setMonths(qMonths);
-          if (qFrame) setFrame(true);
-          if (qPhotos) setExtraPhotos(qPhotos);
-          if (qVideos) setExtraVideos(qVideos);
+          setFrame(qFrame || hasFrame);
+          setExtraPhotos(Math.max(qPhotos, paidPhotos));
+          setExtraVideos(Math.max(qVideos, paidVideos));
         }
 
         if (!isUpgrade && preview.frozen && preview.activeOrder?.confirmation_url) {

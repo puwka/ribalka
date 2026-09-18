@@ -45,7 +45,8 @@ export function RequireRole({ roles, children, fallback }) {
 
 export function GuestOnly({ children }) {
   const { isAuthenticated, loading, isAdmin, isOwner } = useAuth();
-  if (loading) return <AuthLoading />;
+  // Do not block login/register behind session spinner (helps on slow mobile)
+  if (loading) return children;
   if (isAuthenticated) {
     if (isAdmin) return <Navigate to="/admin" replace />;
     if (isOwner) return <Navigate to="/owner" replace />;

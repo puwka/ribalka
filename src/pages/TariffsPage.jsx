@@ -179,7 +179,29 @@ export default function TariffsPage() {
             <h4>Срок оплаты</h4>
             <ul className="tariff-card__list">
               <li>От 3, 6 или 12 месяцев</li>
-              <li>Без скидок за длительный срок</li>
+              {(Number(dir.discount3) || 0) > 0 ||
+              (Number(dir.discount6) || 0) > 0 ||
+              (Number(dir.discount12) || 0) > 0 ? (
+                <>
+                  {(Number(dir.discount3) || 0) > 0 ? (
+                    <li>
+                      3 месяца — скидка <strong>{dir.discount3}%</strong>
+                    </li>
+                  ) : null}
+                  {(Number(dir.discount6) || 0) > 0 ? (
+                    <li>
+                      6 месяцев — скидка <strong>{dir.discount6}%</strong>
+                    </li>
+                  ) : null}
+                  {(Number(dir.discount12) || 0) > 0 ? (
+                    <li>
+                      12 месяцев — скидка <strong>{dir.discount12}%</strong>
+                    </li>
+                  ) : null}
+                </>
+              ) : (
+                <li>Скидки за срок настраиваются в админке</li>
+              )}
               <li>После оплаты заявка проходит модерацию и появляется в справочнике</li>
             </ul>
 

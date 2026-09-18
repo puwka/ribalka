@@ -27,6 +27,32 @@ function inRange(iso, from) {
   return new Date(iso).getTime() >= from.getTime();
 }
 
+/** Active paid listing summary for owner dashboard (replaces legacy plan UX). */
+function summarizeListingPlacement(bases = []) {
+  const now = Date.now();
+  let active = 0;
+  let expired = 0;
+  let nearestEnd = null;
+  for (const b of bases) {
+    const until = b.paid_until || b.paidUntil;
+    if (!until) continue;
+    const t = new Date(until).getTime();
+    if (!Number.isFinite(t)) continue;
+    if (t > now) {
+      active += 1;
+      if (nearestEnd == null || t < nearestEnd) nearestEnd = t;
+    } else {
+      expired += 1;
+    }
+  }
+  return {
+    activeCount: active,
+    expiredCount: expired,
+    unpaidCount: bases.filter((b) => !(b.paid_until || b.paidUntil)).length,
+    nearestEnd: nearestEnd ? new Date(nearestEnd).toISOString() : null,
+  };
+}
+
 async function postBaseEvent(payload) {
   if (!apiDataEnabled) return;
   try {
@@ -218,6 +244,7 @@ export const ownerDashboardService = {
             priceMonth: plan.price_month ?? plan.priceMonth,
           }
         : null,
+      listing: summarizeListingPlacement(bases),
     };
 
     if (apiDataEnabled) {

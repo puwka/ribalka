@@ -8,6 +8,17 @@ import { apiDataEnabled } from '../../../lib/apiClient';
 import '../../owner/OwnerMonetization.css';
 import '../../owner/ListingPayment.css';
 
+const DIRECTORY_CATEGORY_RU = {
+  shop: 'Магазин',
+  service: 'Сервис',
+  guide: 'Гид / егерь',
+};
+
+function directoryCategoryRu(category) {
+  const key = String(category || '').toLowerCase();
+  return DIRECTORY_CATEGORY_RU[key] || category || '—';
+}
+
 export function AdminPlansSection() {
   const { user } = useAuth();
   const [listing, setListing] = useState(null);
@@ -431,7 +442,7 @@ export function AdminPaymentsSection() {
                       <th>База</th>
                       <th>Сумма</th>
                       <th>Статус</th>
-                      <th>Payment ID</th>
+                      <th>ID платежа</th>
                       <th>Создан</th>
                       <th>Оплачен</th>
                     </tr>
@@ -487,7 +498,7 @@ export function AdminPaymentsSection() {
                           <code>{o.id.slice(0, 8)}</code>
                         </td>
                         <td>{o.user_name || o.user_email || o.user_id?.slice(0, 8)}</td>
-                        <td>{o.category}</td>
+                        <td>{directoryCategoryRu(o.category)}</td>
                         <td>{o.payload?.name || o.description || '—'}</td>
                         <td>{formatMoney(o.amount, o.currency)}</td>
                         <td>{ORDER_STATUS_RU[o.status] || o.status}</td>

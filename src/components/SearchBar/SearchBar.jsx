@@ -10,29 +10,32 @@ export default function SearchBar() {
   const [query, setQuery] = useState('');
   const [catalog, setCatalog] = useState({ paid: [], free: [] });
   const [directoryData, setDirectoryData] = useState([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [results, setResults] = useState({ paid: [], free: [], news: [], directory: [] });
   const inputRef = useRef(null);
   const navigate = useNavigate();
 
+  // Load catalog only when search opens (not on every page, incl. /login)
   useEffect(() => {
+    if (!isOpen || catalogLoaded) return;
     let alive = true;
-    basesService.listPublic().then((rows) => {
+    Promise.all([
+      basesService.listPublic().catch(() => []),
+      directoryAdminService.listPublic().catch(() => []),
+    ]).then(([rows, dirRows]) => {
       if (!alive) return;
       const list = rows || [];
       setCatalog({
         paid: list.filter((b) => b.type === 'paid'),
         free: list.filter((b) => b.type === 'free'),
       });
-    }).catch(() => {
-      if (alive) setCatalog({ paid: [], free: [] });
+      setDirectoryData(dirRows || []);
+      setCatalogLoaded(true);
     });
-    directoryAdminService.listPublic().then((rows) => {
-      if (alive) setDirectoryData(rows || []);
-    }).catch(() => {
-      if (alive) setDirectoryData([]);
-    });
-    return () => { alive = false; };
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, catalogLoaded]);
 
   // Открытие по Ctrl+K или Cmd+K
   useEffect(() => {

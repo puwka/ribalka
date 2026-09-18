@@ -34,7 +34,13 @@ export default function AdminBookingsSection() {
             className={`admin-btn ${filter === s ? 'admin-btn--primary' : ''}`}
             onClick={() => setFilter(s)}
           >
-            {s || 'Все'}
+            {{
+              '': 'Все',
+              pending: 'Ожидает',
+              confirmed: 'Подтверждено',
+              cancelled: 'Отменено',
+              completed: 'Завершено',
+            }[s] || s}
           </button>
         ))}
       </div>
@@ -44,7 +50,20 @@ export default function AdminBookingsSection() {
             { key: 'base', label: 'База', render: (b) => b.base_name },
             { key: 'guest', label: 'Гость', render: (b) => b.contact_name },
             { key: 'dates', label: 'Даты', render: (b) => `${b.check_in} – ${b.check_out}` },
-            { key: 'status', label: 'Статус', render: (b) => <AdminStatus status={b.status}>{b.status}</AdminStatus> },
+            {
+              key: 'status',
+              label: 'Статус',
+              render: (b) => (
+                <AdminStatus status={b.status}>
+                  {{
+                    pending: 'Ожидает',
+                    confirmed: 'Подтверждено',
+                    cancelled: 'Отменено',
+                    completed: 'Завершено',
+                  }[b.status] || b.status}
+                </AdminStatus>
+              ),
+            },
             { key: 'amount', label: 'Сумма', render: (b) => (b.total_amount ? `${b.total_amount} ₽` : '—') },
             { key: 'created', label: 'Создано', render: (b) => new Date(b.created_at).toLocaleDateString('ru-RU') },
           ]}

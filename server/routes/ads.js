@@ -139,6 +139,7 @@ router.post('/:id/checkout', requireAuth, async (req, res, next) => {
 router.post('/:id/verify', requireAuth, async (req, res, next) => {
   try {
     const ad = await ads.verifyAdPayment(req.params.id, {
+      userId: req.user.sub,
       paymentId: req.body?.paymentId,
     });
     res.json(ad);

@@ -171,6 +171,60 @@ router.post('/:id/reply', requireAuth, async (req, res, next) => {
   }
 });
 
+/** Author edits own review → back to moderation */
+router.patch('/:id/mine', requireAuth, async (req, res, next) => {
+  try {
+    const { rows: found } = await pool.query(
+      `select * from public.site_reviews where id = $1 limit 1`,
+      [req.params.id]
+    );
+    const review = found[0];
+    if (!review) return res.status(404).json({ error: 'Отзыв не найден' });
+    if (!review.user_id || String(review.user_id) !== String(req.user.sub)) {
+      return res.status(403).json({ error: 'Можно редактировать только свой отзыв' });
+    }
+
+    const text = String(req.body?.body || req.body?.text || '').trim();
+    const rating = Number(req.body?.rating);
+    const authorName = String(req.body?.author_name || review.author_name || '').trim();
+
+    if (!text) return res.status(400).json({ error: 'Напишите отзыв' });
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Поставьте оценку от 1 до 5' });
+    }
+    if (!authorName) return res.status(400).json({ error: 'Укажите имя' });
+
+    const { rows } = await pool.query(
+      `update public.site_reviews
+       set body = $2,
+           rating = $3,
+           author_name = $4,
+           status = 'pending'::public.moderation_status,
+           updated_at = now()
+       where id = $1
+       returning *`,
+      [req.params.id, text, rating, authorName]
+    );
+    const updated = rows[0];
+
+    try {
+      const { notifyAdminModeration } = await import('../services/notifyMail.js');
+      notifyAdminModeration({
+        kindLabel: 'Отзыв изменён — снова на модерации',
+        title: updated.target_name || updated.target_id,
+        detail: `${authorName} · ${rating}/5 · ${text.slice(0, 200)}`,
+        adminPath: '/admin/reviews',
+      });
+    } catch (err) {
+      console.error('[reviews] notify mail', err.message);
+    }
+
+    res.json(mapReview(updated));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const status = req.body?.status;

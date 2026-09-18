@@ -59,6 +59,25 @@ export const reviewsService = {
     return platformDb.updateReview(id, { status });
   },
 
+  async updateMine(id, { body, rating, authorName }) {
+    if (apiDataEnabled) {
+      return api.patch(`/api/reviews/${encodeURIComponent(id)}/mine`, {
+        body,
+        rating,
+        author_name: authorName,
+      });
+    }
+    const rows = await platformDb.listAllReviews();
+    const row = rows.find((r) => String(r.id) === String(id));
+    if (!row) throw new Error('Отзыв не найден');
+    return platformDb.updateReview(id, {
+      body,
+      rating,
+      author_name: authorName || row.author_name,
+      status: 'pending',
+    });
+  },
+
   async replyAsOwner(id, text) {
     if (apiDataEnabled) {
       return api.post(`/api/reviews/${encodeURIComponent(id)}/reply`, {
