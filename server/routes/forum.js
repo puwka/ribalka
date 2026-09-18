@@ -181,6 +181,19 @@ router.patch('/topics/:id', requireAuth, async (req, res, next) => {
       [topic.id, title, body, nextStatus]
     );
     const names = await authorNames([updated[0].author_id]);
+    if (nextStatus === 'pending') {
+      try {
+        const { notifyAdminModeration } = await import('../services/notifyMail.js');
+        notifyAdminModeration({
+          kindLabel: 'Тема форума на модерации',
+          title,
+          detail: body.slice(0, 200),
+          adminPath: '/admin/forum',
+        });
+      } catch (err) {
+        console.error('[forum] notify mail (topic update)', err.message);
+      }
+    }
     res.json(mapTopic(updated[0], names[updated[0].author_id]));
   } catch (err) {
     next(err);
@@ -231,6 +244,17 @@ router.post('/topics', requireAuth, async (req, res, next) => {
       [req.user.sub, title, body]
     );
     const names = await authorNames([req.user.sub]);
+    try {
+      const { notifyAdminModeration } = await import('../services/notifyMail.js');
+      notifyAdminModeration({
+        kindLabel: 'Тема форума на модерации',
+        title,
+        detail: body.slice(0, 200),
+        adminPath: '/admin/forum',
+      });
+    } catch (err) {
+      console.error('[forum] notify mail (topic create)', err.message);
+    }
     res.status(201).json(mapTopic(rows[0], names[req.user.sub]));
   } catch (err) {
     next(err);
@@ -360,6 +384,17 @@ router.post('/topics/:id/messages', requireAuth, async (req, res, next) => {
       [req.params.id, req.user.sub, body]
     );
     const names = await authorNames([req.user.sub]);
+    try {
+      const { notifyAdminModeration } = await import('../services/notifyMail.js');
+      notifyAdminModeration({
+        kindLabel: 'Сообщение форума на модерации',
+        title: topics[0].title || 'Тема',
+        detail: body.slice(0, 200),
+        adminPath: '/admin/forum',
+      });
+    } catch (err) {
+      console.error('[forum] notify mail (message)', err.message);
+    }
     res.status(201).json({
       ...mapMessage(rows[0], names[req.user.sub]),
       message: 'Сообщение отправлено на модерацию',
