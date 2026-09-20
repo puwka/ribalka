@@ -111,8 +111,36 @@ export default function AdminContentHome() {
         <div style={{ display: 'grid', gap: 12 }}>
           <BlockToggle label="Блок водоёмов" checked={page.blocks.watersSection?.enabled} onChange={(v) => setBlock('watersSection', { enabled: v })} />
           <BlockToggle label="Новости" checked={page.blocks.newsSection?.enabled} onChange={(v) => setBlock('newsSection', { enabled: v })} />
+          <BlockToggle
+            label="Поддержите проект (донаты ЮKassa)"
+            checked={page.blocks.support?.enabled !== false}
+            onChange={(v) => setBlock('support', { enabled: v })}
+          />
           <BlockToggle label="CTA внизу" checked={page.blocks.cta?.enabled} onChange={(v) => setBlock('cta', { enabled: v })} />
         </div>
+        <AdminField label="Донат: заголовок">
+          <input
+            className="admin-input"
+            value={page.blocks.support?.title || ''}
+            onChange={(e) => setBlock('support', { title: e.target.value })}
+          />
+        </AdminField>
+        <AdminField label="Донат: описание">
+          <textarea
+            className="admin-textarea"
+            rows={2}
+            value={page.blocks.support?.description || ''}
+            onChange={(e) => setBlock('support', { description: e.target.value })}
+          />
+        </AdminField>
+        <AdminField label="Донат: готовая ссылка ЮKassa (если пусто — оплата через API с выбором суммы)">
+          <input
+            className="admin-input"
+            placeholder="https://yookassa.ru/… или ссылка на счёт"
+            value={page.blocks.support?.externalUrl || ''}
+            onChange={(e) => setBlock('support', { externalUrl: e.target.value })}
+          />
+        </AdminField>
         <AdminField label="CTA заголовок">
           <input className="admin-input" value={page.blocks.cta?.title || ''} onChange={(e) => setBlock('cta', { title: e.target.value })} />
         </AdminField>

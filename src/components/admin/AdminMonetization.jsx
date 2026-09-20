@@ -292,7 +292,7 @@ const PAYMENT_STATUS_RU = {
   cancelled: 'Отменён',
   failed: 'Ошибка',
   refunded: 'Возврат',
-  expired: 'Истёк',
+  expired: 'Срок истёк',
 };
 
 const PROVIDER_RU = {

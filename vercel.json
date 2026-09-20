@@ -3,10 +3,21 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
+  "routes": [
+    { "handle": "filesystem" },
     {
-      "source": "/((?!assets/|icons/|img/|api/|uploads/|sw\\.js|workbox-|manifest\\.webmanifest|offline\\.html|favicon\\.ico|yandex_|robots\\.txt|sitemap\\.xml).*)",
-      "destination": "/index.html"
+      "src": "^/(about|map|tariffs|lunar|calendar|favorites|paid-waters|free-waters|login|register|forgot-password|reset-password)/?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/(news|waters|bases|directory|reports|forum|u|cabinet|owner|admin|paid-bases|free-places)(/.*)?$",
+      "dest": "/index.html"
+    },
+    { "src": "^/$", "dest": "/index.html" },
+    {
+      "src": "/(.*)",
+      "status": 404,
+      "dest": "/index.html"
     }
   ],
   "headers": [

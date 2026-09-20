@@ -141,6 +141,42 @@ function mapAd(row) {
   };
 }
 
+/** Term ended by ends_at or status=expired */
+export function isAdTermEnded(ad) {
+  if (!ad) return false;
+  if (ad.status === 'expired') return true;
+  if (!ad.ends_at) return false;
+  const t = new Date(ad.ends_at).getTime();
+  return Number.isFinite(t) && t <= Date.now();
+}
+
+/** Draft / rejected / expired (or active past ends_at) can go to checkout */
+export function canPayOrRenewAd(ad) {
+  if (!ad) return false;
+  if (['draft', 'rejected', 'expired'].includes(ad.status)) return true;
+  if (['active', 'paused'].includes(ad.status) && isAdTermEnded(ad)) return true;
+  return false;
+}
+
+/** Flip active ads past ends_at → expired */
+export async function expireDueAds({ ownerId = null } = {}) {
+  await ensureAdsColumns();
+  const params = [];
+  let sql = `
+    update public.advertising
+       set status = 'expired', updated_at = now()
+     where ad_type = 'sidebar'
+       and status in ('active', 'paused')
+       and ends_at is not null
+       and ends_at <= now()
+  `;
+  if (ownerId) {
+    params.push(ownerId);
+    sql += ` and owner_id = $${params.length}`;
+  }
+  await pool.query(sql, params);
+}
+
 function validateBannerFields({ title, targetUrl, imageUrl }) {
   const name = String(title || '').trim();
   const url = String(targetUrl || '').trim();
@@ -203,6 +239,7 @@ export async function getSlotAvailability() {
 
 export async function listActiveSidebarAds(surface = 'news') {
   await ensureAdsColumns();
+  await expireDueAds();
   const surf = normalizeSurface(surface);
   const { rows } = await pool.query(
     `select id, title, image_url, target_url, placement, surface, ad_type, status, starts_at, ends_at
@@ -220,6 +257,7 @@ export async function listActiveSidebarAds(surface = 'news') {
 
 export async function listMine(userId) {
   await ensureAdsColumns();
+  await expireDueAds({ ownerId: userId });
   const { rows } = await pool.query(
     `select * from public.advertising
      where owner_id = $1 and ad_type = 'sidebar'
@@ -302,14 +340,16 @@ export async function updateSidebarAd(userId, adId, patch = {}) {
 
   let days = ad.days || 1;
   let budget = ad.budget;
-  if (patch.days != null && !ad.paid_at) {
+  const termEnded = isAdTermEnded(ad);
+  if (patch.days != null && (!ad.paid_at || termEnded)) {
     days = normalizeDays(patch.days);
     const price = await getSidebarAdPrice();
     budget = Math.round(price.amount * days);
   }
 
   const needsModeration =
-    Boolean(ad.paid_at) || ['pending', 'active', 'paused', 'rejected'].includes(ad.status);
+    Boolean(ad.paid_at) ||
+    ['pending', 'active', 'paused', 'rejected', 'expired'].includes(ad.status);
   const nextStatus = needsModeration ? 'pending' : 'draft';
 
   const { rows } = await pool.query(
@@ -413,19 +453,33 @@ export async function recordClick(adId) {
 
 export async function createAdCheckout({ userId, adId, returnUrl }) {
   await ensureAdsColumns();
+  await expireDueAds({ ownerId: userId });
   const ad = await getById(adId);
   if (!ad || ad.owner_id !== userId) {
     const err = new Error('Заявка не найдена');
     err.status = 404;
     throw err;
   }
-  if (!['draft', 'rejected'].includes(ad.status)) {
-    const err = new Error('Оплата доступна для черновика или отклонённой заявки');
+  if (!canPayOrRenewAd(ad)) {
+    const err = new Error(
+      'Оплата доступна для черновика, отклонённой заявки или баннера с истёкшим сроком'
+    );
     err.status = 400;
     throw err;
   }
 
-  const amount = Number(ad.budget) || 0;
+  // Refresh price × days for renewals
+  let amount = Number(ad.budget) || 0;
+  if (isAdTermEnded(ad) || ad.status === 'expired') {
+    const price = await getSidebarAdPrice();
+    const days = Math.max(1, Number(ad.days) || 1);
+    amount = Math.round(Number(price.amount) * days);
+    await pool.query(
+      `update public.advertising set budget = $2, updated_at = now() where id = $1`,
+      [ad.id, amount]
+    );
+  }
+
   if (amount <= 0) {
     return markAdPaid(ad.id, { skipYoo: true });
   }
@@ -453,13 +507,21 @@ export async function createAdCheckout({ userId, adId, returnUrl }) {
   const buyer = userRes.rows[0] || {};
   const days = Math.max(1, Number(ad.days) || 1);
   const whereRu = ad.surface === 'forum' ? 'форум' : 'новости';
+  const renew = isAdTermEnded(ad) || ad.status === 'expired';
 
   const { payment } = await yookassa.createPayment({
     amount,
     currency: 'RUB',
-    description: `Реклама ${whereRu} ${days} сут.: ${ad.title}`.slice(0, 128),
+    description: `${renew ? 'Продление' : 'Реклама'} ${whereRu} ${days} сут.: ${ad.title}`.slice(
+      0,
+      128
+    ),
     returnUrl: siteReturn,
-    metadata: { ad_id: ad.id, user_id: userId, kind: 'sidebar_ad' },
+    metadata: {
+      ad_id: ad.id,
+      user_id: userId,
+      kind: renew ? 'sidebar_ad_renew' : 'sidebar_ad',
+    },
     customerEmail: buyer.email,
     customerPhone: buyer.phone,
     idempotenceKey,
@@ -478,7 +540,10 @@ export async function createAdCheckout({ userId, adId, returnUrl }) {
         payment.id,
         amount,
         confirmationUrl,
-        JSON.stringify({ ad_id: ad.id, kind: 'sidebar_ad' }),
+        JSON.stringify({
+          ad_id: ad.id,
+          kind: renew ? 'sidebar_ad_renew' : 'sidebar_ad',
+        }),
       ]
     );
   } catch {
@@ -557,8 +622,9 @@ export async function verifyAdPayment(adId, { userId, paymentId } = {}) {
     throw err;
   }
 
-  // Already paid / in moderation — nothing to do
-  if (ad.paid_at || ['pending', 'active', 'paused'].includes(ad.status)) {
+  const ended = isAdTermEnded(ad);
+  // Already in flight / live — skip, unless term ended (renew)
+  if (!ended && (ad.paid_at || ['pending', 'active', 'paused'].includes(ad.status))) {
     return ad;
   }
 
@@ -587,7 +653,7 @@ export async function verifyAdPayment(adId, { userId, paymentId } = {}) {
 
   const remote = await yookassa.getPayment(pid).catch(() => null);
   if (remote?.status === 'succeeded' && remote.paid) {
-    if (ad.status === 'draft' || ad.status === 'rejected') {
+    if (canPayOrRenewAd(ad) || ['draft', 'rejected', 'expired'].includes(ad.status) || ended) {
       await markAdPaid(adId);
     }
   }

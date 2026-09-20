@@ -105,15 +105,44 @@ npm run build
 
 1. PostgreSQL + `npm run db:migrate`
 2. API: `pm2 start npm --name rybalka-api -- run server:start`
-3. Nginx:
+3. Nginx (важно для SEO — реальный HTTP 404):
+
+Не используйте слепой `try_files … /index.html` на все URL: Яндекс видит soft-404 (код 200 на несуществующие страницы).
+
+Готовый конфиг: [`deploy/nginx-aktiv59.conf`](../deploy/nginx-aktiv59.conf).
+
+Суть:
 
 ```nginx
-# Статика фронта
-server {
-  listen 443 ssl;
-  server_name example.com;
-  root /var/www/rybalka/dist;
+map $uri $spa_try {
+    default /__spa_404;
+    ~*^/$ /index.html;
+    ~*^/(about|map|tariffs|…|cabinet|owner|admin)(/|$) /index.html;
+    # полный список — в deploy/nginx-aktiv59.conf
+}
 
+location / {
+    try_files $uri $uri/ $spa_try;
+}
+location = /__spa_404 {
+    internal;
+    return 404;
+}
+# Оболочка SPA со статусом 404 (не soft-404 с кодом 200)
+error_page 404 =404 /index.html;
+```
+
+После правки:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI https://aktiv59.ru/no-such-page | head -1   # HTTP/1.1 404
+curl -sI https://aktiv59.ru/forum | head -1          # HTTP/1.1 200
+```
+
+PWA / статика:
+
+```nginx
   # PWA: sw / manifest / shell — без долгого кэша, иначе приложение «не обновляется»
   location = /sw.js {
     add_header Cache-Control "public, max-age=0, must-revalidate";
@@ -136,25 +165,11 @@ server {
     add_header Cache-Control "public, max-age=31536000, immutable";
     try_files $uri =404;
   }
-
-  location / {
-    try_files $uri $uri/ /index.html;
-  }
-}
-
-# API (или тот же server с location /api)
-server {
-  listen 443 ssl;
-  server_name api.example.com;
-  location / {
-    proxy_pass http://127.0.0.1:3001;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-  }
-}
 ```
 
-4. Сборка фронта с `VITE_USE_API=true` и `VITE_API_URL=https://api.example.com`
+Полный пример с `/api` и `/uploads` — в `deploy/nginx-aktiv59.conf`.
+
+4. Сборка фронта с `VITE_USE_API=true` и `VITE_API_URL=https://aktiv59.ru`
 
 ## Vercel (только статика)
 

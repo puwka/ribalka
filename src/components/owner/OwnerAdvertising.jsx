@@ -33,6 +33,19 @@ function formatEnds(ad) {
   }
 }
 
+function isTermEnded(ad) {
+  if (!ad) return false;
+  if (ad.status === 'expired') return true;
+  if (!ad.ends_at) return false;
+  const t = new Date(ad.ends_at).getTime();
+  return Number.isFinite(t) && t <= Date.now();
+}
+
+function displayStatus(ad, statusLabels) {
+  if (isTermEnded(ad)) return 'Срок истёк';
+  return statusLabels[ad.status] || ad.status;
+}
+
 export default function OwnerAdvertisingPanel() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -236,7 +249,7 @@ export default function OwnerAdvertisingPanel() {
 
   const statusLabels = advertisingService.statusLabels || {};
   const editingAd = items.find((a) => a.id === editingId);
-  const canChangeDays = !isEditing || !editingAd?.paid_at;
+  const canChangeDays = !isEditing || !editingAd?.paid_at || isTermEnded(editingAd);
 
   return (
     <div className="cabinet-panel mon-panel">
@@ -384,6 +397,9 @@ export default function OwnerAdvertisingPanel() {
             const views = Number(ad.views_count) || 0;
             const clicks = Number(ad.clicks_count) || 0;
             const ends = formatEnds(ad);
+            const ended = isTermEnded(ad);
+            const dayPrice = Number(price?.amount) || 300;
+            const renewTotal = Math.round(dayPrice * Math.max(1, Number(ad.days) || 1));
             return (
               <div key={ad.id} className="cabinet-item">
                 <div className="cabinet-item__title">
@@ -391,10 +407,12 @@ export default function OwnerAdvertisingPanel() {
                   {ad.placement === 'left' ? 'слева' : 'справа'}
                 </div>
                 <div className="cabinet-item__meta">
-                  {statusLabels[ad.status] || ad.status}
+                  <strong style={ended ? { color: '#b45309' } : undefined}>
+                    {displayStatus(ad, statusLabels)}
+                  </strong>
                   {ad.budget != null ? ` · ${formatRub(ad.budget)}` : ''}
                   {ad.days ? ` · ${ad.days} сут.` : ''}
-                  {ends ? ` · до ${ends}` : ''}
+                  {ends ? (ended ? ` · истёк ${ends}` : ` · до ${ends}`) : ''}
                   <br />
                   Просмотры: <strong>{views}</strong>
                   {' · '}
@@ -422,7 +440,17 @@ export default function OwnerAdvertisingPanel() {
                   >
                     Изменить
                   </button>
-                  {(ad.status === 'draft' || ad.status === 'rejected') && (
+                  {ended ? (
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      disabled={saving}
+                      onClick={() => payExisting(ad.id)}
+                    >
+                      Продлить {formatRub(renewTotal)}
+                    </button>
+                  ) : null}
+                  {(ad.status === 'draft' || ad.status === 'rejected') && !ended ? (
                     <button
                       type="button"
                       className="btn-primary"
@@ -431,7 +459,7 @@ export default function OwnerAdvertisingPanel() {
                     >
                       Оплатить / на модерацию
                     </button>
-                  )}
+                  ) : null}
                   <button
                     type="button"
                     className="btn-secondary"

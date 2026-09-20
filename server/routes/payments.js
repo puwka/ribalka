@@ -348,4 +348,74 @@ router.post('/listing-orders/:id/verify', requireAuth, async (req, res, next) =>
   }
 });
 
+/**
+ * Public donation / project support via YooKassa redirect.
+ * Body: { amount: number, email?: string }
+ */
+router.post('/donate', async (req, res, next) => {
+  try {
+    const yookassa = await import('../services/yookassa.js');
+    if (!yookassa.isYooKassaConfigured()) {
+      return res.status(503).json({
+        error: 'Оплата временно недоступна. Попробуйте позже или напишите на почту сайта.',
+      });
+    }
+
+    const amount = Math.round(Number(req.body?.amount) || 0);
+    if (!Number.isFinite(amount) || amount < 10) {
+      return res.status(400).json({ error: 'Минимальная сумма — 10 ₽' });
+    }
+    if (amount > 100_000) {
+      return res.status(400).json({ error: 'Максимальная сумма — 100 000 ₽' });
+    }
+
+    const emailRaw = String(req.body?.email || '').trim().toLowerCase();
+    const fallbackEmail = String(
+      process.env.DONATE_RECEIPT_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || ''
+    )
+      .trim()
+      .toLowerCase();
+    const customerEmail = emailRaw.includes('@') ? emailRaw : fallbackEmail;
+    if (!customerEmail) {
+      return res.status(400).json({
+        error: 'Укажите email для чека (нужен для оплаты через ЮKassa).',
+      });
+    }
+
+    const site = String(process.env.PUBLIC_SITE_URL || 'http://localhost:5173').replace(
+      /\/$/,
+      ''
+    );
+    const returnUrl = `${site}/?donated=1`;
+    const description = 'Поддержка проекта Рыбалка в Прикамье';
+
+    const { payment } = await yookassa.createPayment({
+      amount,
+      currency: 'RUB',
+      description,
+      returnUrl,
+      customerEmail,
+      metadata: {
+        kind: 'donate',
+        amount: String(amount),
+        userId: req.user?.sub || '',
+      },
+    });
+
+    const confirmationUrl = payment?.confirmation?.confirmation_url;
+    if (!confirmationUrl) {
+      return res.status(502).json({ error: 'ЮKassa не вернула ссылку на оплату' });
+    }
+
+    res.json({
+      ok: true,
+      paymentId: payment.id,
+      confirmationUrl,
+      amount,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

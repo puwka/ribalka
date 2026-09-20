@@ -32,7 +32,7 @@ const STATUS_RU = {
   rejected: 'Отклонено',
   paused: 'Пауза',
   disabled: 'Отключено',
-  expired: 'Истёк',
+  expired: 'Срок истёк',
   all: 'Все',
 };
 

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import WatersHomeSection from '../components/home/WatersHomeSection';
+import SupportProjectSection from '../components/home/SupportProjectSection';
 import News from '../components/News/News';
 import { CMS_PAGES } from '../services/cmsService';
 import { useCmsPage } from '../hooks/useCms';
@@ -12,6 +13,7 @@ export default function HomePage() {
 
   const showWaters = blocks.watersSection?.enabled !== false;
   const showNews = blocks.newsSection?.enabled !== false;
+  const showSupport = blocks.support?.enabled !== false;
   const showCta = blocks.cta?.enabled !== false;
   const cta = blocks.cta || {};
 
@@ -22,6 +24,8 @@ export default function HomePage() {
       {showWaters && <WatersHomeSection />}
 
       {showNews && <News />}
+
+      {showSupport && <SupportProjectSection config={blocks.support || {}} />}
 
       {showCta && (
         <section className="home-cta">

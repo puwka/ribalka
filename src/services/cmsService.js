@@ -52,6 +52,15 @@ const DEFAULT_PAGES = {
     blocks: {
       watersSection: { enabled: true, title: 'Водоёмы', subtitle: '' },
       newsSection: { enabled: true, title: 'Новости', subtitle: '' },
+      support: {
+        enabled: true,
+        title: 'Поддержите проект',
+        description:
+          'Сайт развивается на энтузиазме. Любая сумма помогает держать сервер, карту и каталог водоёмов.',
+        amounts: [50, 100, 300, 500],
+        // Готовая ссылка из кабинета ЮKassa (если задана — кнопка ведёт сразу туда)
+        externalUrl: '',
+      },
       cta: {
         enabled: true,
         title: 'Планируете рыбалку в Пермском крае?',
@@ -64,7 +73,7 @@ const DEFAULT_PAGES = {
         ],
       },
     },
-    blockOrder: ['watersSection', 'newsSection', 'cta'],
+    blockOrder: ['watersSection', 'newsSection', 'support', 'cta'],
   },
   [CMS_PAGES.PAID_WATERS]: {
     title: 'Платные водоёмы',
