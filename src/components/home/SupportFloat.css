@@ -39,6 +39,7 @@
   height: 100%;
   object-fit: contain;
   border-radius: 12px;
+  background: #fff;
 }
 
 .support-float__label {
