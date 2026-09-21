@@ -21,6 +21,7 @@ function useDebounced(value, delay = 300) {
 const DEFAULT_FILTERS = {
   region: '',
   kind: '',
+  hasWater: '',
   priceMin: '',
   priceMax: '',
 };
@@ -80,6 +81,7 @@ export function useWaterCatalog(waterType) {
     list = filterWaters(list, {
       region: filters.region || undefined,
       kind: filters.kind || undefined,
+      hasWater: filters.hasWater || undefined,
       priceMin: filters.priceMin !== '' ? Number(filters.priceMin) : undefined,
       priceMax: filters.priceMax !== '' ? Number(filters.priceMax) : undefined,
     });
@@ -96,6 +98,7 @@ export function useWaterCatalog(waterType) {
     Boolean(query.trim()) ||
     Boolean(filters.region) ||
     Boolean(filters.kind) ||
+    Boolean(filters.hasWater) ||
     filters.priceMin !== '' ||
     filters.priceMax !== '';
 

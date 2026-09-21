@@ -44,7 +44,7 @@ const DEFAULT_PAGES = {
       descriptionFallback:
         'Платные базы с комфортом и дикие водоёмы с невероятной природой. Найдите своё место для незабываемого отдыха на природе в сердце Урала.',
       image: '/img/hero/header-img.jpeg',
-      ctaPrimary: { label: 'Платные водоёмы', url: '/paid-waters' },
+      ctaPrimary: { label: 'Базы и водоёмы', url: '/paid-waters' },
       ctaSecondary: { label: 'Бесплатные места', url: '/free-waters' },
       ctaTertiary: { label: 'Карта', url: '/map' },
       showStats: false,
@@ -76,9 +76,9 @@ const DEFAULT_PAGES = {
     blockOrder: ['watersSection', 'newsSection', 'support', 'cta'],
   },
   [CMS_PAGES.PAID_WATERS]: {
-    title: 'Платные водоёмы',
+    title: 'Базы отдыха и водоёмы',
     description:
-      'Водоёмы Пермского края с оплатой за рыбалку: пруды, хозяйства и специализированные места.',
+      'Базы отдыха, водоёмы с платной рыбалкой в Пермском крае.',
     intro: '',
     extraBlocks: [],
   },
@@ -109,10 +109,20 @@ const DEFAULT_SEO = {
     ogDescription: '',
     ogImage: '',
   },
-  '/paid-waters': {
-    title: 'Платные водоёмы Пермского края — Рыбалка в Прикамье',
+  '/support': {
+    title: 'Поддержите проект — Рыбалка в Прикамье',
     description:
-      'Каталог платных водоёмов Прикамья: цены, регионы, карта и подробные описания. Рыбалка с оплатой за сутки или вылов.',
+      'Помогите развивать каталог водоёмов Прикамья. Проект развивается на энтузиазме нашей семьи.',
+    keywords: '',
+    canonical: '',
+    ogTitle: '',
+    ogDescription: '',
+    ogImage: '',
+  },
+  '/paid-waters': {
+    title: 'Базы отдыха и водоёмы Пермского края — Рыбалка в Прикамье',
+    description:
+      'Базы отдыха и водоёмы с платной рыбалкой в Прикамье: цены, регионы, карта и описания.',
     keywords: '',
     canonical: '',
     ogTitle: '',
@@ -168,7 +178,7 @@ const DEFAULT_FOOTER = {
     'Всё о рыбалке и отдыхе в Пермском крае. Найдите своё идеальное место для незабываемого отдыха на природе.',
   menuLinks: [
     { label: 'Главная', url: '/' },
-    { label: 'Платные водоёмы', url: '/paid-waters' },
+    { label: 'Базы отдыха и водоёмы', url: '/paid-waters' },
     { label: 'Бесплатные водоёмы', url: '/free-waters' },
     { label: 'Карта', url: '/map' },
     { label: 'Отчёты', url: '/reports' },

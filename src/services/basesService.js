@@ -249,6 +249,10 @@ function enrichRemote(row) {
     paidUntil: row.paid_until || null,
     paid_extra_photos: Number(row.paid_extra_photos) || 0,
     paid_extra_videos: Number(row.paid_extra_videos) || 0,
+    rating_avg: Number(row.rating_avg) || 0,
+    rating_count: Number(row.rating_count) || 0,
+    ratingAvg: Number(row.rating_avg) || 0,
+    ratingCount: Number(row.rating_count) || 0,
     raw: row,
   };
 }

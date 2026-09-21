@@ -39,6 +39,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/admin/plans', label: 'Тарифы' },
       { to: '/admin/payments', label: 'Платежи' },
+      { to: '/admin/donations', label: 'Поддержка' },
       { to: '/admin/ads', label: 'Реклама' },
     ],
   },
@@ -72,6 +73,7 @@ function breadcrumbLabel(pathname) {
     '/admin/reviews': 'Отзывы',
     '/admin/plans': 'Тарифы',
     '/admin/payments': 'Платежи',
+    '/admin/donations': 'Поддержка',
     '/admin/ads': 'Реклама',
     '/admin/seo': 'SEO',
     '/admin/settings': 'Настройки',

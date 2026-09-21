@@ -89,6 +89,24 @@
   letter-spacing: -0.01em;
 }
 
+.water-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.water-card__stars {
+  color: #eab308;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.water-card__rating-num {
+  color: var(--color-text-secondary);
+}
+
 .water-card__location {
   font-size: var(--text-sm);
   color: var(--color-text-muted);

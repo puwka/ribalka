@@ -231,7 +231,7 @@ export default function BaseDetailPage() {
             <Link to="/">Главная</Link>
             <span>/</span>
             <Link to={item.type === 'free' ? '/free-waters' : '/paid-waters'}>
-              {item.type === 'free' ? 'Бесплатные водоёмы' : 'Платные водоёмы'}
+              {item.type === 'free' ? 'Бесплатные водоёмы' : 'Базы отдыха и водоёмы'}
             </Link>
           </div>
           <div className="water-detail__title-row">

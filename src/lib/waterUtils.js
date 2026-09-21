@@ -33,9 +33,21 @@ export function extractLocality(address = '') {
 export function inferWaterBodyKind(item) {
   const name = (item.name || '').toLowerCase();
   if (name.includes('пруд') || name.includes('озер')) return 'Пруд/озеро';
-  if (name.includes('река') || name.includes('река ') || name.includes('устье')) return 'Река';
-  if (name.includes('база') || name.includes('водоём')) return 'База';
-  return item.type === WATER_TYPE.FREE ? 'Водоём' : 'Платный водоём';
+  if (name.includes('река') || name.includes('устье')) return 'Река';
+  if (name.includes('база')) return 'База отдыха';
+  if (name.includes('водоём') || name.includes('водоем')) return 'Водоём';
+  return item.type === WATER_TYPE.FREE ? 'Водоём' : 'База отдыха';
+}
+
+/** Filter: object has a fishing water body vs recreation base without water focus */
+export function listingHasWater(item) {
+  const blob = `${item.name || ''} ${item.short || ''} ${item.description || ''} ${item.fish || ''} ${item.waterKind || ''}`.toLowerCase();
+  if (/пруд|озёр|озер|река|водоём|водоем|карьер|стариц|проток/.test(blob)) return true;
+  if ((item.fish || '').trim().length > 0) return true;
+  if (/база/.test(blob) && !/пруд|озёр|озер|река|водоём|водоем/.test(blob)) return false;
+  const kind = item.waterKind || inferWaterBodyKind(item);
+  if (kind === 'База отдыха' || kind === 'База') return false;
+  return item.type === WATER_TYPE.FREE;
 }
 
 export function matchesWaterSearch(item, query) {
@@ -53,10 +65,12 @@ export function matchesWaterSearch(item, query) {
   );
 }
 
-export function filterWaters(items, { region, priceMin, priceMax, kind } = {}) {
+export function filterWaters(items, { region, priceMin, priceMax, kind, hasWater } = {}) {
   return items.filter((item) => {
     if (region && item.region !== region) return false;
     if (kind && inferWaterBodyKind(item) !== kind) return false;
+    if (hasWater === 'yes' && !listingHasWater(item)) return false;
+    if (hasWater === 'no' && listingHasWater(item)) return false;
     if (item.type === WATER_TYPE.PAID && (priceMin != null || priceMax != null)) {
       const p = parsePriceValue(item.price || item.price_label);
       if (p == null) return false;
@@ -77,8 +91,22 @@ export function sortWaters(items, sortBy, type) {
     return cmp(a, b);
   };
   const byName = (a, b) => a.name.localeCompare(b.name, 'ru');
+  const ratingOf = (x) => Number(x.ratingAvg ?? x.rating_avg) || 0;
+  const ratingCountOf = (x) => Number(x.ratingCount ?? x.rating_count) || 0;
 
   switch (sortBy) {
+    case 'rating':
+      return list.sort(
+        byTopThen((a, b) => {
+          const ra = ratingOf(a);
+          const rb = ratingOf(b);
+          if (rb !== ra) return rb - ra;
+          const ca = ratingCountOf(a);
+          const cb = ratingCountOf(b);
+          if (cb !== ca) return cb - ca;
+          return byName(a, b);
+        })
+      );
     case 'price':
       if (type !== WATER_TYPE.PAID) return list.sort(byTopThen(byName));
       return list.sort(
@@ -126,10 +154,15 @@ export function sortPromoFirst(items, nameKey = 'name') {
 }
 
 export function enrichWaterItem(item) {
+  const ratingAvg = Number(item.ratingAvg ?? item.rating_avg) || 0;
+  const ratingCount = Number(item.ratingCount ?? item.rating_count) || 0;
   return {
     ...item,
     locality: extractLocality(item.address),
     waterKind: inferWaterBodyKind(item),
     priceValue: parsePriceValue(item.price || item.price_label),
+    ratingAvg,
+    ratingCount,
+    hasWater: listingHasWater({ ...item, waterKind: inferWaterBodyKind(item) }),
   };
 }

@@ -55,6 +55,18 @@ export default function WaterFilterPanel({
         </select>
       )}
       {isPaid && (
+        <select
+          className="water-filters-panel__select"
+          value={filters.hasWater || ''}
+          onChange={(e) => onFiltersChange({ ...filters, hasWater: e.target.value })}
+          aria-label="С водоёмом или без"
+        >
+          <option value="">Все объекты</option>
+          <option value="yes">С водоёмом</option>
+          <option value="no">Без водоёма (база отдыха)</option>
+        </select>
+      )}
+      {isPaid && (
         <>
           <input
             type="number"
@@ -83,6 +95,7 @@ export default function WaterFilterPanel({
         aria-label="Сортировка"
       >
         <option value="name">По названию</option>
+        <option value="rating">По рейтингу</option>
         {isPaid && <option value="price">По цене</option>}
         <option value="region">По региону</option>
       </select>

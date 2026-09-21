@@ -462,6 +462,7 @@ export const localAuthStore = {
       phone: patch.phone ?? prev.phone,
       city: patch.city ?? prev.city,
       is_public: patch.is_public ?? prev.is_public,
+      avatar_path: patch.avatar_path ?? patch.avatar_url ?? prev.avatar_path ?? null,
     };
     writeStore(store);
     return buildBundle(store, user);

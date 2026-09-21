@@ -35,7 +35,11 @@ export default function CabinetShell({ title, subtitle, navGroups }) {
         <aside className="cabinet__aside">
           <div className="cabinet__identity">
             <div className="cabinet__avatar" aria-hidden>
-              {initials(profile?.display_name, user?.email)}
+              {profile?.avatar_path || profile?.avatar_url ? (
+                <img src={profile.avatar_path || profile.avatar_url} alt="" />
+              ) : (
+                initials(profile?.display_name, user?.email)
+              )}
             </div>
             <div className="cabinet__identity-text">
               <div className="cabinet__name">{profile?.display_name || 'Пользователь'}</div>

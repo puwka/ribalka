@@ -55,6 +55,16 @@ function assertOwnerMediaLimits(data, baseRow, isAdmin) {
 
 const BASE_SELECT = `
   b.*,
+  (
+    select coalesce(round(avg(r.rating)::numeric, 1), 0)
+    from public.site_reviews r
+    where r.target_id = b.id::text and r.status = 'approved'
+  ) as rating_avg,
+  (
+    select count(*)::int
+    from public.site_reviews r
+    where r.target_id = b.id::text and r.status = 'approved'
+  ) as rating_count,
   coalesce(
     json_agg(distinct jsonb_build_object(
       'id', bi.id,
@@ -98,6 +108,10 @@ function mapRow(row) {
     isTop: topActive,
     top_until: row.top_until || null,
     top_kind: row.top_kind || null,
+    rating_avg: Number(row.rating_avg) || 0,
+    rating_count: Number(row.rating_count) || 0,
+    ratingAvg: Number(row.rating_avg) || 0,
+    ratingCount: Number(row.rating_count) || 0,
     base_images: row.base_images || [],
     base_videos: row.base_videos || [],
     base_services: row.base_services || [],

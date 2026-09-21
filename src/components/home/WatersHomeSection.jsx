@@ -25,7 +25,7 @@ export default function WatersHomeSection() {
 
         <div className="waters-home__paid">
           <div className="waters-home__head">
-            <h3>Платные водоёмы</h3>
+            <h3>Базы отдыха и водоёмы</h3>
             <Link to="/paid-waters" className="btn btn--ghost">
               Все платные
             </Link>

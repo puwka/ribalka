@@ -15,6 +15,7 @@ import PwaInstallPrompt from './components/pwa/PwaInstallPrompt';
 import DocumentTitle from './components/seo/DocumentTitle';
 import YandexMetrikaHit from './components/seo/YandexMetrikaHit';
 import ScrollToTop from './components/ScrollToTop';
+import SupportFloat from './components/home/SupportFloat';
 import { ToastProvider } from './components/ui/ToastContext';
 import './components/auth/AuthShared.css';
 import './App.css';
@@ -39,6 +40,8 @@ const AuthorProfilePage = lazy(() => import('./pages/AuthorProfilePage'));
 const LunarCalendarPage = lazy(() => import('./pages/LunarCalendarPage'));
 const UserCabinetPage = lazy(() => import('./pages/UserCabinetPage'));
 const OwnerCabinetPage = lazy(() => import('./pages/OwnerCabinetPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
+const SupportThanksPage = lazy(() => import('./pages/SupportThanksPage'));
 const BaseDetailPage = lazy(() => import('./pages/BaseDetailPage'));
 
 function RedirectBaseToWater() {
@@ -63,6 +66,7 @@ function SiteLayout({ children }) {
         <Suspense fallback={<PageFallback />}>{children}</Suspense>
       </main>
       <Footer />
+      <SupportFloat />
     </>
   );
 }
@@ -97,6 +101,8 @@ function App() {
                     <Routes>
                       <Route path="/" element={<HomePage />} />
                       <Route path="/about" element={<AboutPage />} />
+                      <Route path="/support" element={<SupportPage />} />
+                      <Route path="/support/thanks" element={<SupportThanksPage />} />
                       <Route path="/news/all" element={<AllNewsPage />} />
                       <Route path="/news/:id" element={<NewsPage />} />
                       <Route path="/paid-waters" element={<PaidWatersPage />} />

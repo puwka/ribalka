@@ -647,12 +647,23 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       status: c.status,
     };
 
-    const { notifyAdminModeration } = await import('../services/notifyMail.js');
+    const { notifyAdminModeration, notifyReportAuthorNewComment } = await import(
+      '../services/notifyMail.js'
+    );
     notifyAdminModeration({
       kindLabel: 'Новый комментарий к отчёту',
       title: author,
       detail: text.slice(0, 280),
       adminPath: '/admin/reports',
+    });
+    notifyReportAuthorNewComment({
+      reportAuthorId: row.user_id,
+      commenterUserId: req.user.sub,
+      reportId: row.id,
+      reportTitle: row.place_name || row.place || 'Отчёт',
+      authorName: author,
+      body: text,
+      pending: true,
     });
 
     const isAdmin = (req.user?.roles || []).includes('admin');

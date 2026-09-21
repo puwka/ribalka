@@ -1582,16 +1582,20 @@ export async function handleYooKassaWebhook(event) {
     }
 
     const adId = object.metadata?.ad_id;
-    const isSidebarAd = object.metadata?.kind === 'sidebar_ad' && adId;
+    const adKind = object.metadata?.kind;
+    const isSidebarAd =
+      adId && (adKind === 'sidebar_ad' || adKind === 'sidebar_ad_renew');
     if (isSidebarAd) {
-      const { markAdPaid, getById: getAdById } = await import('./ads.js');
+      const { markAdPaid, getById: getAdById, canPayOrRenewAd, isAdTermEnded } = await import(
+        './ads.js'
+      );
       const ad = await getAdById(adId);
       if (!ad) {
         console.warn('[yookassa webhook] sidebar ad not found', adId);
         return { ok: true, ignored: true };
       }
-      if (ad.status === 'pending' || ad.status === 'active') {
-        return { ok: true, alreadyPaid: true, kind: 'sidebar_ad', adId };
+      if (!canPayOrRenewAd(ad) && !isAdTermEnded(ad) && ['pending', 'active'].includes(ad.status)) {
+        return { ok: true, alreadyPaid: true, kind: adKind, adId };
       }
       let payment = object;
       try {
@@ -1600,10 +1604,42 @@ export async function handleYooKassaWebhook(event) {
         console.error('[yookassa webhook] getPayment failed', err.message);
       }
       if (payment.status === 'succeeded' && payment.paid) {
-        await markAdPaid(adId);
-        return { ok: true, paid: true, kind: 'sidebar_ad', adId };
+        if (canPayOrRenewAd(ad) || isAdTermEnded(ad) || ['draft', 'rejected', 'expired'].includes(ad.status)) {
+          await markAdPaid(adId);
+          return { ok: true, paid: true, kind: adKind, adId };
+        }
+        return { ok: true, alreadyPaid: true, kind: adKind, adId };
       }
-      return { ok: true, paid: false, kind: 'sidebar_ad', adId, status: payment.status };
+      return { ok: true, paid: false, kind: adKind, adId, status: payment.status };
+    }
+
+    if (object.metadata?.kind === 'donate') {
+      const donations = await import('./donations.js');
+      let payment = object;
+      try {
+        payment = await yookassa.getPayment(object.id);
+      } catch (err) {
+        console.error('[yookassa webhook] getPayment failed', err.message);
+      }
+      if (payment.status === 'succeeded' && payment.paid) {
+        const row = await donations.markDonationSucceededByPaymentId(object.id, payment);
+        if (!row) {
+          // Payment created before we started persisting — store retrospectively
+          await donations.recordDonationPending({
+            userId: object.metadata?.userId || null,
+            email: payment.receipt?.customer?.email || null,
+            amount: Number(payment.amount?.value) || Number(object.metadata?.amount) || 0,
+            providerPaymentId: object.id,
+            meta: { kind: 'donate', via: 'webhook_backfill' },
+          });
+          await donations.markDonationSucceededByPaymentId(object.id, payment);
+        }
+        return { ok: true, paid: true, kind: 'donate', paymentId: object.id };
+      }
+      if (payment.status === 'canceled') {
+        await donations.markDonationCanceledByPaymentId(object.id);
+      }
+      return { ok: true, paid: false, kind: 'donate', paymentId: object.id, status: payment.status };
     }
 
     console.warn('[yookassa webhook] order not found for payment', object.id);

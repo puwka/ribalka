@@ -67,6 +67,7 @@ export const adminDashboardService = {
     let owners = 0;
     let revenue = 0;
     let paymentsTotal = payments.length;
+    let moneyBreakdown = null;
 
     if (apiDataEnabled) {
       try {
@@ -78,13 +79,30 @@ export const adminDashboardService = {
         owners = 0;
       }
       try {
-        const orders = await listingPaymentService.listAdmin({});
-        paymentsTotal = orders.length;
-        revenue = orders
-          .filter((o) => o.status === 'paid')
-          .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+        const summary = await api.get('/api/payments/admin-summary');
+        paymentsTotal = Number(summary?.paymentsTotal) || 0;
+        revenue = Number(summary?.revenue) || 0;
+        moneyBreakdown = summary?.breakdown || null;
       } catch {
-        /* keep payments from paymentService */
+        // Fallback: sum listing + directory + donations separately
+        try {
+          const [listingOrders, directoryOrders, donationStats] = await Promise.all([
+            listingPaymentService.listAdmin({}).catch(() => []),
+            listingPaymentService.listDirectoryOrdersAdmin({}).catch(() => []),
+            api.get('/api/payments/donations').catch(() => null),
+          ]);
+          const listingPaid = (listingOrders || []).filter((o) => o.status === 'paid');
+          const dirPaid = (directoryOrders || []).filter((o) => o.status === 'paid');
+          const donatePaid = Number(donationStats?.summary?.paidCount) || 0;
+          const donateTotal = Number(donationStats?.summary?.paidTotal) || 0;
+          paymentsTotal = listingPaid.length + dirPaid.length + donatePaid;
+          revenue =
+            listingPaid.reduce((sum, o) => sum + (Number(o.amount) || 0), 0) +
+            dirPaid.reduce((sum, o) => sum + (Number(o.amount) || 0), 0) +
+            donateTotal;
+        } catch {
+          /* keep defaults */
+        }
       }
     } else {
       owners = supabaseDataEnabled
@@ -119,6 +137,7 @@ export const adminDashboardService = {
       bookingsPending: bookings.filter((b) => b.status === 'pending').length,
       paymentsTotal,
       revenue,
+      moneyBreakdown,
       activePlans,
     };
   },

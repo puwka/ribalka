@@ -100,7 +100,11 @@ export default function AuthorProfilePage() {
       <div className="author-page__inner">
         <header className="author-head">
           <div className="author-head__avatar" aria-hidden>
-            {(profile.display_name || '?').charAt(0).toUpperCase()}
+            {profile.avatar_url || profile.avatar_path ? (
+              <img src={profile.avatar_url || profile.avatar_path} alt="" />
+            ) : (
+              (profile.display_name || '?').charAt(0).toUpperCase()
+            )}
           </div>
           <div className="author-head__main">
             <p className="author-head__role">{roleLabel(profile.primary_role)}</p>

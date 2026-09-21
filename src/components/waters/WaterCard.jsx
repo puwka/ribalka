@@ -93,6 +93,8 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
   const metaSecondary = isPaid
     ? [item.waterKind, item.fish?.split(',')[0]?.trim()].filter(Boolean).join(' · ')
     : [item.waterKind, location].filter(Boolean).join(' · ');
+  const ratingAvg = Number(item.ratingAvg ?? item.rating_avg) || 0;
+  const ratingCount = Number(item.ratingCount ?? item.rating_count) || 0;
 
   const favLabel = favorited ? 'В избранном' : 'В избранное';
   const favClass = `water-card__text-link${favorited ? ' is-favorited' : ''}`;
@@ -119,6 +121,15 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
 
           <div className="water-card__row-body">
             <h3 className="water-card__title">{item.name}</h3>
+            <p className="water-card__rating" aria-label={`Рейтинг ${ratingAvg} из 5`}>
+              <span className="water-card__stars" aria-hidden>
+                {'★'.repeat(Math.round(ratingAvg) || 0)}
+                {'☆'.repeat(Math.max(0, 5 - Math.round(ratingAvg || 0)))}
+              </span>
+              <span className="water-card__rating-num">
+                {ratingCount > 0 ? `${ratingAvg.toFixed(1)} · ${ratingCount}` : 'Нет отзывов'}
+              </span>
+            </p>
 
             <p className="water-card__meta">
               <span className={`water-card__meta-primary water-card__meta-primary--${variant}`}>
@@ -167,6 +178,16 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
           </p>
 
           <h3 className="water-card__title">{item.name}</h3>
+
+          <p className="water-card__rating" aria-label={`Рейтинг ${ratingAvg} из 5`}>
+            <span className="water-card__stars" aria-hidden>
+              {'★'.repeat(Math.round(ratingAvg) || 0)}
+              {'☆'.repeat(Math.max(0, 5 - Math.round(ratingAvg || 0)))}
+            </span>
+            <span className="water-card__rating-num">
+              {ratingCount > 0 ? `${ratingAvg.toFixed(1)} · ${ratingCount}` : 'Нет отзывов'}
+            </span>
+          </p>
 
           {location && <p className="water-card__location">{location}</p>}
 

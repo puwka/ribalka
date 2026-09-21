@@ -262,6 +262,25 @@ export function ownerReviewEmail({ displayName, baseTitle, authorName, rating, b
   return { subject, html, text };
 }
 
+/** Report author: new comment on their report */
+export function reportCommentEmail({ displayName, reportTitle, authorName, body, reportUrl, pending }) {
+  const name = displayName || 'пользователь';
+  const title = reportTitle || 'ваш отчёт';
+  const subject = `Новый комментарий к отчёту «${title}»`;
+  const lead = pending
+    ? `К вашему отчёту «${title}» оставили комментарий. После проверки модератором он появится на странице.`
+    : `К вашему отчёту «${title}» появился новый комментарий.`;
+  const text = `Здравствуйте, ${name}!\n\n${lead}\n\n${authorName}:\n${body}\n\n${reportUrl}`;
+  const html = wrapHtml(`
+    <p>Здравствуйте, ${escapeHtml(name)}!</p>
+    <p>${escapeHtml(lead)}</p>
+    <p><strong>${escapeHtml(authorName)}</strong>:</p>
+    <blockquote style="margin:12px 0;padding:12px;background:#f8fafc;border-left:3px solid #94a3b8">${escapeHtml(body)}</blockquote>
+    ${cta(reportUrl, 'Открыть отчёт')}
+  `);
+  return { subject, html, text };
+}
+
 function escapeHtml(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')

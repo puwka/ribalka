@@ -8,13 +8,11 @@ function RegisterForm() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const preferOwner = Boolean(location.state?.preferOwner);
   const from = location.state?.from || '';
   const [form, setForm] = useState({
     displayName: '',
     email: '',
     password: '',
-    role: preferOwner ? 'owner' : 'user',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -26,12 +24,8 @@ function RegisterForm() {
     setSubmitting(true);
     setError('');
     try {
-      const bundle = await register(form.email, form.password, form.displayName, form.role);
-      if (bundle?.isOwner) {
-        navigate(from.startsWith('/owner') ? from : '/owner', { replace: true });
-      } else {
-        navigate('/cabinet', { replace: true });
-      }
+      await register(form.email, form.password, form.displayName, 'user');
+      navigate(from && !String(from).startsWith('/owner') ? from : '/cabinet', { replace: true });
     } catch (err) {
       setError(err.message || 'Не удалось зарегистрироваться');
     } finally {
@@ -43,9 +37,7 @@ function RegisterForm() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Регистрация</h1>
-        <p className="auth-card__subtitle">
-          Аккаунт рыболова или владельца (базы, магазины, сервисы, егеря)
-        </p>
+        <p className="auth-card__subtitle">Создайте аккаунт пользователя на сайте</p>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
@@ -80,9 +72,8 @@ function RegisterForm() {
           </label>
           <label>
             Тип аккаунта
-            <select value={form.role} onChange={onChange('role')}>
-              <option value="user">Рыболов (USER)</option>
-              <option value="owner">Владелец (базы / справочник)</option>
+            <select value="user" disabled aria-readonly="true">
+              <option value="user">Пользователь</option>
             </select>
           </label>
 

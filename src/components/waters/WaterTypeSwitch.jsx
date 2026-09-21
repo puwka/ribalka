@@ -11,7 +11,7 @@ export default function WaterTypeSwitch() {
         to="/paid-waters"
         className={`water-type-switch__btn ${isPaid ? 'is-active' : ''}`}
       >
-        Платные
+        Базы и водоёмы
       </Link>
       <Link
         to="/free-waters"

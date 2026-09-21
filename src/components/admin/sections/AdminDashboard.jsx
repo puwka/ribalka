@@ -81,6 +81,14 @@ export default function AdminDashboard() {
           <div className="admin-metric__value">
             {Math.round(stats?.revenue || 0).toLocaleString('ru-RU')} ₽
           </div>
+          {stats?.moneyBreakdown ? (
+            <div className="admin-metric__hint" style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+              базы {Math.round(stats.moneyBreakdown.listing?.total || 0).toLocaleString('ru-RU')} ·
+              справочник {Math.round(stats.moneyBreakdown.directory?.total || 0).toLocaleString('ru-RU')} ·
+              реклама {Math.round(stats.moneyBreakdown.ads?.total || 0).toLocaleString('ru-RU')} ·
+              поддержка {Math.round(stats.moneyBreakdown.donations?.total || 0).toLocaleString('ru-RU')}
+            </div>
+          ) : null}
         </div>
       </div>
 

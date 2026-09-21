@@ -350,7 +350,7 @@ router.post('/listing-orders/:id/verify', requireAuth, async (req, res, next) =>
 
 /**
  * Public donation / project support via YooKassa redirect.
- * Body: { amount: number, email?: string }
+ * Body: { amount: number, email?: string, returnPath?: string }
  */
 router.post('/donate', async (req, res, next) => {
   try {
@@ -386,7 +386,12 @@ router.post('/donate', async (req, res, next) => {
       /\/$/,
       ''
     );
-    const returnUrl = `${site}/?donated=1`;
+    const returnPathRaw = String(req.body?.returnPath || '/support/thanks').trim();
+    const returnPath =
+      returnPathRaw === '/support/thanks' || returnPathRaw.startsWith('/support/')
+        ? returnPathRaw
+        : '/support/thanks';
+    const returnUrl = `${site}${returnPath}`;
     const description = 'Поддержка проекта Рыбалка в Прикамье';
 
     const { payment } = await yookassa.createPayment({
@@ -407,12 +412,47 @@ router.post('/donate', async (req, res, next) => {
       return res.status(502).json({ error: 'ЮKassa не вернула ссылку на оплату' });
     }
 
+    try {
+      const donations = await import('../services/donations.js');
+      await donations.recordDonationPending({
+        userId: req.user?.sub || null,
+        email: customerEmail,
+        amount,
+        providerPaymentId: payment.id,
+        confirmationUrl,
+        meta: { kind: 'donate', returnPath },
+      });
+    } catch (err) {
+      console.error('[donate] persist failed', err.message);
+    }
+
     res.json({
       ok: true,
       paymentId: payment.id,
       confirmationUrl,
       amount,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: dashboard money (all paid sources) */
+router.get('/admin-summary', requireAuth, requireAdmin, async (_req, res, next) => {
+  try {
+    const { getAdminMoneySummary } = await import('../services/moneySummary.js');
+    res.json(await getAdminMoneySummary());
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: project support (donate) stats */
+router.get('/donations', requireAuth, requireAdmin, async (_req, res, next) => {
+  try {
+    const donations = await import('../services/donations.js');
+    const data = await donations.getDonationStats();
+    res.json(data);
   } catch (err) {
     next(err);
   }

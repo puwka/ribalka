@@ -44,6 +44,13 @@
   font-weight: 700;
   font-size: var(--text-base);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.cabinet__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cabinet__identity-text {

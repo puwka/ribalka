@@ -20,7 +20,7 @@ const DESKTOP_NAV = [
 
 /** Основные разделы — в бургере на мобиле (на desktop уже в шапке) */
 const DRAWER_PRIMARY = [
-  { href: '/paid-waters', label: 'Платные водоёмы' },
+  { href: '/paid-waters', label: 'Базы и водоёмы' },
   { href: '/free-waters', label: 'Бесплатные водоёмы' },
   { href: '/map', label: 'Карта' },
   { href: '/reports', label: 'Отчёты' },

@@ -109,7 +109,7 @@ export default function Footer() {
           <h4>Меню</h4>
           <ul>
             <li><a href="/" onClick={(e) => onFooterClick(e, '/')}>Главная</a></li>
-            <li><a href="/paid-waters" onClick={(e) => onFooterClick(e, '/paid-waters')}>Платные водоёмы</a></li>
+            <li><a href="/paid-waters" onClick={(e) => onFooterClick(e, '/paid-waters')}>Базы отдыха и водоёмы</a></li>
             <li><a href="/free-waters" onClick={(e) => onFooterClick(e, '/free-waters')}>Бесплатные водоёмы</a></li>
             <li><a href="/map" onClick={(e) => onFooterClick(e, '/map')}>Карта</a></li>
             <li><a href="/lunar" onClick={(e) => onFooterClick(e, '/lunar')}>Лунный календарь</a></li>

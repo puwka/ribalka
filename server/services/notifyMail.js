@@ -124,6 +124,58 @@ export function notifyOwnerNewReview({
 }
 
 /**
+ * Email + in-app notice for report author when someone comments.
+ * Skips if commenter is the report author.
+ */
+export function notifyReportAuthorNewComment({
+  reportAuthorId,
+  commenterUserId,
+  reportId,
+  reportTitle,
+  authorName,
+  body,
+  pending = true,
+}) {
+  if (!reportAuthorId) return;
+  if (commenterUserId && String(reportAuthorId) === String(commenterUserId)) return;
+
+  run(async () => {
+    const user = await loadUserContact(reportAuthorId);
+    if (!user) return;
+
+    const reportUrl = `${site()}/reports/${reportId}`;
+    const title = reportTitle || 'Отчёт';
+
+    try {
+      await pool.query(
+        `insert into public.notifications (user_id, type, title, body, link_path, payload)
+         values ($1, 'comment', $2, $3, $4, $5::jsonb)`,
+        [
+          reportAuthorId,
+          'Новый комментарий к отчёту',
+          `${authorName || 'Рыболов'}: ${(body || '').slice(0, 160)}`,
+          `/reports/${reportId}`,
+          JSON.stringify({ report_id: reportId, kind: 'report_comment' }),
+        ]
+      );
+    } catch (err) {
+      console.error('[notifyMail] in-app comment notice', err.message);
+    }
+
+    if (!user.email) return;
+    const tpl = mail.reportCommentEmail({
+      displayName: user.display_name,
+      reportTitle: title,
+      authorName: authorName || 'Рыболов',
+      body: body || '',
+      reportUrl,
+      pending,
+    });
+    await mail.sendMailSafe({ to: user.email, ...tpl });
+  });
+}
+
+/**
  * When CMS directory page is saved, email owners whose items became published.
  */
 export function notifyDirectoryPublishTransitions(prevValue, nextValue) {

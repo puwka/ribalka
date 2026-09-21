@@ -1,0 +1,116 @@
+.support-page {
+  padding: var(--space-12) 0 var(--space-16);
+  background: linear-gradient(180deg, #fffbeb 0%, var(--color-bg) 42%);
+}
+
+.support-page__inner {
+  max-width: 560px;
+}
+
+.support-page__hero {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  margin-bottom: var(--space-8);
+}
+
+.support-page__art {
+  flex: 0 0 auto;
+  width: 112px;
+  height: 112px;
+  padding: 10px;
+  border-radius: 20px;
+  background: #fff8dc;
+  border: 2px solid #f0e0a0;
+  box-shadow: var(--shadow-md);
+}
+
+.support-page__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.support-page__copy h1 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-primary);
+}
+
+.support-page__copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.support-page__panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.support-page__back {
+  margin: var(--space-6) 0 0;
+}
+
+.support-page__back a {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.support-page__back a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .support-page__hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+.support-thanks__card {
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10) var(--space-6);
+  box-shadow: var(--shadow-md);
+}
+
+.support-thanks__art {
+  margin: 0 auto var(--space-5);
+}
+
+.support-thanks__card h1 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+.support-thanks__card > p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  font-size: var(--text-lg);
+}
+
+.support-thanks__timer {
+  margin-top: var(--space-6) !important;
+  font-size: var(--text-sm) !important;
+  color: var(--color-text-muted) !important;
+}
+
+.support-thanks__timer a {
+  color: var(--color-accent);
+  font-weight: 600;
+}

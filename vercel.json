@@ -6,11 +6,11 @@
   "routes": [
     { "handle": "filesystem" },
     {
-      "src": "^/(about|map|tariffs|lunar|calendar|favorites|paid-waters|free-waters|login|register|forgot-password|reset-password)/?$",
+      "src": "^/(about|map|tariffs|lunar|calendar|favorites|paid-waters|free-waters|login|register|forgot-password|reset-password|support)/?$",
       "dest": "/index.html"
     },
     {
-      "src": "^/(news|waters|bases|directory|reports|forum|u|cabinet|owner|admin|paid-bases|free-places)(/.*)?$",
+      "src": "^/(news|waters|bases|directory|reports|forum|u|cabinet|owner|admin|paid-bases|free-places|support)(/.*)?$",
       "dest": "/index.html"
     },
     { "src": "^/$", "dest": "/index.html" },

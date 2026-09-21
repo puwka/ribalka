@@ -71,8 +71,9 @@ const OWNER_NAV = [
     ],
   },
   {
-    title: 'Монетизация',
+    title: 'Аккаунт',
     items: [
+      { to: '/cabinet/profile', label: 'Профиль' },
       { to: '/owner/subscription', label: 'Тарифы' },
       { to: '/owner/payments', label: 'Платежи' },
     ],

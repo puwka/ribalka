@@ -9,6 +9,8 @@ import { reviewsService } from '../services/reviewsService';
 import NotificationsPanel from '../components/notifications/NotificationsPanel';
 import FavoritesPage from './FavoritesPage';
 import OwnerAdvertisingPanel from '../components/owner/OwnerAdvertising';
+import { ImageUploadField } from '../components/media/ImageUpload';
+import { uploadService } from '../services/uploadService';
 import '../components/auth/AuthShared.css';
 
 function useUserNav() {
@@ -186,6 +188,7 @@ function ProfilePanel() {
     phone: '',
     city: '',
     is_public: true,
+    avatar_path: '',
   });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -209,6 +212,7 @@ function ProfilePanel() {
       phone: profile.phone || '',
       city: profile.city || 'Пермь',
       is_public: profile.is_public !== false,
+      avatar_path: profile.avatar_path || profile.avatar_url || '',
     });
   }, [profile]);
 
@@ -288,6 +292,15 @@ function ProfilePanel() {
       <form className="cabinet-form" onSubmit={onSubmit} noValidate>
         <div className="cabinet-form__section" style={{ borderTop: 'none', paddingTop: 0, marginTop: 0 }}>
           <h3>Основное</h3>
+          <div style={{ marginBottom: 16 }}>
+            <ImageUploadField
+              label="Аватар"
+              value={form.avatar_path}
+              onChange={(url) => setForm((f) => ({ ...f, avatar_path: url }))}
+              bucket={uploadService.buckets.avatar}
+              hint="Квадратное фото, до 2 МБ"
+            />
+          </div>
           <label>
             Имя
             <input

@@ -575,6 +575,18 @@ export async function markAdPaid(adId, { skipYoo = false } = {}) {
     [adId, days]
   );
   const ad = mapAd(rows[0]);
+  try {
+    await pool.query(
+      `update public.payments set
+         status = 'succeeded',
+         updated_at = now()
+       where meta->>'ad_id' = $1
+         and status = 'pending'`,
+      [String(adId)]
+    );
+  } catch {
+    /* payments schema may differ */
+  }
   if (ad?.owner_id) {
     await pool.query(
       `insert into public.notifications (user_id, type, title, body, link_path, payload)

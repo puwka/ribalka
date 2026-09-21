@@ -118,7 +118,13 @@ router.get('/me', authMiddleware, requireAuth, async (req, res, next) => {
 
 router.patch('/profile', authMiddleware, requireAuth, async (req, res, next) => {
   try {
-    const { display_name, bio, phone, city, is_public } = req.body || {};
+    const { display_name, bio, phone, city, is_public, avatar_path, avatar_url } = req.body || {};
+    const avatar =
+      avatar_path !== undefined
+        ? avatar_path
+        : avatar_url !== undefined
+          ? avatar_url
+          : undefined;
     await pool.query(
       `update public.profiles set
         display_name = coalesce($2, display_name),
@@ -126,9 +132,10 @@ router.patch('/profile', authMiddleware, requireAuth, async (req, res, next) => 
         phone = coalesce($4, phone),
         city = coalesce($5, city),
         is_public = coalesce($6, is_public),
+        avatar_path = coalesce($7, avatar_path),
         updated_at = now()
        where user_id = $1`,
-      [req.user.sub, display_name, bio, phone, city, is_public]
+      [req.user.sub, display_name, bio, phone, city, is_public, avatar]
     );
     const bundle = await loadUserBundle(req.user.sub);
     res.json(bundle);

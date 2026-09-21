@@ -12,7 +12,7 @@ export default function PaidBases() {
       <div className="section-inner">
         <header className="section-head">
           <span className="section-head__eyebrow">Каталог</span>
-          <h2 className="section-head__title">Платные водоёмы Пермского края</h2>
+          <h2 className="section-head__title">Базы отдыха и водоёмы Пермского края</h2>
           <p className="section-head__desc">
             Базы с домиками, баней, прокатом снастей и сервисом для комфортной рыбалки
           </p>
