@@ -55,22 +55,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-.support-float__close {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.55);
-  color: #fff;
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.support-float__close:hover {
-  background: rgba(15, 23, 42, 0.75);
-}
-
 @keyframes support-float-bounce {
   0%,
   100% {

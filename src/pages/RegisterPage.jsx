@@ -13,6 +13,7 @@ function RegisterForm() {
     displayName: '',
     email: '',
     password: '',
+    role: 'user',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,8 +25,13 @@ function RegisterForm() {
     setSubmitting(true);
     setError('');
     try {
-      await register(form.email, form.password, form.displayName, 'user');
-      navigate(from && !String(from).startsWith('/owner') ? from : '/cabinet', { replace: true });
+      const role = form.role === 'owner' ? 'owner' : 'user';
+      await register(form.email, form.password, form.displayName, role);
+      if (role === 'owner') {
+        navigate('/owner', { replace: true });
+      } else {
+        navigate(from && !String(from).startsWith('/owner') ? from : '/cabinet', { replace: true });
+      }
     } catch (err) {
       setError(err.message || 'Не удалось зарегистрироваться');
     } finally {
@@ -37,7 +43,7 @@ function RegisterForm() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Регистрация</h1>
-        <p className="auth-card__subtitle">Создайте аккаунт пользователя на сайте</p>
+        <p className="auth-card__subtitle">Создайте аккаунт на сайте</p>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
@@ -70,12 +76,34 @@ function RegisterForm() {
               onChange={onChange('password')}
             />
           </label>
-          <label>
-            Тип аккаунта
-            <select value="user" disabled aria-readonly="true">
-              <option value="user">Пользователь</option>
-            </select>
-          </label>
+
+          <fieldset className="auth-role">
+            <legend>Тип аккаунта</legend>
+            <div className="auth-role__options" role="radiogroup" aria-label="Тип аккаунта">
+              <label className={`auth-role__option${form.role === 'user' ? ' is-active' : ''}`}>
+                <input
+                  type="radio"
+                  name="accountRole"
+                  value="user"
+                  checked={form.role === 'user'}
+                  onChange={onChange('role')}
+                />
+                <span className="auth-role__title">Пользователь</span>
+                <span className="auth-role__hint">Отчёты, избранное, комментарии</span>
+              </label>
+              <label className={`auth-role__option${form.role === 'owner' ? ' is-active' : ''}`}>
+                <input
+                  type="radio"
+                  name="accountRole"
+                  value="owner"
+                  checked={form.role === 'owner'}
+                  onChange={onChange('role')}
+                />
+                <span className="auth-role__title">Владелец</span>
+                <span className="auth-role__hint">Базы, каталог, кабинет владельца</span>
+              </label>
+            </div>
+          </fieldset>
 
           {error && <div className="auth-error">{error}</div>}
 
