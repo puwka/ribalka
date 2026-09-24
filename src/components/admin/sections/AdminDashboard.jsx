@@ -112,10 +112,12 @@ export default function AdminDashboard() {
             </div>
             <div className="admin-feed__item">
               <div>
-                <div className="admin-feed__title">Форум</div>
-                <div className="admin-feed__meta">{stats?.pendingForum ?? 0} ожидают</div>
+                <div className="admin-feed__title">Егорыч</div>
+                <div className="admin-feed__meta">AI-помощник (чат)</div>
               </div>
-              <Link to="/admin/forum" className="admin-btn admin-btn--sm">Открыть</Link>
+              <Link to="/admin/egorych" className="admin-btn admin-btn--sm">
+                Открыть
+              </Link>
             </div>
             <div className="admin-feed__item">
               <div>

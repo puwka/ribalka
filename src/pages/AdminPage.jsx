@@ -13,7 +13,7 @@ import AdminNewsSection from '../components/admin/sections/AdminNewsSection';
 import AdminWatersSection from '../components/admin/sections/AdminWatersSection';
 import AdminBasesSection from '../components/admin/sections/AdminBasesSection';
 import AdminReportsSection from '../components/admin/sections/AdminReportsSection';
-import AdminForumSection from '../components/admin/sections/AdminForumSection';
+import AdminEgorychSection from '../components/admin/sections/AdminEgorychSection';
 import AdminMediaSection from '../components/admin/sections/AdminMediaSection';
 import AdminUsersSection from '../components/admin/sections/AdminUsersSection';
 import AdminReviewsSection from '../components/admin/sections/AdminReviewsSection';
@@ -42,7 +42,8 @@ export default function AdminPage() {
           <Route path="waters" element={<AdminWatersSection />} />
           <Route path="bases" element={<AdminBasesSection />} />
           <Route path="reports" element={<AdminReportsSection />} />
-          <Route path="forum" element={<AdminForumSection />} />
+          <Route path="egorych" element={<AdminEgorychSection />} />
+          <Route path="forum" element={<Navigate to="/admin/egorych" replace />} />
           <Route path="media" element={<AdminMediaSection />} />
           <Route path="users" element={<AdminUsersSection />} />
           <Route path="reviews" element={<AdminReviewsSection />} />

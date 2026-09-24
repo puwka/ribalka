@@ -1,3 +1,23 @@
+.egorych-card--soon {
+  text-align: center;
+  padding: 1.75rem 1.5rem;
+}
+
+.egorych-soon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+  margin-top: 1.15rem;
+}
+
+.egorych-page--loading {
+  display: grid;
+  place-items: center;
+  min-height: 50vh;
+  color: #3a4536;
+}
+
 .egorych-page {
   min-height: 100dvh;
   background:
@@ -139,6 +159,15 @@
   background: rgba(61, 90, 54, 0.08);
   color: #2a3826;
   font-size: 0.95rem;
+}
+
+.egorych-card--soon {
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.egorych-card--soon h2 {
+  font-size: 1.35rem;
 }
 
 @media (max-width: 640px) {
