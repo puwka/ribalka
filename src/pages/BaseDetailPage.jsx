@@ -5,7 +5,12 @@ import { reportSocialService } from '../services/reportSocialService';
 import { useAuth } from '../components/auth/AuthContext';
 import { favoritesService } from '../services/favoritesService';
 import { analyticsTracker } from '../services/ownerDashboardService';
-import { formatPaidPrice, enrichWaterItem } from '../lib/waterUtils';
+import {
+  formatPaidPrice,
+  enrichWaterItem,
+  getBaseWebLinks,
+  getPrimarySiteUrl,
+} from '../lib/waterUtils';
 import RichText from '../components/ui/RichText';
 import { toYandexCoords } from '../lib/coords';
 import { useToast } from '../components/ui/ToastContext';
@@ -164,6 +169,8 @@ export default function BaseDetailPage() {
 
   const images = item.images?.length ? item.images : [];
   const videos = normalizeVideoList(item.videos?.length ? item.videos : item.video ? [item.video] : []);
+  const webLinks = getBaseWebLinks(item);
+  const siteUrl = getPrimarySiteUrl(item);
   const yandexPt = toYandexCoords(item);
   const mapUrl =
     yandexPt &&
@@ -272,15 +279,15 @@ export default function BaseDetailPage() {
                   На карте
                 </a>
               )}
-              {item.website && (
+              {siteUrl && (
                 <a
-                  href={item.website}
+                  href={siteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn--ghost"
                   onClick={() => analyticsTracker.trackClick(item, 'website')}
                 >
-                  Сайт
+                  На сайт
                 </a>
               )}
             </div>
@@ -453,11 +460,63 @@ export default function BaseDetailPage() {
                   </a>
                 </div>
               )}
-              {item.website && (
+              {webLinks.website && (
                 <div className="water-detail__info-row">
                   <span>Сайт</span>
                   <a
-                    href={item.website}
+                    href={webLinks.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => analyticsTracker.trackClick(item, 'website')}
+                  >
+                    Перейти
+                  </a>
+                </div>
+              )}
+              {webLinks.vk && (
+                <div className="water-detail__info-row">
+                  <span>ВКонтакте</span>
+                  <a
+                    href={webLinks.vk}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => analyticsTracker.trackClick(item, 'website')}
+                  >
+                    Перейти
+                  </a>
+                </div>
+              )}
+              {webLinks.telegram && (
+                <div className="water-detail__info-row">
+                  <span>Telegram</span>
+                  <a
+                    href={webLinks.telegram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => analyticsTracker.trackClick(item, 'website')}
+                  >
+                    Перейти
+                  </a>
+                </div>
+              )}
+              {webLinks.max && (
+                <div className="water-detail__info-row">
+                  <span>MAX</span>
+                  <a
+                    href={webLinks.max}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => analyticsTracker.trackClick(item, 'website')}
+                  >
+                    Перейти
+                  </a>
+                </div>
+              )}
+              {webLinks.other && (
+                <div className="water-detail__info-row">
+                  <span>Соцсеть</span>
+                  <a
+                    href={webLinks.other}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => analyticsTracker.trackClick(item, 'website')}

@@ -166,3 +166,33 @@ export function enrichWaterItem(item) {
     hasWater: listingHasWater({ ...item, waterKind: inferWaterBodyKind(item) }),
   };
 }
+
+/** Ensure external links open correctly even if owner omitted https:// */
+export function normalizeExternalUrl(url) {
+  const s = String(url || '').trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  if (/^\/\//.test(s)) return `https:${s}`;
+  return `https://${s}`;
+}
+
+/**
+ * Website + social links from a public base/water item.
+ * Owners often put a VK group only in social_vk — that must still be visible on the site.
+ */
+export function getBaseWebLinks(item) {
+  const social = item?.social || item?.social_links || {};
+  return {
+    website: normalizeExternalUrl(item?.website || item?.website_url),
+    vk: normalizeExternalUrl(social.vk),
+    telegram: normalizeExternalUrl(social.telegram),
+    max: normalizeExternalUrl(social.max),
+    other: normalizeExternalUrl(social.other),
+  };
+}
+
+/** Primary «На сайт» URL: own site, else VK / other social. */
+export function getPrimarySiteUrl(item) {
+  const links = getBaseWebLinks(item);
+  return links.website || links.vk || links.other || links.telegram || links.max || '';
+}
