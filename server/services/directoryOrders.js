@@ -20,7 +20,7 @@ function mapOrder(row) {
   };
 }
 
-function calcAmount(tariff, { months, frame }) {
+function calcAmount(tariff, { months, frame, topDays = 0 }) {
   const m = Number(months) || 3;
   const monthly =
     Number(tariff.amountPerMonth || 0) + (frame ? Number(tariff.addonFrame || 0) : 0);
@@ -32,7 +32,10 @@ function calcAmount(tariff, { months, frame }) {
         ? Number(tariff.discount6) || 0
         : Number(tariff.discount12) || 0;
   const discountAmount = Math.round((full * discountPct) / 100);
-  return Math.max(0, Math.round(full - discountAmount));
+  const days = Math.max(0, Math.min(90, Number(topDays) || 0));
+  const daily = Number(tariff.addonTopDaily ?? tariff.addonTop) || 300;
+  const topAmount = Math.round(days * daily);
+  return Math.max(0, Math.round(full - discountAmount) + topAmount);
 }
 
 function categoryLabel(category) {
@@ -133,6 +136,7 @@ export async function createDirectoryCheckout({
   months = 3,
   frame = false,
   top = false,
+  topDays = 0,
   listing = {},
   directoryItemId = null,
   returnUrl,
@@ -191,8 +195,22 @@ export async function createDirectoryCheckout({
   }
 
   const wantFrame = Boolean(frame);
-  // Monthly TOP removed — only «ТОП на сутки»
-  const amount = calcAmount(tariff, { months: m, frame: wantFrame });
+  let days = Math.max(0, Math.min(90, Number(topDays) || (top ? 1 : 0)));
+  if (days > 0) {
+    const slots = await getDirectoryTopAvailability({
+      category,
+      itemId: itemId || null,
+    });
+    if (!slots.dailyAvailable && !slots.alreadyTop) {
+      const err = new Error(
+        'К сожалению, все места в топе заняты, попробуйте позже.'
+      );
+      err.status = 409;
+      throw err;
+    }
+  }
+
+  const amount = calcAmount(tariff, { months: m, frame: wantFrame, topDays: days });
   const payload = {
     name,
     category,
@@ -210,22 +228,24 @@ export async function createDirectoryCheckout({
           .map((t) => t.trim())
           .filter(Boolean),
     yellowFrame: wantFrame,
-    isTop: false,
+    isTop: days > 0,
+    topDays: days,
     months: m,
     renew: Boolean(existingItem),
   };
 
   const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
-  const orderDescription = `${tariff.title}: ${categoryLabel(category)} «${name}» (${m} мес.)`.slice(
-    0,
-    128
-  );
+  const orderDescription = (
+    days > 0
+      ? `${tariff.title}: ${categoryLabel(category)} «${name}» (${m} мес. + ТОП ${days} сут.)`
+      : `${tariff.title}: ${categoryLabel(category)} «${name}» (${m} мес.)`
+  ).slice(0, 128);
 
   const { rows } = await pool.query(
     `insert into public.directory_listing_orders
       (user_id, category, amount, currency, status, description, expires_at,
-       payment_provider, months, addon_frame, addon_top, payload, directory_item_id)
-     values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',$6,$7,$8,$9::jsonb,$10)
+       payment_provider, months, addon_frame, addon_top, payload, directory_item_id, meta)
+     values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',$6,$7,$8,$9::jsonb,$10,$11::jsonb)
      returning *`,
     [
       userId,
@@ -235,9 +255,10 @@ export async function createDirectoryCheckout({
       expiresAt,
       m,
       wantFrame,
-      false,
+      days > 0,
       JSON.stringify(payload),
       itemId || null,
+      JSON.stringify({ top_days: days }),
     ]
   );
   let order = mapOrder(rows[0]);
@@ -362,6 +383,7 @@ export async function createDirectoryUpgradeCheckout({
   userId,
   directoryItemId,
   top = false,
+  topDays = 0,
   frame = false,
   returnUrl,
 }) {
@@ -397,11 +419,26 @@ export async function createDirectoryUpgradeCheckout({
   }
 
   const hasFrame = Boolean(existingItem.yellowFrame || existingItem.highlight);
-  const addTop = false;
   const addFrame = Boolean(frame) && !hasFrame;
+  let days = Math.max(0, Math.min(90, Number(topDays) || (top ? 1 : 0)));
+  if (days > 0) {
+    const slots = await getDirectoryTopAvailability({
+      category: existingItem.category,
+      itemId,
+    });
+    if (!slots.dailyAvailable && !slots.alreadyTop) {
+      const err = new Error(
+        'К сожалению, все места в топе заняты, попробуйте позже.'
+      );
+      err.status = 409;
+      throw err;
+    }
+  }
+  const daily = Number(tariff.addonTopDaily ?? tariff.addonTop) || 300;
   const amount = Math.max(
     0,
-    Math.round((addFrame ? Number(tariff.addonFrame) || 0 : 0) * rem)
+    Math.round((addFrame ? Number(tariff.addonFrame) || 0 : 0) * rem) +
+      Math.round(days * daily)
   );
 
   if (amount <= 0) {
@@ -424,16 +461,18 @@ export async function createDirectoryUpgradeCheckout({
     image: existingItem.image || '',
     tags: existingItem.tags || [],
     yellowFrame: hasFrame || addFrame,
-    isTop: Boolean(existingItem.isTop || existingItem.top),
+    isTop: days > 0 || Boolean(existingItem.isTop || existingItem.top),
+    topDays: days,
     remainingMonths: rem,
     renew: true,
   };
 
   const expiresAt = new Date(Date.now() + ORDER_TTL_HOURS * 3600 * 1000).toISOString();
-  const orderDescription = `Доплата опций: ${categoryLabel(category)} «${existingItem.name}»`.slice(
-    0,
-    128
-  );
+  const orderDescription = (
+    days > 0
+      ? `Доплата опций: ${categoryLabel(category)} «${existingItem.name}» (+ТОП ${days} сут.)`
+      : `Доплата опций: ${categoryLabel(category)} «${existingItem.name}»`
+  ).slice(0, 128);
 
   const { rows } = await pool.query(
     `insert into public.directory_listing_orders
@@ -449,10 +488,10 @@ export async function createDirectoryUpgradeCheckout({
       expiresAt,
       3,
       hasFrame || addFrame,
-      false,
+      days > 0,
       JSON.stringify(payload),
       itemId,
-      JSON.stringify({ kind: 'upgrade', remainingMonths: rem }),
+      JSON.stringify({ kind: 'upgrade', remainingMonths: rem, top_days: days }),
     ]
   );
   let order = mapOrder(rows[0]);
@@ -683,6 +722,60 @@ async function publishDirectoryItem(client, order) {
       : 'pending';
 
   const keepTop = itemHasActiveTop(existing);
+  const topDaysPaid = Math.max(
+    0,
+    Math.min(90, Number(payload.topDays ?? meta?.top_days) || 0)
+  );
+  let nextIsTop = keepTop;
+  let nextTopUntil = keepTop ? existing?.topUntil || null : null;
+  let nextTopKind = keepTop ? existing?.topKind || null : null;
+
+  if (topDaysPaid > 0) {
+    const already = keepTop;
+    if (!already) {
+      const used = items.filter(
+        (i) =>
+          String(i.id) !== String(itemId) &&
+          String(i.category) === String(order.category || existing?.category || payload.category) &&
+          itemHasActiveTop(i)
+      ).length;
+      if (used >= DIRECTORY_TOP_SLOTS) {
+        const dailies = items
+          .map((i, index) => ({ i, index }))
+          .filter(
+            ({ i }) =>
+              String(i.id) !== String(itemId) &&
+              String(i.category) ===
+                String(order.category || existing?.category || payload.category) &&
+              itemHasActiveTop(i) &&
+              (i.topKind === 'daily' || (i.topUntil && !i.topKind))
+          )
+          .sort(
+            (a, b) =>
+              new Date(a.i.topUntil || 0).getTime() - new Date(b.i.topUntil || 0).getTime()
+          );
+        if (dailies[0]) {
+          const d = dailies[0].i;
+          items[dailies[0].index] = {
+            ...d,
+            isTop: false,
+            top: false,
+            topUntil: null,
+            topKind: null,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      }
+    }
+    const baseUntil =
+      already && existing?.topUntil ? new Date(existing.topUntil) : new Date();
+    if (baseUntil.getTime() < Date.now()) baseUntil.setTime(Date.now());
+    baseUntil.setHours(baseUntil.getHours() + topDaysPaid * 24);
+    nextIsTop = true;
+    nextTopUntil = baseUntil.toISOString();
+    nextTopKind = 'daily';
+  }
+
   const row = {
     ...(existing || {}),
     id: itemId,
@@ -700,10 +793,10 @@ async function publishDirectoryItem(client, order) {
     yellowFrame: Boolean(
       order.addon_frame || payload.yellowFrame || existing?.yellowFrame
     ),
-    isTop: keepTop,
-    top: keepTop,
-    topUntil: keepTop ? existing?.topUntil || null : null,
-    topKind: keepTop ? existing?.topKind || null : null,
+    isTop: nextIsTop,
+    top: nextIsTop,
+    topUntil: nextTopUntil,
+    topKind: nextTopKind,
     ownerUserId: order.user_id,
     orderId: order.id,
     paidUntil: paidUntil || existing?.paidUntil || null,
@@ -1068,7 +1161,7 @@ export async function createDirectoryTopDailyCheckout({
       `insert into public.directory_listing_orders
         (user_id, category, amount, currency, status, description, expires_at,
          payment_provider, months, addon_frame, addon_top, payload, directory_item_id, meta)
-       values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',0,false,true,$6::jsonb,$7,$8::jsonb)
+       values ($1,$2,$3,'RUB','pending',$4,$5,'yookassa',3,false,true,$6::jsonb,$7,$8::jsonb)
        returning *`,
       [
         userId,

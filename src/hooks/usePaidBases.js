@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { basesService } from '../services/basesService';
 
-export const usePaidBases = () => {
+export const usePaidBases = (opts = {}) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const limit = opts.limit;
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const remote = await basesService.listPublic({ type: 'paid' });
+      const remote = await basesService.listPublic({
+        type: 'paid',
+        ...(limit ? { limit } : {}),
+      });
       setData(remote || []);
     } catch (err) {
       setError(err);
@@ -22,7 +26,8 @@ export const usePaidBases = () => {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limit]);
 
   return { data, loading, error, refetch: load };
 };

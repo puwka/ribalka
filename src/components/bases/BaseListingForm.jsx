@@ -244,31 +244,44 @@ export default function BaseListingForm({
           />
         </label>
         <label className="base-form__full">
-          Услуги (через запятую)
-          <input
-            value={form.servicesText}
+          Услуги и инфраструктура
+          <textarea
+            rows={2}
+            value={form.servicesText || ''}
             onChange={set('servicesText')}
-            placeholder="Баня, прокат лодок, кафе"
+            placeholder="Баня, беседки, лодки, мангал…"
             disabled={disabled}
           />
+          <span className="base-form__hint">Через запятую</span>
         </label>
         <label className="base-form__full">
-          Условия
+          Транспорт
+          <textarea
+            rows={2}
+            value={form.transport || ''}
+            onChange={set('transport')}
+            placeholder="Легковой автомобиль, внедорожник, автобус…"
+            disabled={disabled}
+          />
+          <span className="base-form__hint">Как добраться на каком транспорте</span>
+        </label>
+        <label className="base-form__full">
+          Как добраться
           <textarea
             rows={3}
-            value={form.conditions}
+            value={form.conditions || ''}
             onChange={set('conditions')}
-            placeholder="Правила посещения, норма вылова…"
+            placeholder="Маршрут, ориентиры, паром, расстояние…"
             disabled={disabled}
           />
         </label>
         <label className="base-form__full">
-          Особенности
+          Примечания
           <textarea
-            rows={3}
-            value={form.features}
+            rows={2}
+            value={form.features || ''}
             onChange={set('features')}
-            placeholder="Пирс, домики, детская площадка…"
+            placeholder="Дополнительная информация для рыболовов…"
             disabled={disabled}
           />
         </label>

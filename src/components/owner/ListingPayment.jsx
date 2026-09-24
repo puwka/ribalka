@@ -54,10 +54,12 @@ export function OwnerListingCheckoutPage() {
     return [3, 6, 12].includes(m) ? m : 3;
   });
   const [frame, setFrame] = useState(() => searchParams.get('frame') === '1');
+  const [topDays, setTopDays] = useState(() =>
+    Math.max(0, Math.min(90, Number(searchParams.get('topDays')) || 0))
+  );
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [payingDaily, setPayingDaily] = useState(false);
   const [error, setError] = useState('');
   const [topSlots, setTopSlots] = useState(null);
 
@@ -132,10 +134,21 @@ export function OwnerListingCheckoutPage() {
     };
   }, [baseId, user, searchParams, isUpgrade]);
 
+  const topSlotsFull =
+    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
+  const effectiveTopDays = isUpgrade || topSlotsFull ? 0 : topDays;
+
   const renewQuote = useMemo(() => {
     if (!tariff) return null;
-    return calcConstructorTotal(tariff, { months, top: false, frame, extraPhotos, extraVideos });
-  }, [tariff, months, frame, extraPhotos, extraVideos]);
+    return calcConstructorTotal(tariff, {
+      months,
+      top: false,
+      frame,
+      extraPhotos,
+      extraVideos,
+      topDays: effectiveTopDays,
+    });
+  }, [tariff, months, frame, extraPhotos, extraVideos, effectiveTopDays]);
 
   const upgradeQuote = useMemo(() => {
     if (!tariff || !base || !isUpgrade) return null;
@@ -148,17 +161,8 @@ export function OwnerListingCheckoutPage() {
   }, [tariff, base, isUpgrade, frame, extraPhotos, extraVideos]);
 
   const amount = isUpgrade ? upgradeQuote?.total ?? 0 : renewQuote?.total ?? 0;
-  const paidUntilMs = base?.paid_until || base?.paidUntil
-    ? new Date(base.paid_until || base.paidUntil).getTime()
-    : null;
-  const basePeriodActive = paidUntilMs == null || paidUntilMs > Date.now();
   const dailyPrice =
     Number(topSlots?.addonTopDaily ?? tariff?.addonTopDaily) || 300;
-  const topSlotsFull =
-    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
-  const showDailyTop =
-    Boolean(base) && base.status === 'approved' && basePeriodActive;
-  const canBuyDaily = showDailyTop && !topSlotsFull;
 
   const pay = async () => {
     setPaying(true);
@@ -167,6 +171,7 @@ export function OwnerListingCheckoutPage() {
       const result = await listingPaymentService.checkout(baseId, {
         months,
         top: false,
+        topDays: effectiveTopDays,
         frame,
         extraPhotos,
         extraVideos,
@@ -184,30 +189,6 @@ export function OwnerListingCheckoutPage() {
     } catch (err) {
       setError(err.message || 'Ошибка оплаты');
       setPaying(false);
-    }
-  };
-
-  const payDailyTop = async () => {
-    if (!canBuyDaily) {
-      setError('Все места в ТОП на главной заняты. Попробуйте позже.');
-      return;
-    }
-    setPayingDaily(true);
-    setError('');
-    try {
-      const result = await listingPaymentService.checkoutTopDaily(baseId);
-      if (result.order?.status === 'paid') {
-        navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
-        return;
-      }
-      if (result.confirmationUrl) {
-        window.location.href = result.confirmationUrl;
-        return;
-      }
-      throw new Error('Не удалось получить ссылку на оплату');
-    } catch (err) {
-      setError(err.message || 'Ошибка оплаты');
-      setPayingDaily(false);
     }
   };
 
@@ -315,63 +296,44 @@ export function OwnerListingCheckoutPage() {
 
       <div className="listing-pay__opts">
         <p className="listing-pay__label">Дополнительные опции</p>
-        <div
-          className="listing-pay__check"
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 10,
-            opacity: showDailyTop && !canBuyDaily ? 0.55 : 1,
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 18,
-              height: 18,
-              marginTop: 2,
-              borderRadius: 4,
-              border: '2px solid currentColor',
-              flexShrink: 0,
-              background:
-                topSlots?.alreadyTop && !topSlotsFull ? 'currentColor' : 'transparent',
-            }}
-          />
-          <span style={{ flex: 1 }}>
-            ТОП на сутки{' '}
-            <em>+{formatMoney(dailyPrice, 'RUB')}</em>
-            <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
-              На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест · 24 часа
-              {topSlotsFull
-                ? ' · сейчас занято — кнопка неактивна'
-                : showDailyTop
-                  ? ''
-                  : ' · доступно после оплаты и одобрения базы'}
-            </small>
-          </span>
-          {showDailyTop ? (
-            <button
-              type="button"
-              className="btn-secondary"
-              style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-              disabled={paying || payingDaily || !ctor.enabled || !canBuyDaily}
-              title={
-                topSlotsFull
-                  ? 'Все места в ТОП на сегодня заняты'
-                  : 'Поднять базу в ТОП на главной на 24 часа'
-              }
-              onClick={payDailyTop}
-            >
-              {payingDaily
-                ? '…'
-                : topSlotsFull
-                  ? 'Занято'
-                  : topSlots?.alreadyTop
-                    ? 'Продлить'
-                    : 'Купить'}
-            </button>
-          ) : null}
-        </div>
+        {!isUpgrade &&
+          (topSlotsFull ? (
+            <p className="listing-pay__note" style={{ color: '#b91c1c' }}>
+              К сожалению, все места в топе заняты, попробуйте позже.
+              {topSlots ? ` (${topSlots.used}/${topSlots.max})` : ''}
+            </p>
+          ) : (
+            <div className="listing-pay__counter">
+              <span>
+                ТОП на сутки <em>+{formatMoney(dailyPrice, 'RUB')} / сут</em>
+                <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
+                  На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                  {topSlots?.alreadyTop ? ' · сутки добавятся к текущему ТОП' : ''}
+                </small>
+              </span>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTopDays((n) => Math.max(0, n - 1));
+                    setPendingPaymentUrl(null);
+                  }}
+                >
+                  −
+                </button>
+                <strong>{topDays}</strong>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTopDays((n) => Math.min(90, n + 1));
+                    setPendingPaymentUrl(null);
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
         <label className="listing-pay__check">
           <input
             type="checkbox"
@@ -471,13 +433,21 @@ export function OwnerListingCheckoutPage() {
                 <strong>−{formatRub(renewQuote.discountAmount)}</strong>
               </div>
             )}
+            {renewQuote.topDays > 0 && (
+              <div className="listing-pay__row">
+                <span>ТОП {renewQuote.topDays} сут.</span>
+                <strong>+{formatRub(renewQuote.topAmount)}</strong>
+              </div>
+            )}
           </>
         )}
         <div className="listing-pay__row listing-pay__row--total">
           <span>
             {isUpgrade
               ? 'К доплате'
-              : `Итого${renewQuote ? ` за ${renewQuote.months} мес.` : ''}`}
+              : `Итого${renewQuote ? ` за ${renewQuote.months} мес.` : ''}${
+                  renewQuote?.topDays ? ' + ТОП' : ''
+                }`}
           </span>
           <strong>{formatMoney(amount, 'RUB')}</strong>
         </div>
@@ -500,7 +470,7 @@ export function OwnerListingCheckoutPage() {
         <button
           type="button"
           className="btn-primary"
-          disabled={paying || payingDaily || !ctor.enabled || (isUpgrade && amount === 0)}
+          disabled={paying || !ctor.enabled || (isUpgrade && amount === 0)}
           onClick={pay}
         >
           {paying
@@ -513,29 +483,6 @@ export function OwnerListingCheckoutPage() {
                   ? `Доплатить ${formatMoney(amount, 'RUB')}`
                   : `Оплатить ${formatMoney(amount, 'RUB')}`}
         </button>
-        {showDailyTop ? (
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={paying || payingDaily || !ctor.enabled || !canBuyDaily}
-            title={
-              topSlotsFull
-                ? 'Все места в ТОП на сегодня заняты'
-                : topSlots?.alreadyTop
-                  ? 'Продлить ТОП ещё на сутки'
-                  : 'Поднять базу в ТОП на главной на 24 часа'
-            }
-            onClick={payDailyTop}
-          >
-            {payingDaily
-              ? 'Создаём платёж…'
-              : topSlotsFull
-                ? `ТОП занят (${topSlots?.used || 4}/${topSlots?.max || 4})`
-                : topSlots?.alreadyTop
-                  ? `Продлить ТОП на сутки ${formatMoney(dailyPrice, 'RUB')}`
-                  : `ТОП на сутки ${formatMoney(dailyPrice, 'RUB')}`}
-          </button>
-        ) : null}
         {pendingPaymentUrl && (
           <a className="btn-secondary" href={pendingPaymentUrl}>
             Продолжить оплату
@@ -547,10 +494,10 @@ export function OwnerListingCheckoutPage() {
       </div>
 
       <p className="listing-pay__note">
-        На главной — {topSlots?.max || 4} места в ТОП. «ТОП на сутки» действует 24 часа и недоступен,
-        если все слоты заняты. Доп. фото можно докупить в любой момент за{' '}
-        {formatRub(ctor.addonPhoto)} каждое (режим доплаты). После оплаты заявка уйдёт на модерацию
-        (кроме уже одобренных баз при доплате / суточном ТОП).
+        На главной — {topSlots?.max || 4} места в ТОП. Сутки ТОП выбираются в тарифе выше и входят в
+        общую сумму. Если все места заняты — опция недоступна. Доп. фото можно докупить в любой
+        момент за {formatRub(ctor.addonPhoto)} каждое (режим доплаты). После оплаты заявка уйдёт на
+        модерацию (кроме уже одобренных баз при доплате).
       </p>
     </div>
   );

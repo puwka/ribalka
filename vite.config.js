@@ -58,7 +58,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'pages-cache-v2',
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 2,
               expiration: { maxEntries: 8, maxAgeSeconds: 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -82,6 +82,7 @@ export default defineConfig({
           // Hashed JS/CSS are precached — do not SWR-cache them under a shared name
           // (that kept old bundles alive after deploy)
         ],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
       },
       // SW in dev caches CSS/JS and hides HMR header fixes — enable only for PWA testing
       devOptions: {

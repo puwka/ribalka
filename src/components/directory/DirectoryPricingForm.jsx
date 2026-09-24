@@ -26,6 +26,8 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
   const [category, setCategory] = useState(defaultCategory);
   const [months, setMonths] = useState(3);
   const [frame, setFrame] = useState(false);
+  const [topDays, setTopDays] = useState(0);
+  const [topSlots, setTopSlots] = useState(null);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -72,9 +74,31 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!apiDataEnabled) return;
+    let alive = true;
+    listingPaymentService
+      .getDirectoryTopSlots({ category })
+      .then((slots) => {
+        if (!alive) return;
+        setTopSlots(slots);
+        if (slots?.dailyAvailable === false && !slots?.alreadyTop) setTopDays(0);
+      })
+      .catch(() => {
+        if (alive) setTopSlots(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [category]);
+
+  const topSlotsFull =
+    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
+  const effectiveTopDays = topSlotsFull ? 0 : topDays;
+
   const quote = useMemo(
-    () => calcServiceTotal(tariff, { months, frame, top: false }),
-    [tariff, months, frame]
+    () => calcServiceTotal(tariff, { months, frame, topDays: effectiveTopDays }),
+    [tariff, months, frame, effectiveTopDays]
   );
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -101,6 +125,7 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
         category,
         months,
         top: false,
+        topDays: effectiveTopDays,
         frame,
         listing: form,
       });
@@ -163,11 +188,39 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
                 Выделение рамкой жёлтого цвета <em>+{formatRub(tariff.addonFrame)}/мес</em>
               </span>
             </label>
-            <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
-              ТОП на сутки — отдельно после оплаты карточки,{' '}
-              {formatRub(tariff.addonTopDaily ?? tariff.addonTop ?? 300)}. Если все места заняты —
-              кнопка у владельца неактивна.
-            </p>
+            {topSlotsFull ? (
+              <p className="dir-pricing__hint" style={{ marginTop: 8, color: '#b91c1c' }}>
+                К сожалению, все места в топе заняты, попробуйте позже.
+                {topSlots ? ` (${topSlots.used}/${topSlots.max})` : ''}
+              </p>
+            ) : (
+              <div className="base-ctor__counters" style={{ marginTop: 8 }}>
+                <div className="base-ctor__counter">
+                  <span>
+                    ТОП на сутки{' '}
+                    <em>+{formatRub(tariff.addonTopDaily ?? tariff.addonTop ?? 300)} / сут</em>
+                    <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
+                      В категории {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                    </small>
+                  </span>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setTopDays((n) => Math.max(0, n - 1))}
+                    >
+                      −
+                    </button>
+                    <strong>{topDays}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setTopDays((n) => Math.min(90, n + 1))}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -192,8 +245,17 @@ export default function DirectoryPricingForm({ defaultCategory = 'shop' }) {
             <span>В месяц</span>
             <strong>{formatRub(quote.monthly)}</strong>
           </div>
+          {quote.topDays > 0 && (
+            <div>
+              <span>ТОП {quote.topDays} сут.</span>
+              <strong>+{formatRub(quote.topAmount)}</strong>
+            </div>
+          )}
           <div className="dir-pricing__grand">
-            <span>Итого за {quote.months} мес.</span>
+            <span>
+              Итого за {quote.months} мес.
+              {quote.topDays > 0 ? ' + ТОП' : ''}
+            </span>
             <strong>{formatRub(quote.total)}</strong>
           </div>
         </div>

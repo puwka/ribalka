@@ -213,17 +213,33 @@ function deepMerge(base, patch) {
   return out;
 }
 
+const kvCache = new Map();
+const kvInflight = new Map();
+
 async function remoteGetKv(key) {
   if (!apiDataEnabled) return null;
-  try {
-    const data = await api.get(`/api/cms/kv?key=${encodeURIComponent(key)}`);
-    return data?.value ?? null;
-  } catch {
-    return null;
-  }
+  if (kvCache.has(key)) return kvCache.get(key);
+  if (kvInflight.has(key)) return kvInflight.get(key);
+
+  const pending = (async () => {
+    try {
+      const data = await api.get(`/api/cms/kv?key=${encodeURIComponent(key)}`);
+      const value = data?.value ?? null;
+      kvCache.set(key, value);
+      return value;
+    } catch {
+      return null;
+    } finally {
+      kvInflight.delete(key);
+    }
+  })();
+
+  kvInflight.set(key, pending);
+  return pending;
 }
 
 async function remoteSetKv(key, value) {
+  kvCache.set(key, value);
   if (!apiDataEnabled) return value;
   await api.put('/api/cms/kv', { key, value });
   return value;

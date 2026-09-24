@@ -21,6 +21,12 @@
   grid-column: 1 / -1;
 }
 
+.base-form__hint {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #64748b);
+}
+
 .base-form input,
 .base-form textarea,
 .base-form select {

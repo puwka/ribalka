@@ -561,15 +561,19 @@ function OwnerBases() {
                   </div>
                 </div>
                 <div className="owner-base-card__actions">
-                  {['draft', 'rejected'].includes(b.status) && (
-                    <>
-                      <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
-                        Редактировать
-                      </Link>
-                      <button type="button" className="btn-primary" onClick={() => submit(b.id)}>
-                        {apiDataEnabled ? 'Разместить / оплатить' : 'На модерацию'}
-                      </button>
-                    </>
+                  <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
+                    Редактировать
+                  </Link>
+                  {['draft', 'rejected', 'archived'].includes(b.status) && (
+                    <button type="button" className="btn-primary" onClick={() => submit(b.id)}>
+                      {apiDataEnabled
+                        ? b.status === 'archived'
+                          ? expired
+                            ? 'Продлить / разместить'
+                            : 'Разместить снова'
+                          : 'Разместить / оплатить'
+                        : 'На модерацию'}
+                    </button>
                   )}
                   {(b.status === 'approved' || b.status === 'pending' || b.status === 'moderation') && (
                     <>
@@ -578,9 +582,6 @@ function OwnerBases() {
                           Просмотреть
                         </Link>
                       )}
-                      <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
-                        Карточка
-                      </Link>
                       {apiDataEnabled && (expired || b.status === 'approved') && (
                         <>
                           {!expired && Boolean(b.paid_until || b.paidUntil) ? (
@@ -611,6 +612,11 @@ function OwnerBases() {
                         Статистика
                       </Link>
                     </>
+                  )}
+                  {b.status === 'archived' && (
+                    <Link className="btn-secondary" to="/owner/analytics">
+                      Статистика
+                    </Link>
                   )}
                 </div>
               </article>
@@ -704,7 +710,6 @@ function OwnerBaseEdit() {
   const [tariff, setTariff] = useState(() => normalizeConstructor({}));
   const [options, setOptions] = useState(DEFAULT_BASE_OPTIONS);
   const [topSlots, setTopSlots] = useState(null);
-  const [payingDaily, setPayingDaily] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -792,36 +797,6 @@ function OwnerBaseEdit() {
         extraVideos: Math.max(options.extraVideos, paidVideos + 1),
       })}`
     : null;
-  const dailyPrice = Number(topSlots?.addonTopDaily ?? tariff.addonTopDaily) || 300;
-  const topSlotsFull =
-    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
-  const showDailyTop = apiDataEnabled && record.status === 'approved' && !expired;
-  const canBuyDaily = showDailyTop && !topSlotsFull;
-
-  const buyDailyTop = async () => {
-    if (!canBuyDaily) {
-      setError('Все места в ТОП на главной заняты. Попробуйте позже.');
-      return;
-    }
-    setPayingDaily(true);
-    setError('');
-    setMessage('');
-    try {
-      const result = await listingPaymentService.checkoutTopDaily(record.id);
-      if (result.order?.status === 'paid') {
-        navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
-        return;
-      }
-      if (result.confirmationUrl) {
-        window.location.href = result.confirmationUrl;
-        return;
-      }
-      throw new Error('Не удалось получить ссылку на оплату');
-    } catch (err) {
-      setError(err.message || 'Ошибка оплаты');
-      setPayingDaily(false);
-    }
-  };
 
   return (
     <div className="cabinet-panel">
@@ -944,27 +919,6 @@ function OwnerBaseEdit() {
           >
             {payLabel}
           </Link>
-        ) : null}
-        {showDailyTop ? (
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={payingDaily || !canBuyDaily}
-            title={
-              topSlotsFull
-                ? 'Все места в ТОП на сегодня заняты'
-                : 'Поднять базу в ТОП на главной на 24 часа'
-            }
-            onClick={buyDailyTop}
-          >
-            {payingDaily
-              ? 'Создаём платёж…'
-              : topSlotsFull
-                ? `ТОП занят (${topSlots?.used || 4}/${topSlots?.max || 4})`
-                : topSlots?.alreadyTop
-                  ? `Продлить ТОП на сутки ${formatRub(dailyPrice)}`
-                  : `ТОП на сутки ${formatRub(dailyPrice)}`}
-          </button>
         ) : null}
         <button type="button" className="btn-secondary" onClick={() => navigate('/owner/bases')}>
           К списку
@@ -1273,7 +1227,6 @@ function OwnerDirectoryEdit() {
   const [tariff, setTariff] = useState(() => normalizeServiceTariff({}));
   const [options, setOptions] = useState(DEFAULT_DIRECTORY_OPTIONS);
   const [topSlots, setTopSlots] = useState(null);
-  const [payingDaily, setPayingDaily] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -1344,39 +1297,6 @@ function OwnerDirectoryEdit() {
     ...options,
     mode: 'upgrade',
   })}`;
-  const dailyPrice = Number(topSlots?.addonTopDaily ?? tariff.addonTopDaily) || 300;
-  const topSlotsFull =
-    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
-  const showDailyTop =
-    apiDataEnabled &&
-    !item.expired &&
-    (item.status === 'published' || item.status === 'approved');
-  const canBuyDaily = showDailyTop && !topSlotsFull;
-
-  const buyDailyTop = async () => {
-    if (!canBuyDaily) {
-      setError('Все места в ТОП на сегодня заняты. Попробуйте позже.');
-      return;
-    }
-    setPayingDaily(true);
-    setError('');
-    setMessage('');
-    try {
-      const result = await listingPaymentService.checkoutDirectoryTopDaily(item.id);
-      if (result.order?.status === 'paid') {
-        navigate(`/owner/directory/payment/result/${result.order.id}`, { replace: true });
-        return;
-      }
-      if (result.confirmationUrl) {
-        window.location.href = result.confirmationUrl;
-        return;
-      }
-      throw new Error('Не удалось получить ссылку на оплату');
-    } catch (err) {
-      setError(err.message || 'Ошибка оплаты');
-      setPayingDaily(false);
-    }
-  };
 
   return (
     <div className="cabinet-panel">
@@ -1445,27 +1365,6 @@ function OwnerDirectoryEdit() {
                 : `Оплатить ${formatRub(quote.total)}`}
           </Link>
         )}
-        {showDailyTop ? (
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={payingDaily || !canBuyDaily}
-            title={
-              topSlotsFull
-                ? 'Все места в ТОП на сегодня заняты'
-                : 'Поднять карточку в ТОП на 24 часа'
-            }
-            onClick={buyDailyTop}
-          >
-            {payingDaily
-              ? 'Создаём платёж…'
-              : topSlotsFull
-                ? `ТОП занят (${topSlots?.used || 4}/${topSlots?.max || 4})`
-                : topSlots?.alreadyTop
-                  ? `Продлить ТОП на сутки ${formatRub(dailyPrice)}`
-                  : `ТОП на сутки ${formatRub(dailyPrice)}`}
-          </button>
-        ) : null}
         <button type="button" className="btn-secondary" onClick={() => navigate('/owner/directory')}>
           К списку
         </button>

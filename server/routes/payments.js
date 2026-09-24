@@ -148,6 +148,7 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
               userId: req.user.sub,
               directoryItemId: body.directoryItemId || body.directory_item_id || null,
               top: false,
+              topDays: Number(body.topDays) || 0,
               frame: Boolean(body.frame),
               returnUrl,
             })
@@ -157,6 +158,7 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
               months: body.months,
               frame: Boolean(body.frame),
               top: false,
+              topDays: Number(body.topDays) || 0,
               listing: body.listing || body,
               directoryItemId: body.directoryItemId || body.directory_item_id || null,
               returnUrl,
@@ -231,7 +233,14 @@ router.post('/listing-checkout', requireAuth, async (req, res, next) => {
         ? `${site.replace(/\/$/, '')}/owner/payment/result/:orderId`
         : null);
 
-    const options = { months, top: false, frame, extraPhotos, extraVideos };
+    const options = {
+      months,
+      top: false,
+      frame,
+      extraPhotos,
+      extraVideos,
+      topDays: Number(req.body?.topDays) || 0,
+    };
     let result;
     if (mode === 'top_daily') {
       result = await listingOrders.createTopDailyCheckout({

@@ -166,7 +166,7 @@ async function assertTopSlotAvailable(base, wantTop) {
   const used = await countActiveTopSlots({ excludeBaseId: base?.id || null });
   if (used >= HOME_TOP_SLOTS) {
     const err = new Error(
-      `Все ${HOME_TOP_SLOTS} места в ТОП на главной заняты. Выберите «ТОП на сутки» (если доступен) или подождите, пока освободится слот.`
+      'К сожалению, все места в топе заняты, попробуйте позже.'
     );
     err.status = 409;
     err.code = 'top_slots_full';
@@ -277,11 +277,11 @@ function normalizeConstructorSettings(raw = {}) {
 function calcConstructorQuote(settings, options = {}) {
   const t = normalizeConstructorSettings(settings);
   const months = [3, 6, 12].includes(Number(options.months)) ? Number(options.months) : 3;
-  // Monthly TOP removed — only «ТОП на сутки» via createTopDailyCheckout
   const top = false;
   const frame = Boolean(options.frame);
   const extraPhotos = Math.max(0, Number(options.extraPhotos) || 0);
   const extraVideos = Math.max(0, Number(options.extraVideos) || 0);
+  const topDays = Math.max(0, Math.min(90, Number(options.topDays) || 0));
   const monthly =
     t.baseAmount +
     (frame ? t.addonFrame : 0) +
@@ -290,19 +290,22 @@ function calcConstructorQuote(settings, options = {}) {
   const full = monthly * months;
   const discountPct = months === 3 ? t.discount3 : months === 6 ? t.discount6 : t.discount12;
   const discountAmount = Math.round((full * discountPct) / 100);
-  const total = Math.max(0, full - discountAmount);
+  const topAmount = Math.round(topDays * (Number(t.addonTopDaily) || 300));
+  const total = Math.max(0, full - discountAmount) + topAmount;
   return {
     months,
     top,
     frame,
     extraPhotos,
     extraVideos,
+    topDays,
+    topAmount,
     monthly,
     full,
     discountPct,
     discountAmount,
     total,
-    options: { months, top, frame, extraPhotos, extraVideos },
+    options: { months, top, frame, extraPhotos, extraVideos, topDays },
   };
 }
 
@@ -568,6 +571,9 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
   }
 
   await assertTopSlotAvailable(base, Boolean(quote.options.top));
+  if (Number(quote.options.topDays) > 0) {
+    await assertDailyTopAvailable(base);
+  }
 
   // Reuse active unpaid order for this base only if options match
   const { rows: existing } = await pool.query(
@@ -582,7 +588,11 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
   );
   let order = mapOrder(existing[0]);
 
-  const description = `${settings.title}: «${base.name}» (${quote.months} мес.)`.slice(0, 128);
+  const description = (
+    Number(quote.topDays) > 0
+      ? `${settings.title}: «${base.name}» (${quote.months} мес. + ТОП ${quote.topDays} сут.)`
+      : `${settings.title}: «${base.name}» (${quote.months} мес.)`
+  ).slice(0, 128);
   const metaPatch = {
     kind: 'renew',
     constructor_options: quote.options,
@@ -1206,6 +1216,7 @@ async function applyPaidSideEffects(client, order) {
   const extraPhotos = Math.max(0, Number(opts.extraPhotos) || 0);
   const extraVideos = Math.max(0, Number(opts.extraVideos) || 0);
   const months = Math.max(1, Number(opts.months) || 3);
+  const topDays = Math.max(0, Math.min(90, Number(opts.topDays) || 0));
 
   if (kind === 'top_daily') {
     const hours = Math.max(1, Number(meta.top_daily?.hours) || 24);
@@ -1335,6 +1346,40 @@ async function applyPaidSideEffects(client, order) {
     [order.base_id, yellowFrame, extraPhotos, extraVideos, months]
   );
 
+  if (topDays > 0) {
+    const hours = topDays * 24;
+    const { rows: curRows } = await client.query(
+      `select * from public.bases where id = $1 for update`,
+      [order.base_id]
+    );
+    const cur = curRows[0];
+    if (!baseHasActiveTop(cur)) {
+      const { rows: cntRows } = await client.query(
+        `select count(*)::int as cnt
+         from public.bases
+         where type = 'paid'
+           and status = 'approved'
+           and is_top = true
+           and (paid_until is null or paid_until > now())
+           and (top_until is null or top_until > now())
+           and id <> $1`,
+        [order.base_id]
+      );
+      if ((Number(cntRows[0]?.cnt) || 0) >= HOME_TOP_SLOTS) {
+        await displaceEarliestDailyTop(client, order.base_id);
+      }
+    }
+    await client.query(
+      `update public.bases set
+         is_top = true,
+         top_kind = 'daily',
+         top_until = greatest(coalesce(top_until, now()), now()) + make_interval(hours => $2::int),
+         updated_at = now()
+       where id = $1`,
+      [order.base_id, hours]
+    );
+  }
+
   await client.query(
     `insert into public.notifications (user_id, type, title, body, link_path, payload)
      values ($1, 'payment', 'Оплата получена', $2, $3, $4::jsonb)`,
@@ -1345,10 +1390,11 @@ async function applyPaidSideEffects(client, order) {
       JSON.stringify({
         order_id: order.id,
         base_id: order.base_id,
-        is_top: isTop,
+        is_top: isTop || topDays > 0,
         yellow_frame: yellowFrame,
         paid_extra_photos: extraPhotos,
         paid_extra_videos: extraVideos,
+        top_days: topDays,
       }),
     ]
   );

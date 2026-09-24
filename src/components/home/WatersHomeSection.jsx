@@ -10,8 +10,8 @@ import { sortPromoFirst } from '../../lib/waterUtils';
 import './WatersHomeSection.css';
 
 export default function WatersHomeSection() {
-  const { data: paid, loading: loadingPaid } = usePaidBases();
-  const { data: free, loading: loadingFree } = useFreePlaces();
+  const { data: paid, loading: loadingPaid } = usePaidBases({ limit: 8 });
+  const { data: free, loading: loadingFree } = useFreePlaces({ limit: 8 });
 
   return (
     <section className="waters-home page-section page-section--alt" id="waters">

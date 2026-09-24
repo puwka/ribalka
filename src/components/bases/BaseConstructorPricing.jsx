@@ -8,9 +8,8 @@ import {
 import '../directory/DirectoryPricingForm.css';
 
 /**
- * Live tariff constructor for bases (same UX idea as directory checkout).
- * Controlled: options + onChange.
- * TOP is not sold monthly — only «ТОП на сутки» (+300 ₽) after payment.
+ * Live tariff constructor for bases (same UX as directory checkout).
+ * TOP: choose number of days in the same quote; disabled when homepage slots are full.
  */
 export default function BaseConstructorPricing({
   tariff,
@@ -22,7 +21,11 @@ export default function BaseConstructorPricing({
 }) {
   const ctor = normalizeConstructor(tariff || {});
   const { months, frame, extraPhotos, extraVideos } = options;
+  const topDays = Math.max(0, Number(options.topDays) || 0);
   const isUpgrade = mode === 'upgrade';
+  const topSlotsFull =
+    Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
+  const dailyPrice = Number(ctor.addonTopDaily ?? 300);
 
   const quote = useMemo(
     () =>
@@ -32,11 +35,16 @@ export default function BaseConstructorPricing({
         frame,
         extraPhotos,
         extraVideos,
+        topDays: topSlotsFull ? 0 : topDays,
       }),
-    [ctor, months, frame, extraPhotos, extraVideos]
+    [ctor, months, frame, extraPhotos, extraVideos, topDays, topSlotsFull]
   );
 
-  const set = (patch) => onChange?.({ ...options, top: false, ...patch });
+  const set = (patch) => {
+    const next = { ...options, top: false, ...patch };
+    if (topSlotsFull) next.topDays = 0;
+    onChange?.(next);
+  };
 
   return (
     <section className="dir-pricing" style={{ marginTop: '1.5rem' }}>
@@ -75,21 +83,40 @@ export default function BaseConstructorPricing({
               Жёлтая рамка <em>+{formatRub(ctor.addonFrame)}/мес</em>
             </span>
           </label>
-          {topSlots ? (
-            <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
-              ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong> · мест на
-              главной {topSlots.used}/{topSlots.max}
-              {!topSlots.dailyAvailable && !topSlots.alreadyTop
-                ? ' · сейчас занято, кнопка неактивна'
-                : ' · кнопка ниже на странице карточки'}
-              .
-            </p>
-          ) : (
-            <p className="dir-pricing__hint" style={{ marginTop: 8 }}>
-              ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>. Если все 4
-              места на главной заняты — кнопка неактивна.
-            </p>
-          )}
+          {!isUpgrade &&
+            (topSlotsFull ? (
+              <p className="dir-pricing__hint" style={{ marginTop: 8, color: '#b91c1c' }}>
+                К сожалению, все места в топе заняты, попробуйте позже.
+                {topSlots ? ` (${topSlots.used}/${topSlots.max})` : ''}
+              </p>
+            ) : (
+              <div className="base-ctor__counters" style={{ marginTop: 8 }}>
+                <div className="base-ctor__counter">
+                  <span>
+                    ТОП на сутки <em>+{formatRub(dailyPrice)} / сут</em>
+                    <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
+                      На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                      {topSlots?.alreadyTop ? ' · у вас уже есть ТОП — сутки добавятся к сроку' : ''}
+                    </small>
+                  </span>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => set({ topDays: Math.max(0, topDays - 1) })}
+                    >
+                      −
+                    </button>
+                    <strong>{topDays}</strong>
+                    <button
+                      type="button"
+                      onClick={() => set({ topDays: Math.min(90, topDays + 1) })}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
         </div>
       </div>
 
@@ -165,8 +192,17 @@ export default function BaseConstructorPricing({
               <strong>−{formatRub(quote.discountAmount)}</strong>
             </div>
           )}
+          {quote.topDays > 0 && (
+            <div>
+              <span>ТОП {quote.topDays} сут.</span>
+              <strong>+{formatRub(quote.topAmount)}</strong>
+            </div>
+          )}
           <div className="dir-pricing__grand">
-            <span>Итого за {quote.months} мес.</span>
+            <span>
+              Итого за {quote.months} мес.
+              {quote.topDays > 0 ? ' + ТОП' : ''}
+            </span>
             <strong>{formatRub(quote.total)}</strong>
           </div>
         </div>
@@ -178,8 +214,8 @@ export default function BaseConstructorPricing({
 export function buildPaymentQuery(options) {
   const qs = new URLSearchParams();
   if (options.months) qs.set('months', String(options.months));
-  // Monthly TOP removed from constructor — only daily TOP is sold separately
   if (options.frame) qs.set('frame', '1');
+  if (options.topDays) qs.set('topDays', String(options.topDays));
   if (options.extraPhotos) qs.set('extraPhotos', String(options.extraPhotos));
   if (options.extraVideos) qs.set('extraVideos', String(options.extraVideos));
   if (options.mode) qs.set('mode', String(options.mode));
@@ -189,7 +225,6 @@ export function buildPaymentQuery(options) {
 
 /**
  * Mid-period media-only upgrade (no renew, no accidental frame upsell).
- * Charges only addonPhoto/addonVideo deltas on the server.
  */
 export function buildMediaUpgradeQuery(base, patch = {}) {
   const paidPhotos = Math.max(0, Number(base?.paid_extra_photos) || 0);
@@ -197,7 +232,6 @@ export function buildMediaUpgradeQuery(base, patch = {}) {
   const hasFrame = Boolean(base?.yellow_frame || base?.yellowFrame);
   return buildPaymentQuery({
     mode: 'upgrade',
-    // Preserve already-paid frame; do not force buying a new one with photos
     frame: hasFrame,
     extraPhotos:
       patch.extraPhotos != null ? Math.max(0, Number(patch.extraPhotos) || 0) : paidPhotos,
@@ -209,6 +243,7 @@ export function buildMediaUpgradeQuery(base, patch = {}) {
 export const DEFAULT_BASE_OPTIONS = {
   months: 3,
   top: false,
+  topDays: 0,
   frame: false,
   extraPhotos: 0,
   extraVideos: 0,

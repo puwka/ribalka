@@ -59,6 +59,7 @@ export const listingPaymentService = {
       returnUrl: `${origin}/owner/payment/result/:orderId`,
       months: options.months,
       top: options.top,
+      topDays: options.topDays,
       frame: options.frame,
       extraPhotos: options.extraPhotos,
       extraVideos: options.extraVideos,
@@ -143,7 +144,12 @@ export const listingPaymentService = {
   },
 
   async directoryUpgradeCheckout(payload) {
-    return this.directoryCheckout({ ...payload, mode: 'upgrade', top: false });
+    return this.directoryCheckout({
+      ...payload,
+      mode: 'upgrade',
+      top: false,
+      topDays: Number(payload.topDays) || 0,
+    });
   },
 
   async getDirectoryTopSlots({ category, itemId } = {}) {

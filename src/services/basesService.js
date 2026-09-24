@@ -56,6 +56,7 @@ function emptyForm() {
     servicesText: '',
     price_label: '',
     price_from: '',
+    transport: '',
     conditions: '',
     features: '',
     work_hours: '',
@@ -118,6 +119,7 @@ function formToRecord(form, { ownerId, existing }) {
         ? null
         : Number(form.price_from),
     fish_species: (form.fish_species || '').trim() || null,
+    transport: (form.transport || '').trim() || null,
     conditions: form.conditions.trim() || null,
     features: form.features.trim() || null,
     work_hours: form.work_hours.trim() || null,
@@ -170,8 +172,9 @@ function recordToForm(record) {
     servicesText: services.join(', '),
     price_label: record.price_label || '',
     price_from: record.price_from ?? '',
-    conditions: record.conditions || '',
-    features: record.features || '',
+    transport: record.transport || '',
+    conditions: record.conditions || record.how_to_get || '',
+    features: record.features || record.weather_notes || '',
     work_hours: record.work_hours || '',
     imagesText: images.join('\n'),
     videosText: videos.join('\n'),
@@ -231,6 +234,7 @@ function enrichRemote(row) {
     social_links: row.social_links || {},
     conditions: row.conditions,
     features: row.features,
+    transport: row.transport || '',
     rejection_reason: row.rejection_reason,
     submitted_at: row.submitted_at,
     reviewed_at: row.reviewed_at,
@@ -345,6 +349,7 @@ function remotePayload(record) {
     price_label: record.price_label,
     price_from: record.price_from,
     fish_species: record.fish_species,
+    transport: record.transport,
     conditions: record.conditions,
     features: record.features,
     work_hours: record.work_hours,
@@ -384,8 +389,11 @@ export const basesService = {
 
     let list;
     if (isRemoteDb()) {
-      const qs = filters.type ? `?type=${encodeURIComponent(filters.type)}` : '';
-      const rows = await api.get(`/api/bases${qs}`);
+      const qs = new URLSearchParams();
+      if (filters.type) qs.set('type', String(filters.type));
+      if (filters.limit) qs.set('limit', String(filters.limit));
+      const q = qs.toString();
+      const rows = await api.get(`/api/bases${q ? `?${q}` : ''}`);
       const remote = (rows ?? []).map(enrichRemote);
       list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
     } else {
@@ -410,7 +418,12 @@ export const basesService = {
       list = list.filter((item) => item.type === filters.type);
     }
 
-    return sortPromoFirst(list);
+    list = sortPromoFirst(list);
+    const limit = Number(filters.limit);
+    if (Number.isFinite(limit) && limit > 0) {
+      return list.slice(0, limit);
+    }
+    return list;
   },
 
   async listMine(ownerId) {

@@ -185,6 +185,7 @@ function parsePayload(body) {
       body.price_from === '' || body.price_from == null ? null : Number(body.price_from),
     conditions: String(body.conditions || '').trim() || null,
     features: String(body.features || '').trim() || null,
+    transport: String(body.transport || '').trim() || null,
     work_hours: String(body.work_hours || '').trim() || null,
     fish_species: String(body.fish_species || '').trim() || null,
     images,
@@ -232,6 +233,9 @@ router.get('/', async (req, res, next) => {
   try {
     await ensurePromoColumns();
     const { type } = req.query;
+    const limitRaw = Number(req.query.limit);
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(100, Math.floor(limitRaw)) : null;
     const params = ['approved'];
     let sql = `
       select ${BASE_SELECT}
@@ -262,6 +266,10 @@ router.get('/', async (req, res, next) => {
         end,
         b.top_until asc nulls last,
         b.name`;
+    if (limit) {
+      params.push(limit);
+      sql += ` limit $${params.length}`;
+    }
     const { rows } = await pool.query(sql, params);
     res.json(rows.map(mapRow));
   } catch (err) {
@@ -343,9 +351,11 @@ router.post('/', requireAuth, async (req, res, next) => {
       `insert into public.bases (
          owner_id, type, status, name, short_description, description,
          region, address, lat, lng, phone, contacts, website_url, social_links,
-         price_label, price_from, conditions, features, work_hours, fish_species
+         price_label, price_from, conditions, features, work_hours, fish_species,
+         transport, how_to_get, weather_notes
        ) values (
-         $1,$2,'draft',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16,$17,$18,$19
+         $1,$2,'draft',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16,$17,$18,$19,
+         $20,$21,$22
        ) returning id`,
       [
         req.user.sub,
@@ -367,6 +377,9 @@ router.post('/', requireAuth, async (req, res, next) => {
         data.features,
         data.work_hours,
         data.fish_species,
+        data.transport,
+        data.conditions,
+        data.features,
       ]
     );
     const id = rows[0].id;
@@ -409,7 +422,8 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
            region=$6, address=$7, lat=$8, lng=$9, phone=$10, contacts=$11,
            website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
            conditions=$16, features=$17, work_hours=$18, fish_species=$19,
-           is_top=$20, yellow_frame=$21,
+           is_top=$20, yellow_frame=$21, transport=$22,
+           how_to_get=$23, weather_notes=$24,
            updated_at=now()
          where id=$1`,
         [
@@ -434,6 +448,9 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
           data.fish_species,
           Boolean(data.is_top),
           Boolean(data.yellow_frame),
+          data.transport,
+          data.conditions,
+          data.features,
         ]
       );
     } else {
@@ -443,6 +460,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
            region=$6, address=$7, lat=$8, lng=$9, phone=$10, contacts=$11,
            website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
            conditions=$16, features=$17, work_hours=$18, fish_species=$19,
+           transport=$20, how_to_get=$21, weather_notes=$22,
            updated_at=now()
          where id=$1`,
         [
@@ -465,6 +483,9 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
           data.features,
           data.work_hours,
           data.fish_species,
+          data.transport,
+          data.conditions,
+          data.features,
         ]
       );
     }

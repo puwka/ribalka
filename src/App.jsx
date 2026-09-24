@@ -4,22 +4,14 @@ import { AuthProvider } from './components/auth/AuthContext';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
 import CookieBanner from './components/CookieBanner/CookieBanner';
-import LegalModals from './components/LegalModals/LegalModals';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import NotFoundPage from './pages/NotFoundPage';
-import PwaInstallPrompt from './components/pwa/PwaInstallPrompt';
 import DocumentTitle from './components/seo/DocumentTitle';
 import YandexMetrikaHit from './components/seo/YandexMetrikaHit';
 import ScrollToTop from './components/ScrollToTop';
-import SupportFloat from './components/home/SupportFloat';
 import { ToastProvider } from './components/ui/ToastContext';
 import './components/auth/AuthShared.css';
 import './App.css';
 
+const HomePage = lazy(() => import('./pages/HomePage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
@@ -43,6 +35,14 @@ const OwnerCabinetPage = lazy(() => import('./pages/OwnerCabinetPage'));
 const SupportPage = lazy(() => import('./pages/SupportPage'));
 const SupportThanksPage = lazy(() => import('./pages/SupportThanksPage'));
 const BaseDetailPage = lazy(() => import('./pages/BaseDetailPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const LegalModals = lazy(() => import('./components/LegalModals/LegalModals'));
+const PwaInstallPrompt = lazy(() => import('./components/pwa/PwaInstallPrompt'));
+const SupportFloat = lazy(() => import('./components/home/SupportFloat'));
 
 function RedirectBaseToWater() {
   const { id } = useParams();
@@ -66,7 +66,9 @@ function SiteLayout({ children }) {
         <Suspense fallback={<PageFallback />}>{children}</Suspense>
       </main>
       <Footer />
-      <SupportFloat />
+      <Suspense fallback={null}>
+        <SupportFloat />
+      </Suspense>
     </>
   );
 }
@@ -81,8 +83,10 @@ function App() {
             <DocumentTitle />
             <YandexMetrikaHit />
             <CookieBanner />
-            <LegalModals />
-            <PwaInstallPrompt />
+            <Suspense fallback={null}>
+              <LegalModals />
+              <PwaInstallPrompt />
+            </Suspense>
 
             <Routes>
               <Route

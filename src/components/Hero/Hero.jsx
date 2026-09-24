@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom';
-import { CMS_PAGES } from '../../services/cmsService';
-import { useCmsPage } from '../../hooks/useCms';
 import './Hero.css';
 
 const DEFAULT_HERO_TITLE = 'Активный отдых и рыбалка в Пермском крае';
@@ -11,8 +9,8 @@ const LEGACY_HERO_TITLES = new Set([
   'Водоёмы и места для рыбалки в Пермском крае',
 ]);
 
-export default function Hero() {
-  const { data: cms } = useCmsPage(CMS_PAGES.HOME);
+/** Hero content comes from parent (HomePage) so CMS home page is fetched once. */
+export default function Hero({ cms }) {
   const hero = cms?.hero || {};
 
   const rawTitle = hero.title || '';
@@ -52,7 +50,14 @@ export default function Hero() {
         </div>
 
         <figure className="hero__figure">
-          <img src={image} alt="Природа Пермского края" width={640} height={480} />
+          <img
+            src={image}
+            alt="Природа Пермского края"
+            width={640}
+            height={480}
+            fetchPriority="high"
+            decoding="async"
+          />
         </figure>
       </div>
     </section>

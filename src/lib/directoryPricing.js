@@ -97,13 +97,18 @@ export function calcConstructorTotal(tariff, options = {}) {
   const full = monthly * months;
   const discountPct = discountPercentForMonths(tariff, months);
   const discountAmount = Math.round((full * discountPct) / 100);
-  const total = Math.max(0, full - discountAmount);
+  const t = normalizeConstructor(tariff);
+  const topDays = Math.max(0, Math.min(90, Number(options.topDays) || 0));
+  const topAmount = Math.round(topDays * (Number(t.addonTopDaily) || 300));
+  const total = Math.max(0, full - discountAmount) + topAmount;
   return {
     months,
     monthly,
     full,
     discountPct,
     discountAmount,
+    topDays,
+    topAmount,
     total,
   };
 }
@@ -115,8 +120,10 @@ export function calcServiceTotal(tariff, options = {}) {
   const full = monthly * months;
   const discountPct = discountPercentForMonths(t, months);
   const discountAmount = Math.round((full * discountPct) / 100);
-  const total = Math.max(0, full - discountAmount);
-  return { months, monthly, full, discountPct, discountAmount, total };
+  const topDays = Math.max(0, Math.min(90, Number(options.topDays) || 0));
+  const topAmount = Math.round(topDays * (Number(t.addonTopDaily) || 300));
+  const total = Math.max(0, full - discountAmount) + topAmount;
+  return { months, monthly, full, discountPct, discountAmount, topDays, topAmount, total };
 }
 
 export function formatRub(n) {
@@ -185,7 +192,7 @@ export function calcListingUpgradeTotal(tariff, base, options = {}) {
   };
 }
 
-/** Mid-period directory frame upgrade preview (TOP — only daily). */
+/** Mid-period directory frame / TOP-days upgrade preview. */
 export function calcDirectoryUpgradeTotal(tariff, item, options = {}) {
   const t = normalizeServiceTariff(tariff);
   const rem = remainingMonthsCeil(item?.paidUntil);
@@ -193,16 +200,20 @@ export function calcDirectoryUpgradeTotal(tariff, item, options = {}) {
     return { canUpgrade: false, reason: 'no_active_period', total: 0, remainingMonths: 0 };
   }
   const hasFrame = Boolean(item.yellowFrame || item.highlight);
-  const addTop = false;
   const addFrame = Boolean(options.frame) && !hasFrame;
-  const total = Math.max(0, Math.round((addFrame ? t.addonFrame : 0) * rem));
+  const topDays = Math.max(0, Math.min(90, Number(options.topDays) || 0));
+  const topAmount = Math.round(topDays * (Number(t.addonTopDaily) || 300));
+  const frameAmount = Math.max(0, Math.round((addFrame ? t.addonFrame : 0) * rem));
+  const total = frameAmount + topAmount;
   return {
     canUpgrade: total > 0,
     reason: total > 0 ? null : 'nothing_new',
     total,
     remainingMonths: rem,
-    addTop,
+    addTop: topDays > 0,
     addFrame,
+    topDays,
+    topAmount,
   };
 }
 
