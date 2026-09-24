@@ -13,6 +13,7 @@ import BaseConstructorPricing, {
   DEFAULT_BASE_OPTIONS,
   buildPaymentQuery,
   buildMediaUpgradeQuery,
+  buildTopDailyQuery,
 } from '../components/bases/BaseConstructorPricing';
 import { LineChart, PeriodFilters } from '../components/owner/OwnerCharts';
 import {
@@ -34,6 +35,7 @@ import OwnerDirectoryCheckout from '../components/directory/OwnerDirectoryChecko
 import DirectoryConstructorPricing, {
   DEFAULT_DIRECTORY_OPTIONS,
   buildDirectoryPaymentQuery,
+  buildDirectoryTopDailyQuery,
 } from '../components/directory/DirectoryConstructorPricing';
 import { listingPaymentService } from '../services/listingPaymentService';
 import {
@@ -419,9 +421,19 @@ function OwnerDirectoryAnalytics() {
                 Карточка
               </Link>
               {apiDataEnabled && (
-                <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
-                  {!item.active ? 'Продлить' : 'Продлить / доплатить'}
-                </Link>
+                <>
+                  {item.active ? (
+                    <Link
+                      className="btn-secondary"
+                      to={`/owner/directory/${item.id}/pay${buildDirectoryTopDailyQuery(1)}`}
+                    >
+                      ТОП
+                    </Link>
+                  ) : null}
+                  <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
+                    {!item.active ? 'Продлить' : 'Продлить / доплатить'}
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -585,15 +597,23 @@ function OwnerBases() {
                       {apiDataEnabled && (expired || b.status === 'approved') && (
                         <>
                           {!expired && Boolean(b.paid_until || b.paidUntil) ? (
-                            <Link
-                              className="btn-secondary"
-                              to={`/owner/payment/${b.id}${buildMediaUpgradeQuery(b, {
-                                extraPhotos: (Number(b.paid_extra_photos) || 0) + 1,
-                                extraVideos: Number(b.paid_extra_videos) || 0,
-                              })}`}
-                            >
-                              Докупить фото
-                            </Link>
+                            <>
+                              <Link
+                                className="btn-secondary"
+                                to={`/owner/payment/${b.id}${buildMediaUpgradeQuery(b, {
+                                  extraPhotos: (Number(b.paid_extra_photos) || 0) + 1,
+                                  extraVideos: Number(b.paid_extra_videos) || 0,
+                                })}`}
+                              >
+                                Докупить фото
+                              </Link>
+                              <Link
+                                className="btn-secondary"
+                                to={`/owner/payment/${b.id}${buildTopDailyQuery(1)}`}
+                              >
+                                ТОП
+                              </Link>
+                            </>
                           ) : null}
                           <Link
                             className="btn-primary"
@@ -797,6 +817,9 @@ function OwnerBaseEdit() {
         extraVideos: Math.max(options.extraVideos, paidVideos + 1),
       })}`
     : null;
+  const topDailyHref = canUpgrade
+    ? `/owner/payment/${record.id}${buildTopDailyQuery(Math.max(1, Number(options.topDays) || 1))}`
+    : null;
 
   return (
     <div className="cabinet-panel">
@@ -840,8 +863,7 @@ function OwnerBaseEdit() {
           style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
         >
           <span style={{ marginRight: 4 }}>
-            Докупить медиа без продления срока (уже оплачено фото: {paidPhotos}, видео:{' '}
-            {paidVideos}). Оплачивается только доплата за фото/видео:
+            Докупить без продления срока (уже оплачено фото: {paidPhotos}, видео: {paidVideos}):
           </span>
           <Link className="btn-secondary" to={photoOnlyHref}>
             +1 фото {formatRub(tariff.addonPhoto || 100)}
@@ -849,6 +871,11 @@ function OwnerBaseEdit() {
           <Link className="btn-secondary" to={videoOnlyHref}>
             +1 видео {formatRub(tariff.addonVideo || 100)}
           </Link>
+          {topDailyHref ? (
+            <Link className="btn-secondary" to={topDailyHref}>
+              ТОП {formatRub(tariff.addonTopDaily || 300)}/сут
+            </Link>
+          ) : null}
         </div>
       ) : null}
 
@@ -1144,11 +1171,21 @@ function OwnerDirectoryList() {
                   Редактировать
                 </Link>
                 {apiDataEnabled && (
-                  <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
-                    {item.expired || item.status === 'published' || item.paidUntil
-                      ? 'Продлить / оплатить'
-                      : 'Оплатить размещение'}
-                  </Link>
+                  <>
+                    {!item.expired && item.paidUntil ? (
+                      <Link
+                        className="btn-secondary"
+                        to={`/owner/directory/${item.id}/pay${buildDirectoryTopDailyQuery(1)}`}
+                      >
+                        ТОП
+                      </Link>
+                    ) : null}
+                    <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
+                      {item.expired || item.status === 'published' || item.paidUntil
+                        ? 'Продлить / оплатить'
+                        : 'Оплатить размещение'}
+                    </Link>
+                  </>
                 )}
               </div>
             </div>
@@ -1297,6 +1334,11 @@ function OwnerDirectoryEdit() {
     ...options,
     mode: 'upgrade',
   })}`;
+  const topDailyHref = canUpgrade
+    ? `/owner/directory/${item.id}/pay${buildDirectoryTopDailyQuery(
+        Math.max(1, Number(options.topDays) || 1)
+      )}`
+    : null;
 
   return (
     <div className="cabinet-panel">
@@ -1306,7 +1348,7 @@ function OwnerDirectoryEdit() {
         {item.paidUntil ? ` · оплачено до ${formatDate(item.paidUntil)}` : ''}
         {item.expired ? ' · срок истёк, продлите оплату' : ''}
         {topSlots ? ` · ТОП ${topSlots.used}/${topSlots.max}` : ''}
-        {canUpgrade ? ' · можно доплатить рамку или продлить срок' : ''}
+        {canUpgrade ? ' · можно доплатить рамку, ТОП или продлить срок' : ''}
       </p>
       {error && <div className="auth-error">{error}</div>}
       {message && <div className="auth-success">{message}</div>}
@@ -1326,6 +1368,18 @@ function OwnerDirectoryEdit() {
           }
         />
       )}
+
+      {canUpgrade && topDailyHref ? (
+        <div
+          className="auth-success"
+          style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+        >
+          <span>Докупить ТОП без продления тарифа:</span>
+          <Link className="btn-secondary" to={topDailyHref}>
+            ТОП {formatRub(tariff.addonTopDaily || 300)}/сут
+          </Link>
+        </div>
+      ) : null}
 
       {canUpgrade && upgradeQuote.canUpgrade ? (
         <div className="auth-success" style={{ marginBottom: 12 }}>
@@ -1351,6 +1405,11 @@ function OwnerDirectoryEdit() {
         {canUpgrade && upgradeQuote.canUpgrade ? (
           <Link className="btn-primary" to={upgradeHref}>
             Доплатить {formatRub(upgradeQuote.total)}
+          </Link>
+        ) : null}
+        {topDailyHref ? (
+          <Link className="btn-secondary" to={topDailyHref}>
+            Купить ТОП
           </Link>
         ) : null}
         {apiDataEnabled && (

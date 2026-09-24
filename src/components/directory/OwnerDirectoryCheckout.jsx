@@ -17,18 +17,21 @@ import DirectoryConstructorPricing, {
 } from './DirectoryConstructorPricing';
 import './DirectoryPricingForm.css';
 
-/** Pay / renew / upgrade directory listing from owner cabinet */
+/** Pay / renew / upgrade / top_daily directory listing from owner cabinet */
 export default function OwnerDirectoryCheckout() {
   const { itemId } = useParams();
   const [searchParams] = useSearchParams();
   const { refresh } = useAuth();
   const navigate = useNavigate();
   const isUpgrade = searchParams.get('mode') === 'upgrade';
+  const isTopDaily = searchParams.get('mode') === 'top_daily';
   const [item, setItem] = useState(null);
   const [tariff, setTariff] = useState(DEFAULT_SERVICE_TARIFF);
   const [options, setOptions] = useState(() => {
     const m = Number(searchParams.get('months'));
-    const topDays = Math.max(0, Math.min(90, Number(searchParams.get('topDays')) || 0));
+    const rawTop = Math.max(0, Math.min(90, Number(searchParams.get('topDays')) || 0));
+    const topDays =
+      searchParams.get('mode') === 'top_daily' ? Math.max(1, rawTop || 1) : rawTop;
     return {
       ...DEFAULT_DIRECTORY_OPTIONS,
       months: [3, 6, 12].includes(m) ? m : 3,
@@ -59,7 +62,8 @@ export default function OwnerDirectoryCheckout() {
         setOptions((prev) => ({
           ...prev,
           top: false,
-          frame: prev.frame || Boolean(row.yellowFrame),
+          frame: isTopDaily ? false : prev.frame || Boolean(row.yellowFrame),
+          topDays: isTopDaily ? Math.max(1, Number(prev.topDays) || 1) : prev.topDays,
         }));
         if (prices) {
           setTariff(normalizeServiceTariff(prices.service || prices.directory || prices.shop));
@@ -69,7 +73,7 @@ export default function OwnerDirectoryCheckout() {
           .then((slots) => {
             if (!alive) return;
             setTopSlots(slots);
-            if (slots?.dailyAvailable === false && !slots?.alreadyTop) {
+            if (slots?.dailyAvailable === false && !slots?.alreadyTop && !isTopDaily) {
               setOptions((prev) => ({ ...prev, topDays: 0 }));
             }
           })
@@ -85,63 +89,79 @@ export default function OwnerDirectoryCheckout() {
     return () => {
       alive = false;
     };
-  }, [itemId]);
+  }, [itemId, isTopDaily]);
 
   const topSlotsFull =
     Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
+  const topDailyDays = Math.max(1, Math.min(90, Number(options.topDays) || 1));
   const effectiveOptions = {
     ...options,
-    topDays: topSlotsFull ? 0 : Math.max(0, Number(options.topDays) || 0),
+    topDays: isTopDaily
+      ? topSlotsFull
+        ? 0
+        : topDailyDays
+      : topSlotsFull
+        ? 0
+        : Math.max(0, Number(options.topDays) || 0),
   };
 
+  const dailyPrice =
+    Number(topSlots?.addonTopDaily ?? tariff?.addonTopDaily ?? tariff?.addonTop) || 300;
+
   const renewQuote = useMemo(
-    () => calcServiceTotal(tariff, effectiveOptions),
-    [tariff, effectiveOptions.months, effectiveOptions.frame, effectiveOptions.topDays]
+    () => (isTopDaily ? null : calcServiceTotal(tariff, effectiveOptions)),
+    [tariff, isTopDaily, effectiveOptions.months, effectiveOptions.frame, effectiveOptions.topDays]
   );
   const upgradeQuote = useMemo(
     () =>
       item && isUpgrade ? calcDirectoryUpgradeTotal(tariff, item, effectiveOptions) : null,
-    [
-      tariff,
-      item,
-      isUpgrade,
-      effectiveOptions.frame,
-      effectiveOptions.topDays,
-    ]
+    [tariff, item, isUpgrade, effectiveOptions.frame, effectiveOptions.topDays]
   );
-  const amount = isUpgrade ? upgradeQuote?.total ?? 0 : renewQuote.total;
+  const topDailyAmount =
+    isTopDaily && !topSlotsFull ? Math.round(topDailyDays * dailyPrice) : 0;
+  const amount = isTopDaily
+    ? topDailyAmount
+    : isUpgrade
+      ? upgradeQuote?.total ?? 0
+      : renewQuote?.total ?? 0;
 
   const pay = async () => {
     setError('');
     setPaying(true);
     try {
       await refresh?.();
-      const topDays = effectiveOptions.topDays;
-      const result = isUpgrade
-        ? await listingPaymentService.directoryUpgradeCheckout({
-            directoryItemId: item.id,
-            top: false,
-            topDays,
-            frame: options.frame,
-          })
-        : await listingPaymentService.directoryCheckout({
-            category: item.category,
-            months: options.months,
-            top: false,
-            topDays,
-            frame: options.frame,
-            directoryItemId: item.id,
-            listing: {
-              name: item.name,
-              phone: item.phone,
-              description: item.description,
-              address: item.address,
-              region: item.region,
-              website: item.website,
-              hours: item.hours,
-              image: item.image,
-            },
-          });
+      let result;
+      if (isTopDaily) {
+        result = await listingPaymentService.checkoutDirectoryTopDaily(item.id, {
+          topDays: topDailyDays,
+        });
+      } else if (isUpgrade) {
+        result = await listingPaymentService.directoryUpgradeCheckout({
+          directoryItemId: item.id,
+          top: false,
+          topDays: effectiveOptions.topDays,
+          frame: options.frame,
+        });
+      } else {
+        result = await listingPaymentService.directoryCheckout({
+          category: item.category,
+          months: options.months,
+          top: false,
+          topDays: effectiveOptions.topDays,
+          frame: options.frame,
+          directoryItemId: item.id,
+          listing: {
+            name: item.name,
+            phone: item.phone,
+            description: item.description,
+            address: item.address,
+            region: item.region,
+            website: item.website,
+            hours: item.hours,
+            image: item.image,
+          },
+        });
+      }
       if (result.order?.status === 'paid') {
         navigate(`/owner/directory/payment/result/${result.order.id}`, { replace: true });
         return;
@@ -168,6 +188,63 @@ export default function OwnerDirectoryCheckout() {
         <Link className="btn-secondary" to="/owner/directory">
           Назад
         </Link>
+      </div>
+    );
+  }
+
+  if (isTopDaily) {
+    return (
+      <div className="cabinet-panel">
+        <h2>ТОП на сутки</h2>
+        <p className="cabinet-panel__lead">
+          {item.name} · {directoryStatusLabel(item.status)}
+          {item.paidUntil ? ` · до ${new Date(item.paidUntil).toLocaleDateString('ru-RU')}` : ''}
+          {topSlots ? ` · ТОП ${topSlots.used}/${topSlots.max}` : ''}
+        </p>
+        <p className="dir-pricing__hint">
+          Отдельная оплата продвижения — без продления тарифа. Выберите число суток.
+        </p>
+
+        <DirectoryConstructorPricing
+          tariff={tariff}
+          options={{ ...effectiveOptions, topDays: topSlotsFull ? 0 : topDailyDays }}
+          onChange={(next) =>
+            setOptions({
+              ...next,
+              frame: false,
+              topDays: Math.max(1, Math.min(90, Number(next.topDays) || 1)),
+            })
+          }
+          topSlots={topSlots}
+          title="Сутки ТОП"
+          subtitle={`Цена ${formatRub(dailyPrice)} / сут. Срок размещения не продлевается.`}
+          hidePeriods
+          hideFrame
+          topOnly
+        />
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="cabinet-actions" style={{ marginTop: 16 }}>
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={paying || !tariff.enabled || topSlotsFull || amount <= 0}
+            onClick={pay}
+          >
+            {paying
+              ? 'Создаём платёж…'
+              : topSlotsFull
+                ? 'Мест нет'
+                : `Оплатить ТОП ${formatRub(amount)}`}
+          </button>
+          <Link className="btn-secondary" to={`/owner/directory/${item.id}/edit`}>
+            К карточке
+          </Link>
+          <Link className="btn-secondary" to="/owner/directory">
+            К списку
+          </Link>
+        </div>
       </div>
     );
   }

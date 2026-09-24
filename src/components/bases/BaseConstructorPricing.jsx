@@ -223,6 +223,14 @@ export function buildPaymentQuery(options) {
   return s ? `?${s}` : '';
 }
 
+/** Separate mid-period TOP purchase (like photo upgrade). */
+export function buildTopDailyQuery(topDays = 1) {
+  return buildPaymentQuery({
+    mode: 'top_daily',
+    topDays: Math.max(1, Math.min(90, Number(topDays) || 1)),
+  });
+}
+
 /**
  * Mid-period media-only upgrade (no renew, no accidental frame upsell).
  */

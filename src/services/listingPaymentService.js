@@ -96,8 +96,11 @@ export const listingPaymentService = {
     return api.get(`/api/payments/listing-top-slots${qs}`);
   },
 
-  async checkoutTopDaily(baseId) {
-    return this.checkout(baseId, { mode: 'top_daily' });
+  async checkoutTopDaily(baseId, options = {}) {
+    return this.checkout(baseId, {
+      mode: 'top_daily',
+      topDays: Math.max(1, Math.min(90, Number(options.topDays) || 1)),
+    });
   },
 
   async getOrder(orderId) {
@@ -171,10 +174,11 @@ export const listingPaymentService = {
     return api.get(`/api/payments/directory-top-slots${q ? `?${q}` : ''}`);
   },
 
-  async checkoutDirectoryTopDaily(directoryItemId) {
+  async checkoutDirectoryTopDaily(directoryItemId, options = {}) {
     return this.directoryCheckout({
       directoryItemId,
       mode: 'top_daily',
+      topDays: Math.max(1, Math.min(90, Number(options.topDays) || 1)),
     });
   },
 

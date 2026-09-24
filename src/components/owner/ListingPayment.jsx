@@ -41,6 +41,7 @@ export function OwnerListingCheckoutPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isUpgrade = searchParams.get('mode') === 'upgrade';
+  const isTopDaily = searchParams.get('mode') === 'top_daily';
   const [base, setBase] = useState(null);
   const [tariff, setTariff] = useState(null);
   const [extraPhotos, setExtraPhotos] = useState(() =>
@@ -54,9 +55,10 @@ export function OwnerListingCheckoutPage() {
     return [3, 6, 12].includes(m) ? m : 3;
   });
   const [frame, setFrame] = useState(() => searchParams.get('frame') === '1');
-  const [topDays, setTopDays] = useState(() =>
-    Math.max(0, Math.min(90, Number(searchParams.get('topDays')) || 0))
-  );
+  const [topDays, setTopDays] = useState(() => {
+    const n = Math.max(0, Math.min(90, Number(searchParams.get('topDays')) || 0));
+    return searchParams.get('mode') === 'top_daily' ? Math.max(1, n || 1) : n;
+  });
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -136,10 +138,12 @@ export function OwnerListingCheckoutPage() {
 
   const topSlotsFull =
     Boolean(topSlots) && topSlots.dailyAvailable === false && !topSlots.alreadyTop;
-  const effectiveTopDays = isUpgrade || topSlotsFull ? 0 : topDays;
+  const effectiveTopDays = isUpgrade || isTopDaily || topSlotsFull ? 0 : topDays;
+  const dailyPrice =
+    Number(topSlots?.addonTopDaily ?? tariff?.addonTopDaily) || 300;
 
   const renewQuote = useMemo(() => {
-    if (!tariff) return null;
+    if (!tariff || isTopDaily) return null;
     return calcConstructorTotal(tariff, {
       months,
       top: false,
@@ -148,7 +152,7 @@ export function OwnerListingCheckoutPage() {
       extraVideos,
       topDays: effectiveTopDays,
     });
-  }, [tariff, months, frame, extraPhotos, extraVideos, effectiveTopDays]);
+  }, [tariff, months, frame, extraPhotos, extraVideos, effectiveTopDays, isTopDaily]);
 
   const upgradeQuote = useMemo(() => {
     if (!tariff || !base || !isUpgrade) return null;
@@ -160,23 +164,30 @@ export function OwnerListingCheckoutPage() {
     });
   }, [tariff, base, isUpgrade, frame, extraPhotos, extraVideos]);
 
-  const amount = isUpgrade ? upgradeQuote?.total ?? 0 : renewQuote?.total ?? 0;
-  const dailyPrice =
-    Number(topSlots?.addonTopDaily ?? tariff?.addonTopDaily) || 300;
+  const topDailyDays = Math.max(1, Math.min(90, Number(topDays) || 1));
+  const topDailyAmount =
+    isTopDaily && !topSlotsFull ? Math.round(topDailyDays * dailyPrice) : 0;
+  const amount = isTopDaily
+    ? topDailyAmount
+    : isUpgrade
+      ? upgradeQuote?.total ?? 0
+      : renewQuote?.total ?? 0;
 
   const pay = async () => {
     setPaying(true);
     setError('');
     try {
-      const result = await listingPaymentService.checkout(baseId, {
-        months,
-        top: false,
-        topDays: effectiveTopDays,
-        frame,
-        extraPhotos,
-        extraVideos,
-        mode: isUpgrade ? 'upgrade' : undefined,
-      });
+      const result = isTopDaily
+        ? await listingPaymentService.checkoutTopDaily(baseId, { topDays: topDailyDays })
+        : await listingPaymentService.checkout(baseId, {
+            months,
+            top: false,
+            topDays: effectiveTopDays,
+            frame,
+            extraPhotos,
+            extraVideos,
+            mode: isUpgrade ? 'upgrade' : undefined,
+          });
       if (result.order?.status === 'paid') {
         navigate(`/owner/payment/result/${result.order.id}`, { replace: true });
         return;
@@ -214,6 +225,97 @@ export function OwnerListingCheckoutPage() {
   const ctor = tariff || normalizeConstructor({});
   const minPhotos = Math.max(0, Number(base?.paid_extra_photos) || 0);
   const minVideos = Math.max(0, Number(base?.paid_extra_videos) || 0);
+
+  if (isTopDaily) {
+    return (
+      <div className="cabinet-panel listing-pay">
+        <h2>ТОП на сутки</h2>
+        <p className="cabinet-panel__lead">
+          Отдельная оплата продвижения — без продления тарифа. Выберите число суток и оплатите
+          через ЮKassa.
+        </p>
+
+        <div className="listing-pay__card">
+          <div className="listing-pay__row">
+            <span>База</span>
+            <strong>{base.name}</strong>
+          </div>
+          <div className="listing-pay__row">
+            <span>Цена</span>
+            <strong>{formatMoney(dailyPrice, 'RUB')} / сут</strong>
+          </div>
+        </div>
+
+        <div className="listing-pay__opts">
+          <p className="listing-pay__label">Число суток ТОП</p>
+          {topSlotsFull ? (
+            <p className="listing-pay__note" style={{ color: '#b91c1c' }}>
+              К сожалению, все места в топе заняты, попробуйте позже.
+              {topSlots ? ` (${topSlots.used}/${topSlots.max})` : ''}
+            </p>
+          ) : (
+            <div className="listing-pay__counter">
+              <span>
+                ТОП на сутки <em>+{formatMoney(dailyPrice, 'RUB')} / сут</em>
+                <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
+                  На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                  {topSlots?.alreadyTop ? ' · сутки добавятся к текущему ТОП' : ''}
+                </small>
+              </span>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setTopDays((n) => Math.max(1, n - 1))}
+                >
+                  −
+                </button>
+                <strong>{topDailyDays}</strong>
+                <button
+                  type="button"
+                  onClick={() => setTopDays((n) => Math.min(90, n + 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="listing-pay__card listing-pay__card--total">
+          <div className="listing-pay__row listing-pay__row--total">
+            <span>
+              Итого за {topDailyDays}{' '}
+              {topDailyDays === 1 ? 'сутки' : topDailyDays < 5 ? 'суток' : 'суток'}
+            </span>
+            <strong>{formatMoney(amount, 'RUB')}</strong>
+          </div>
+        </div>
+
+        {error && <div className="auth-error">{error}</div>}
+        {!ctor.enabled && (
+          <div className="auth-error">Размещение временно отключено администратором</div>
+        )}
+
+        <div className="listing-pay__actions">
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={paying || !ctor.enabled || topSlotsFull || amount <= 0}
+            onClick={pay}
+          >
+            {paying
+              ? 'Создаём платёж…'
+              : topSlotsFull
+                ? 'Мест нет'
+                : `Оплатить ТОП ${formatMoney(amount, 'RUB')}`}
+          </button>
+          <Link className="btn-secondary" to={`/owner/bases/${baseId}/edit`}>
+            Вернуться к карточке
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cabinet-panel listing-pay">
@@ -494,10 +596,10 @@ export function OwnerListingCheckoutPage() {
       </div>
 
       <p className="listing-pay__note">
-        На главной — {topSlots?.max || 4} места в ТОП. Сутки ТОП выбираются в тарифе выше и входят в
-        общую сумму. Если все места заняты — опция недоступна. Доп. фото можно докупить в любой
-        момент за {formatRub(ctor.addonPhoto)} каждое (режим доплаты). После оплаты заявка уйдёт на
-        модерацию (кроме уже одобренных баз при доплате).
+        На главной — {topSlots?.max || 4} места в ТОП. Сутки ТОП можно взять в тарифе или докупить
+        отдельно в любой момент (кнопка «ТОП» в кабинете). Если все места заняты — опция недоступна.
+        Доп. фото — за {formatRub(ctor.addonPhoto)} каждое (режим доплаты). После оплаты заявка
+        уйдёт на модерацию (кроме уже одобренных баз при доплате/ТОП).
       </p>
     </div>
   );
@@ -556,7 +658,13 @@ export function OwnerListingPaymentResultPage() {
       {state.phase === 'success' && (
         <>
           <div className="listing-pay__ok">Оплата прошла успешно</div>
-          <p>Заявка на размещение базы отправлена на модерацию.</p>
+          <p>
+            {state.order?.meta?.kind === 'top_daily'
+              ? 'ТОП активирован. Карточка появится в блоке ТОП на главной.'
+              : state.order?.meta?.kind === 'upgrade'
+                ? 'Доплата применена. Срок размещения не менялся.'
+                : 'Заявка на размещение базы отправлена на модерацию (если база ещё не одобрена).'}
+          </p>
           <div className="listing-pay__actions">
             <Link className="btn-primary" to={`/owner/bases/${state.order?.base_id}/edit`}>
               Перейти к моей базе

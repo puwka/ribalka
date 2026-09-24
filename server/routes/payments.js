@@ -141,6 +141,7 @@ router.post('/directory-checkout', requireAuth, async (req, res, next) => {
         ? await directoryOrders.createDirectoryTopDailyCheckout({
             userId: req.user.sub,
             directoryItemId: body.directoryItemId || body.directory_item_id || null,
+            topDays: Number(body.topDays) || 1,
             returnUrl,
           })
         : body.mode === 'upgrade'
@@ -247,6 +248,7 @@ router.post('/listing-checkout', requireAuth, async (req, res, next) => {
         userId: req.user.sub,
         baseId,
         returnUrl: finalReturn,
+        topDays: Number(req.body?.topDays) || 1,
       });
     } else if (mode === 'upgrade') {
       result = await listingOrders.createListingUpgradeCheckout({

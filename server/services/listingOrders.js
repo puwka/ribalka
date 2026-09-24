@@ -992,7 +992,7 @@ export async function createListingUpgradeCheckout({ userId, baseId, returnUrl, 
 /**
  * One-day homepage TOP boost (24h). Uses free slot or displaces another daily TOP.
  */
-export async function createTopDailyCheckout({ userId, baseId, returnUrl }) {
+export async function createTopDailyCheckout({ userId, baseId, returnUrl, topDays = 1 }) {
   const settings = await getListingPriceSettings();
   if (!settings.enabled) {
     const err = new Error('Размещение временно отключено');
@@ -1000,7 +1000,9 @@ export async function createTopDailyCheckout({ userId, baseId, returnUrl }) {
     throw err;
   }
 
-  const amount = Math.max(0, Number(settings.addonTopDaily) || 300);
+  const days = Math.max(1, Math.min(90, Number(topDays) || 1));
+  const daily = Math.max(0, Number(settings.addonTopDaily) || 300);
+  const amount = Math.round(daily * days);
   const base = await getBaseOwned(baseId, userId);
 
   if (base.status !== 'approved') {
@@ -1017,11 +1019,15 @@ export async function createTopDailyCheckout({ userId, baseId, returnUrl }) {
 
   await assertDailyTopAvailable(base);
 
-  const hours = 24;
-  const description = `ТОП на сутки: «${base.name}»`.slice(0, 128);
+  const hours = days * 24;
+  const description = (
+    days === 1
+      ? `ТОП на сутки: «${base.name}»`
+      : `ТОП на ${days} сут.: «${base.name}»`
+  ).slice(0, 128);
   const metaPatch = {
     kind: 'top_daily',
-    top_daily: { hours, amount },
+    top_daily: { hours, days, amount, daily },
   };
 
   const { rows: existing } = await pool.query(

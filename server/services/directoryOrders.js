@@ -1048,6 +1048,7 @@ export async function createDirectoryTopDailyCheckout({
   userId,
   directoryItemId,
   returnUrl,
+  topDays = 1,
 }) {
   const itemId = directoryItemId;
   if (!itemId) {
@@ -1080,9 +1081,9 @@ export async function createDirectoryTopDailyCheckout({
     category: existingItem.category,
     itemId,
   });
-  if (!slots.dailyAvailable) {
+  if (!slots.dailyAvailable && !slots.alreadyTop) {
     const err = new Error(
-      `Все ${DIRECTORY_TOP_SLOTS} места в ТОП этой категории заняты. Попробуйте позже.`
+      'К сожалению, все места в топе заняты, попробуйте позже.'
     );
     err.status = 409;
     throw err;
@@ -1096,22 +1097,23 @@ export async function createDirectoryTopDailyCheckout({
     throw err;
   }
 
-  const amount = Math.max(
-    0,
-    Number(tariff.addonTopDaily ?? tariff.addonTop) || 300
-  );
-  const hours = 24;
-  const description = `ТОП на сутки: ${categoryLabel(existingItem.category)} «${existingItem.name}»`.slice(
-    0,
-    128
-  );
+  const days = Math.max(1, Math.min(90, Number(topDays) || 1));
+  const daily = Math.max(0, Number(tariff.addonTopDaily ?? tariff.addonTop) || 300);
+  const amount = Math.round(daily * days);
+  const hours = days * 24;
+  const description = (
+    days === 1
+      ? `ТОП на сутки: ${categoryLabel(existingItem.category)} «${existingItem.name}»`
+      : `ТОП на ${days} сут.: ${categoryLabel(existingItem.category)} «${existingItem.name}»`
+  ).slice(0, 128);
   const metaPatch = {
     kind: 'top_daily',
-    top_daily: { hours, amount },
+    top_daily: { hours, days, amount, daily },
   };
   const payload = {
     kind: 'top_daily',
     hours,
+    topDays: days,
     name: existingItem.name,
     category: existingItem.category,
     isTop: true,
