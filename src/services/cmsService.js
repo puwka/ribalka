@@ -189,7 +189,7 @@ const DEFAULT_FOOTER = {
     { label: 'Справочник', url: '/directory' },
     { label: 'Тарифы', url: '/tariffs' },
     { label: 'Лунный календарь', url: '/lunar' },
-    { label: 'Форум', url: '/forum' },
+    { label: 'Егорыч', url: '/forum' },
   ],
   legalLinks: [
     { label: 'Политика конфиденциальности', modal: 'privacy' },

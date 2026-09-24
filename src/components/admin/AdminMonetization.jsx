@@ -430,7 +430,7 @@ export function AdminAdsTab({ adminId }) {
             style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, background: '#fff' }}
           >
             <strong>
-              {ad.title} · {ad.surface === 'forum' ? 'форум' : 'новости'} ·{' '}
+              {ad.title} · {ad.surface === 'forum' ? 'Егорыч' : 'новости'} ·{' '}
               {ad.placement === 'left'
                 ? 'слева'
                 : ad.placement === 'right'

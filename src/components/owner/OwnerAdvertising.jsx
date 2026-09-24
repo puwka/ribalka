@@ -16,7 +16,7 @@ const EMPTY_FORM = {
   days: 1,
 };
 
-const SURFACE_RU = { news: 'Новости', forum: 'Форум' };
+const SURFACE_RU = { news: 'Новости', forum: 'Егорыч' };
 
 function formatEnds(ad) {
   if (!ad?.ends_at) return null;
@@ -301,7 +301,7 @@ export default function OwnerAdvertisingPanel() {
             onChange={(e) => setForm({ ...form, surface: e.target.value })}
           >
             <option value="news">Новости</option>
-            <option value="forum">Форум</option>
+            <option value="forum">Егорыч</option>
           </select>
         </label>
         <label>

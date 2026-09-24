@@ -115,7 +115,7 @@ export default function Footer() {
             <li><a href="/lunar" onClick={(e) => onFooterClick(e, '/lunar')}>Лунный календарь</a></li>
             <li><a href="/directory" onClick={(e) => onFooterClick(e, '/directory')}>Справочник</a></li>
             <li><a href="/reports" onClick={(e) => onFooterClick(e, '/reports')}>Отчёты об отдыхе</a></li>
-            <li><a href="/forum" onClick={(e) => onFooterClick(e, '/forum')}>Форум</a></li>
+            <li><a href="/forum" onClick={(e) => onFooterClick(e, '/forum')}>Егорыч</a></li>
             <li><a href="#news" onClick={(e) => onFooterClick(e, '#news')}>Новости</a></li>
             <li><a href="/about" onClick={(e) => onFooterClick(e, '/about')}>О нас</a></li>
           </ul>

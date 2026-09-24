@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import './SupportFloat.css';
 
-const HIDE_PATHS = ['/support', '/support/thanks', '/admin', '/login', '/register'];
+const HIDE_PATHS = ['/support', '/support/thanks', '/admin', '/login', '/register', '/forum'];
 
 /**
  * Floating bouncing CTA → /support (always visible except on donate/auth pages).

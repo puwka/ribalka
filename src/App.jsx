@@ -26,8 +26,7 @@ const TariffsPage = lazy(() => import('./pages/TariffsPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const ReportsAllPage = lazy(() => import('./pages/ReportsAllPage'));
 const ReportDetailPage = lazy(() => import('./pages/ReportDetailPage'));
-const ForumPage = lazy(() => import('./pages/ForumPage'));
-const ForumTopicPage = lazy(() => import('./pages/ForumTopicPage'));
+const ForumPage = lazy(() => import('./pages/EgorychPage'));
 const AuthorProfilePage = lazy(() => import('./pages/AuthorProfilePage'));
 const LunarCalendarPage = lazy(() => import('./pages/LunarCalendarPage'));
 const UserCabinetPage = lazy(() => import('./pages/UserCabinetPage'));
@@ -127,7 +126,8 @@ function App() {
                       <Route path="/reports/all" element={<ReportsAllPage />} />
                       <Route path="/reports/:id" element={<ReportDetailPage />} />
                       <Route path="/forum" element={<ForumPage />} />
-                      <Route path="/forum/:id" element={<ForumTopicPage />} />
+                      <Route path="/forum/:id" element={<Navigate to="/forum" replace />} />
+                      <Route path="/egorych" element={<Navigate to="/forum" replace />} />
                       <Route path="/u/:userId" element={<AuthorProfilePage />} />
                       <Route path="/calendar" element={<Navigate to="/lunar" replace />} />
                       <Route path="/lunar" element={<LunarCalendarPage />} />

@@ -13,7 +13,7 @@ const DESKTOP_NAV = [
   { to: '/free-waters', label: 'Бесплатные' },
   { to: '/map', label: 'Карта' },
   { to: '/reports', label: 'Отчёты' },
-  { to: '/forum', label: 'Форум' },
+  { to: '/forum', label: 'Егорыч' },
   { to: '/directory', label: 'Справочник' },
   { to: '/tariffs', label: 'Тарифы' },
 ];
@@ -24,7 +24,7 @@ const DRAWER_PRIMARY = [
   { href: '/free-waters', label: 'Бесплатные водоёмы' },
   { href: '/map', label: 'Карта' },
   { href: '/reports', label: 'Отчёты' },
-  { href: '/forum', label: 'Форум' },
+  { href: '/forum', label: 'Егорыч' },
   { href: '/directory', label: 'Справочник' },
   { href: '/tariffs', label: 'Тарифы' },
 ];

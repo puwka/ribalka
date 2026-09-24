@@ -1,0 +1,138 @@
+.egorych-page {
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(61, 90, 54, 0.18), transparent 55%),
+    linear-gradient(180deg, #eef2ea 0%, #f7f5f0 40%, #f3efe6 100%);
+  padding-top: calc(var(--header-height) + var(--safe-top));
+  padding-bottom: calc(var(--space-10) + var(--safe-bottom));
+  color: #1a2418;
+  overflow-x: clip;
+}
+
+.egorych-hero {
+  padding: var(--space-8) var(--space-4) var(--space-6);
+}
+
+.egorych-hero__inner {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 2.5rem);
+  text-align: left;
+}
+
+.egorych-hero__logo {
+  width: min(220px, 42vw);
+  height: auto;
+  border-radius: 50%;
+  box-shadow:
+    0 12px 40px rgba(26, 36, 24, 0.22),
+    0 0 0 4px rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
+}
+
+.egorych-hero__text {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.egorych-hero__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3d5a36;
+}
+
+.egorych-hero h1 {
+  margin: 0 0 0.65rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.2rem, 6vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1.05;
+  color: #1a2418;
+}
+
+.egorych-hero__lead {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: #3a4536;
+}
+
+.egorych-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-8);
+  display: grid;
+  gap: 1rem;
+}
+
+.egorych-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(61, 90, 54, 0.12);
+  border-radius: 18px;
+  padding: 1.25rem 1.35rem;
+  backdrop-filter: blur(6px);
+}
+
+.egorych-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  color: #1a2418;
+}
+
+.egorych-card p {
+  margin: 0;
+  line-height: 1.55;
+  color: #3a4536;
+}
+
+.egorych-examples {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.egorych-examples li {
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(61, 90, 54, 0.08);
+  color: #2a3826;
+  font-size: 0.95rem;
+}
+
+.egorych-card--hint {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.egorych-card--hint img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(26, 36, 24, 0.15);
+}
+
+@media (max-width: 640px) {
+  .egorych-hero__inner {
+    text-align: center;
+  }
+
+  .egorych-hero__text {
+    max-width: none;
+  }
+
+  .egorych-card--hint {
+    flex-direction: column;
+    text-align: center;
+  }
+}

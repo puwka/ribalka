@@ -82,7 +82,7 @@ export default function AuthorProfilePage() {
         <div className="author-page__inner">
           <p className="author-empty">{error || 'Профиль не найден или скрыт'}</p>
           <Link to="/forum" className="btn btn--secondary">
-            На форум
+            К Егорычу
           </Link>
         </div>
       </div>
