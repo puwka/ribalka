@@ -12,29 +12,27 @@ const EXAMPLES = [
 
 /**
  * Егорыч — AI-помощник вместо форума.
- * Рекламные боковые баннеры (surface=forum) сохраняются.
+ * Чат Timeweb встроен прямо в страницу; рекламные баннеры (surface=forum) сохраняются.
  */
 export default function EgorychPage() {
   return (
     <div className="egorych-page">
-      <TimewebAgentEmbed />
-
       <header className="egorych-hero">
         <div className="egorych-hero__inner">
           <img
             className="egorych-hero__logo"
             src="/img/egorych.png"
             alt="Егорыч"
-            width={220}
-            height={220}
+            width={160}
+            height={160}
             decoding="async"
           />
           <div className="egorych-hero__text">
             <p className="egorych-hero__eyebrow">Помощник сайта</p>
             <h1>Егорыч</h1>
             <p className="egorych-hero__lead">
-              Спроси, куда поехать на рыбалку, где купить червей или на что ловить судака —
-              подскажу места, базы и магазины с нашего сайта.
+              Спроси прямо здесь: куда поехать на рыбалку, где купить червей или на что ловить
+              судака — подскажу места, базы и магазины с нашего сайта.
             </p>
           </div>
         </div>
@@ -42,12 +40,13 @@ export default function EgorychPage() {
 
       <SideBannerRails surface="forum">
         <div className="egorych-wrap">
+          <section className="egorych-chat-panel" aria-label="Диалог с Егорычем">
+            <TimewebAgentEmbed open showButton={false} />
+          </section>
+
           <section className="egorych-card">
-            <h2>Как спросить</h2>
-            <p>
-              Открой чат Егорыча в правом нижнем углу экрана и напиши вопрос своими словами.
-              Он опирается на каталог баз, водоёмов и справочник магазинов / сервисов / гидов.
-            </p>
+            <h2>Примеры вопросов</h2>
+            <p>Напишите своими словами в чате выше — например:</p>
             <ul className="egorych-examples">
               {EXAMPLES.map((q) => (
                 <li key={q}>
@@ -55,17 +54,6 @@ export default function EgorychPage() {
                 </li>
               ))}
             </ul>
-          </section>
-
-          <section className="egorych-card egorych-card--hint">
-            <img src="/img/egorych.png" alt="" width={72} height={72} decoding="async" />
-            <div>
-              <h2>Чат уже на странице</h2>
-              <p>
-                Нажми на виджет Егорыча в углу — и пиши. Ответы со ссылками на карточки нашего
-                сайта: базы, места и магазины.
-              </p>
-            </div>
           </section>
         </div>
       </SideBannerRails>
