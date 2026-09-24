@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 /**
- * Admin entry for Егорыч — open the public (admin-gated) chat page.
+ * Admin entry for Егорыч — open the public chat page.
  */
 export default function AdminEgorychSection() {
   return (
@@ -10,8 +10,7 @@ export default function AdminEgorychSection() {
         <div>
           <h1>Егорыч</h1>
           <p className="admin-panel__lead">
-            AI-помощник Timeweb. Для обычных посетителей страница пока показывает «в
-            разработке»; полный чат доступен только администраторам.
+            AI-помощник Timeweb. Страница открыта для всех посетителей сайта.
           </p>
         </div>
       </header>
@@ -36,7 +35,7 @@ export default function AdminEgorychSection() {
         <div style={{ flex: '1 1 220px' }}>
           <strong style={{ display: 'block', marginBottom: 4 }}>Открыть чат Егорыча</strong>
           <span style={{ opacity: 0.8, fontSize: '0.95rem' }}>
-            Откроется публичный URL /forum — вы увидите рабочий чат, гости — заглушку.
+            Публичная страница: /forum (в меню — «Егорыч»).
           </span>
         </div>
         <Link className="admin-btn admin-btn--primary" to="/forum" target="_blank" rel="noreferrer">

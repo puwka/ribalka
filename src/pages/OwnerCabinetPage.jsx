@@ -427,7 +427,7 @@ function OwnerDirectoryAnalytics() {
                       className="btn-secondary"
                       to={`/owner/directory/${item.id}/pay${buildDirectoryTopDailyQuery(1)}`}
                     >
-                      ТОП
+                      Докупить ТОП
                     </Link>
                   ) : null}
                   <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
@@ -611,7 +611,7 @@ function OwnerBases() {
                                 className="btn-secondary"
                                 to={`/owner/payment/${b.id}${buildTopDailyQuery(1)}`}
                               >
-                                ТОП
+                                Докупить ТОП
                               </Link>
                             </>
                           ) : null}
@@ -832,7 +832,8 @@ function OwnerBaseEdit() {
         {paidUntil ? ` · оплачено до ${formatDate(paidUntil)}` : ''}
         {expired ? ' · срок истёк' : ''}
         {topSlots ? ` · ТОП на главной ${topSlots.used}/${topSlots.max}` : ''}
-        {' · '}можно править карточку, докупить фото (+100 ₽), доплатить рамку или продлить срок
+        {' · '}можно править карточку, докупить фото (+100 ₽), докупить ТОП на сутки или продлить
+        срок
       </p>
       {record.status === 'rejected' && record.rejection_reason && (
         <div className="auth-error" style={{ marginBottom: 12 }}>
@@ -863,7 +864,7 @@ function OwnerBaseEdit() {
           style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
         >
           <span style={{ marginRight: 4 }}>
-            Докупить без продления срока (уже оплачено фото: {paidPhotos}, видео: {paidVideos}):
+            Докупить без продления тарифа (уже оплачено фото: {paidPhotos}, видео: {paidVideos}):
           </span>
           <Link className="btn-secondary" to={photoOnlyHref}>
             +1 фото {formatRub(tariff.addonPhoto || 100)}
@@ -873,7 +874,7 @@ function OwnerBaseEdit() {
           </Link>
           {topDailyHref ? (
             <Link className="btn-secondary" to={topDailyHref}>
-              ТОП {formatRub(tariff.addonTopDaily || 300)}/сут
+              Докупить ТОП {formatRub(tariff.addonTopDaily || 300)}/сут
             </Link>
           ) : null}
         </div>
@@ -1177,7 +1178,7 @@ function OwnerDirectoryList() {
                         className="btn-secondary"
                         to={`/owner/directory/${item.id}/pay${buildDirectoryTopDailyQuery(1)}`}
                       >
-                        ТОП
+                        Докупить ТОП
                       </Link>
                     ) : null}
                     <Link className="btn-primary" to={`/owner/directory/${item.id}/pay`}>
@@ -1376,7 +1377,7 @@ function OwnerDirectoryEdit() {
         >
           <span>Докупить ТОП без продления тарифа:</span>
           <Link className="btn-secondary" to={topDailyHref}>
-            ТОП {formatRub(tariff.addonTopDaily || 300)}/сут
+            Докупить ТОП {formatRub(tariff.addonTopDaily || 300)}/сут
           </Link>
         </div>
       ) : null}
@@ -1409,7 +1410,7 @@ function OwnerDirectoryEdit() {
         ) : null}
         {topDailyHref ? (
           <Link className="btn-secondary" to={topDailyHref}>
-            Купить ТОП
+            Докупить ТОП
           </Link>
         ) : null}
         {apiDataEnabled && (

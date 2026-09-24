@@ -17,7 +17,8 @@ async function ensurePromoColumns() {
       add column if not exists paid_extra_videos int not null default 0,
       add column if not exists paid_until timestamptz,
       add column if not exists top_until timestamptz,
-      add column if not exists top_kind text
+      add column if not exists top_kind text,
+      add column if not exists has_water boolean
   `);
   promoColumnsReady = true;
 }
@@ -160,9 +161,20 @@ function parsePayload(body) {
         .map((s) => s.trim())
         .filter(Boolean);
 
+  const type = body.type === 'free' ? 'free' : 'paid';
+  let hasWater = null;
+  if (type === 'free') {
+    hasWater = true;
+  } else {
+    const raw = body.has_water ?? body.hasWater;
+    if (raw === true || raw === 'true' || raw === 'yes' || raw === 1 || raw === '1') hasWater = true;
+    else if (raw === false || raw === 'false' || raw === 'no' || raw === 0 || raw === '0')
+      hasWater = false;
+  }
+
   return {
     name,
-    type: body.type === 'free' ? 'free' : 'paid',
+    type,
     short_description: String(body.short_description || body.description || '')
       .trim()
       .slice(0, 180),
@@ -197,6 +209,7 @@ function parsePayload(body) {
       body.yellow_frame === 'true' ||
       body.yellowFrame === true ||
       body.yellowFrame === 'true',
+    has_water: hasWater,
   };
 }
 
@@ -352,10 +365,10 @@ router.post('/', requireAuth, async (req, res, next) => {
          owner_id, type, status, name, short_description, description,
          region, address, lat, lng, phone, contacts, website_url, social_links,
          price_label, price_from, conditions, features, work_hours, fish_species,
-         transport, how_to_get, weather_notes
+         transport, how_to_get, weather_notes, has_water
        ) values (
          $1,$2,'draft',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16,$17,$18,$19,
-         $20,$21,$22
+         $20,$21,$22,$23
        ) returning id`,
       [
         req.user.sub,
@@ -380,6 +393,7 @@ router.post('/', requireAuth, async (req, res, next) => {
         data.transport,
         data.conditions,
         data.features,
+        data.has_water,
       ]
     );
     const id = rows[0].id;
@@ -423,7 +437,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
            website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
            conditions=$16, features=$17, work_hours=$18, fish_species=$19,
            is_top=$20, yellow_frame=$21, transport=$22,
-           how_to_get=$23, weather_notes=$24,
+           how_to_get=$23, weather_notes=$24, has_water=$25,
            updated_at=now()
          where id=$1`,
         [
@@ -451,6 +465,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
           data.transport,
           data.conditions,
           data.features,
+          data.has_water,
         ]
       );
     } else {
@@ -460,7 +475,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
            region=$6, address=$7, lat=$8, lng=$9, phone=$10, contacts=$11,
            website_url=$12, social_links=$13::jsonb, price_label=$14, price_from=$15,
            conditions=$16, features=$17, work_hours=$18, fish_species=$19,
-           transport=$20, how_to_get=$21, weather_notes=$22,
+           transport=$20, how_to_get=$21, weather_notes=$22, has_water=$23,
            updated_at=now()
          where id=$1`,
         [
@@ -486,6 +501,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
           data.transport,
           data.conditions,
           data.features,
+          data.has_water,
         ]
       );
     }

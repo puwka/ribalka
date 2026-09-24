@@ -283,6 +283,29 @@ export default function AdminWatersSection() {
                   </label>
                 </div>
 
+                {form.type === 'paid' ? (
+                  <AdminField
+                    label="Водоём для рыбалки"
+                    hint="Для фильтра «С водоёмом / Без водоёма» в каталоге"
+                  >
+                    <select
+                      className="admin-select"
+                      value={
+                        form.hasWater === true || form.hasWater === 'yes'
+                          ? 'yes'
+                          : form.hasWater === false || form.hasWater === 'no'
+                            ? 'no'
+                            : ''
+                      }
+                      onChange={(e) => setField('hasWater', e.target.value)}
+                    >
+                      <option value="">Не указано (угадывать по описанию)</option>
+                      <option value="yes">Есть водоём</option>
+                      <option value="no">Без водоёма (база отдыха)</option>
+                    </select>
+                  </AdminField>
+                ) : null}
+
                 <AdminField label="Как добраться">
                   <textarea className="admin-textarea" rows={3} value={form.conditions} onChange={(e) => setField('conditions', e.target.value)} />
                 </AdminField>

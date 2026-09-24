@@ -1071,7 +1071,7 @@ export async function createDirectoryTopDailyCheckout({
     err.status = 400;
     throw err;
   }
-  if (existingItem.paidUntil && new Date(existingItem.paidUntil).getTime() <= Date.now()) {
+  if (!existingItem.paidUntil || new Date(existingItem.paidUntil).getTime() <= Date.now()) {
     const err = new Error('Сначала продлите размещение карточки');
     err.status = 400;
     throw err;

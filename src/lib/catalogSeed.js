@@ -98,6 +98,18 @@ export function recordToUi(record) {
     yellowFrame: Boolean(record.yellowFrame || record.yellow_frame),
     is_top: Boolean(record.isTop || record.is_top),
     yellow_frame: Boolean(record.yellowFrame || record.yellow_frame),
+    hasWater:
+      record.hasWater === true || record.has_water === true
+        ? true
+        : record.hasWater === false || record.has_water === false
+          ? false
+          : ui.hasWater ?? null,
+    has_water:
+      record.hasWater === true || record.has_water === true
+        ? true
+        : record.hasWater === false || record.has_water === false
+          ? false
+          : ui.hasWater ?? null,
   };
 }
 

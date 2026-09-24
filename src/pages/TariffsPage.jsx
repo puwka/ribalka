@@ -91,7 +91,7 @@ export default function TariffsPage() {
                 ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
                 <span className="tariff-card__hint">
                   {' '}
-                  (на главной 4 места; если заняты — кнопка неактивна)
+                  (в тарифе или докупить отдельно в любой момент, как фото; на главной 4 места)
                 </span>
               </li>
               <li>
@@ -168,7 +168,7 @@ export default function TariffsPage() {
                 <strong>{formatRub(dir.addonTopDaily ?? dir.addonTop ?? 300)}</strong>
                 <span className="tariff-card__hint">
                   {' '}
-                  (4 места в категории; если заняты — кнопка неактивна)
+                  (в тарифе или докупить отдельно; 4 места в категории)
                 </span>
               </li>
               <li>

@@ -41,6 +41,10 @@ export function inferWaterBodyKind(item) {
 
 /** Filter: object has a fishing water body vs recreation base without water focus */
 export function listingHasWater(item) {
+  if (item?.hasWater === true || item?.has_water === true) return true;
+  if (item?.hasWater === false || item?.has_water === false) return false;
+
+  // Legacy cards without explicit flag — infer from text
   const blob = `${item.name || ''} ${item.short || ''} ${item.description || ''} ${item.fish || ''} ${item.waterKind || ''}`.toLowerCase();
   if (/пруд|озёр|озер|река|водоём|водоем|карьер|стариц|проток/.test(blob)) return true;
   if ((item.fish || '').trim().length > 0) return true;

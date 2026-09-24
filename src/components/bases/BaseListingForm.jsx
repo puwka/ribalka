@@ -149,6 +149,24 @@ export default function BaseListingForm({
             </>
           )}
         </label>
+        {(form.type === 'paid' || !allowFreeType) && (
+          <label>
+            Водоём для рыбалки *
+            <select
+              required
+              value={form.has_water === true ? 'yes' : form.has_water === false ? 'no' : form.has_water || ''}
+              onChange={set('has_water')}
+              disabled={disabled}
+            >
+              <option value="">Выберите…</option>
+              <option value="yes">Есть водоём</option>
+              <option value="no">Без водоёма (база отдыха)</option>
+            </select>
+            <small className="base-form__hint">
+              Нужно для фильтра «С водоёмом / Без водоёма» в каталоге платных объектов
+            </small>
+          </label>
+        )}
         <label className="base-form__full">
           Краткое описание
           <input

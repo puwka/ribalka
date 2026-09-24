@@ -58,6 +58,12 @@ export function mapBaseToUi(row, rels = {}) {
     features: row.features ?? '',
     isTop: Boolean(row.is_top ?? row.isTop),
     yellowFrame: Boolean(row.yellow_frame ?? row.yellowFrame),
+    hasWater:
+      row.has_water === true || row.hasWater === true
+        ? true
+        : row.has_water === false || row.hasWater === false
+          ? false
+          : null,
     images,
     videos,
     video: videos[0] ?? null,

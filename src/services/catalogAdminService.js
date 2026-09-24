@@ -135,6 +135,7 @@ function emptyWaterForm() {
     servicesText: '',
     isTop: false,
     yellowFrame: false,
+    hasWater: '',
     imagesText: '',
     videosText: '',
     seo_title: '',
@@ -194,6 +195,22 @@ function formToRecord(form, existing) {
     transport: form.transport?.trim() || '',
     isTop: Boolean(form.isTop),
     yellowFrame: Boolean(form.yellowFrame),
+    hasWater:
+      form.type === 'free'
+        ? true
+        : form.hasWater === true || form.hasWater === 'yes'
+          ? true
+          : form.hasWater === false || form.hasWater === 'no'
+            ? false
+            : null,
+    has_water:
+      form.type === 'free'
+        ? true
+        : form.hasWater === true || form.hasWater === 'yes'
+          ? true
+          : form.hasWater === false || form.hasWater === 'no'
+            ? false
+            : null,
     services,
     images,
     videos,
@@ -233,6 +250,12 @@ function recordToForm(record) {
     transport: record.transport || '',
     isTop: Boolean(record.isTop || record.is_top),
     yellowFrame: Boolean(record.yellowFrame || record.yellow_frame),
+    hasWater:
+      record.hasWater === true || record.has_water === true
+        ? 'yes'
+        : record.hasWater === false || record.has_water === false
+          ? 'no'
+          : '',
     servicesText: services.join(', '),
     imagesText: (record.images || []).join('\n'),
     videosText: (record.videos || []).join('\n'),

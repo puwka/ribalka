@@ -67,6 +67,8 @@ function emptyForm() {
     fish_species: '',
     is_top: false,
     yellow_frame: false,
+    /** '' | 'yes' | 'no' — required for paid listings */
+    has_water: '',
   };
 }
 
@@ -91,10 +93,18 @@ function formToRecord(form, { ownerId, existing }) {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const type = form.type || 'paid';
+  let hasWater = null;
+  if (type === 'free') hasWater = true;
+  else if (form.has_water === true || form.has_water === 'yes' || form.has_water === 'true')
+    hasWater = true;
+  else if (form.has_water === false || form.has_water === 'no' || form.has_water === 'false')
+    hasWater = false;
+
   return {
     id: existing?.id,
     owner_id: ownerId,
-    type: form.type || 'paid',
+    type,
     status: existing?.status || BASE_STATUSES.DRAFT,
     name: form.name.trim(),
     short_description:
@@ -125,6 +135,7 @@ function formToRecord(form, { ownerId, existing }) {
     work_hours: form.work_hours.trim() || null,
     is_top: Boolean(form.is_top),
     yellow_frame: Boolean(form.yellow_frame),
+    has_water: hasWater,
     services,
     images,
     videos,
@@ -183,6 +194,12 @@ function recordToForm(record) {
     fish_species: record.fish_species || '',
     is_top: Boolean(record.is_top ?? record.isTop),
     yellow_frame: Boolean(record.yellow_frame ?? record.yellowFrame),
+    has_water:
+      record.has_water === true || record.hasWater === true
+        ? 'yes'
+        : record.has_water === false || record.hasWater === false
+          ? 'no'
+          : '',
   };
 }
 
@@ -245,6 +262,10 @@ function enrichRemote(row) {
     yellow_frame: Boolean(row.yellow_frame ?? mapped.yellowFrame),
     isTop: Boolean(row.is_top ?? mapped.isTop),
     yellowFrame: Boolean(row.yellow_frame ?? mapped.yellowFrame),
+    has_water:
+      row.has_water === true ? true : row.has_water === false ? false : mapped.hasWater,
+    hasWater:
+      row.has_water === true ? true : row.has_water === false ? false : mapped.hasWater,
     top_until: row.top_until || null,
     top_kind: row.top_kind || null,
     topUntil: row.top_until || null,
@@ -324,6 +345,13 @@ function validateForm(form) {
   if (!form.description?.trim()) throw new ApiError('Укажите описание');
   if (!form.address?.trim()) throw new ApiError('Укажите адрес');
   if (!form.phone?.trim()) throw new ApiError('Укажите телефон');
+  const type = form.type || 'paid';
+  if (type === 'paid') {
+    const hw = form.has_water;
+    if (hw !== 'yes' && hw !== 'no' && hw !== true && hw !== false) {
+      throw new ApiError('Укажите, есть ли на объекте водоём для рыбалки');
+    }
+  }
 }
 
 async function replaceRemoteMedia() {
@@ -358,6 +386,7 @@ function remotePayload(record) {
     reviewed_at: record.reviewed_at,
     reviewed_by: record.reviewed_by,
     published_at: record.published_at,
+    has_water: record.has_water ?? record.hasWater ?? null,
   };
 }
 
@@ -547,6 +576,14 @@ export const basesService = {
           max: form.social_max?.trim() || null,
           other: form.social_other?.trim() || null,
         },
+        has_water:
+          form.type === 'free'
+            ? true
+            : form.has_water === 'yes' || form.has_water === true
+              ? true
+              : form.has_water === 'no' || form.has_water === false
+                ? false
+                : null,
       };
       const row = existingId
         ? await api.patch(`/api/bases/${existingId}`, payload)
@@ -624,6 +661,14 @@ export const basesService = {
         },
         is_top: Boolean(form.is_top),
         yellow_frame: Boolean(form.yellow_frame),
+        has_water:
+          form.type === 'free'
+            ? true
+            : form.has_water === 'yes' || form.has_water === true
+              ? true
+              : form.has_water === 'no' || form.has_water === false
+                ? false
+                : null,
       };
       const row = await api.patch(`/api/bases/${baseId}`, payload);
       const ui = enrichRemote(row);

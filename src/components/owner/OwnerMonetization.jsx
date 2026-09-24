@@ -14,6 +14,8 @@ import {
   normalizeConstructor,
   normalizeServiceTariff,
 } from '../../lib/directoryPricing';
+import { buildTopDailyQuery } from '../bases/BaseConstructorPricing';
+import { buildDirectoryTopDailyQuery } from '../directory/DirectoryConstructorPricing';
 import '../auth/AuthShared.css';
 import './OwnerMonetization.css';
 import './ListingPayment.css';
@@ -82,7 +84,8 @@ export function OwnerSubscriptionPanel() {
         <section className="owner-tariffs__mine" style={{ marginBottom: 24 }}>
           <h3 style={{ marginTop: 0 }}>Мои размещения</h3>
           <p className="cabinet-panel__lead" style={{ marginTop: 0 }}>
-            Продление, доплата рамки/медиа и ТОП на сутки — по кнопке у карточки.
+            Продление, доплата рамки/медиа и ТОП на сутки — отдельно от тарифа, кнопками у
+            карточки (как докупка фото).
           </p>
           <div className="cabinet-list">
             {bases.map((b) => {
@@ -109,6 +112,14 @@ export function OwnerSubscriptionPanel() {
                     <Link className="btn-secondary" to={`/owner/bases/${b.id}/edit`}>
                       Карточка
                     </Link>
+                    {active ? (
+                      <Link
+                        className="btn-secondary"
+                        to={`/owner/payment/${b.id}${buildTopDailyQuery(1)}`}
+                      >
+                        Докупить ТОП
+                      </Link>
+                    ) : null}
                     <Link
                       className="btn-primary"
                       to={`/owner/payment/${b.id}?months=3${b.yellow_frame ? '&frame=1' : ''}`}
@@ -142,6 +153,14 @@ export function OwnerSubscriptionPanel() {
                     <Link className="btn-secondary" to={`/owner/directory/${id}/edit`}>
                       Карточка
                     </Link>
+                    {active ? (
+                      <Link
+                        className="btn-secondary"
+                        to={`/owner/directory/${id}/pay${buildDirectoryTopDailyQuery(1)}`}
+                      >
+                        Докупить ТОП
+                      </Link>
+                    ) : null}
                     <Link className="btn-primary" to={`/owner/directory/${id}/pay`}>
                       {expired || !until ? 'Оплатить' : 'Продлить'}
                     </Link>
@@ -173,7 +192,8 @@ export function OwnerSubscriptionPanel() {
             <li>
               ТОП на сутки — <strong>{formatRub(ctor.addonTopDaily ?? 300)}</strong>
               <span style={{ display: 'block', opacity: 0.8, fontSize: '0.9em' }}>
-                на главной 4 места; если заняты — кнопка неактивна
+                можно взять в тарифе или докупить отдельно в любой момент (как фото); на главной
+                4 места
               </span>
             </li>
             <li>
@@ -243,7 +263,7 @@ export function OwnerSubscriptionPanel() {
               ТОП на сутки —{' '}
               <strong>{formatRub(dir.addonTopDaily ?? dir.addonTop ?? 300)}</strong>
               <span style={{ display: 'block', opacity: 0.8, fontSize: '0.9em' }}>
-                4 места в категории; если заняты — кнопка неактивна
+                в тарифе или докупить отдельно в любой момент; 4 места в категории
               </span>
             </li>
             <li>

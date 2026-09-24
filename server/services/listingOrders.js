@@ -1011,7 +1011,7 @@ export async function createTopDailyCheckout({ userId, baseId, returnUrl, topDay
     throw err;
   }
   const paidUntil = base.paid_until ? new Date(base.paid_until).getTime() : null;
-  if (paidUntil != null && paidUntil <= Date.now()) {
+  if (!paidUntil || paidUntil <= Date.now()) {
     const err = new Error('Сначала продлите размещение базы');
     err.status = 400;
     throw err;
