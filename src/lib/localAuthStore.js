@@ -718,15 +718,17 @@ export const localAuthStore = {
   /** Admin: list users without passwords */
   listUsersForAdmin() {
     const store = readStore();
-    return store.users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      primary_role: u.primary_role,
-      roles: u.roles,
-      status: u.status,
-      created_at: u.created_at,
-      display_name: store.profiles[u.id]?.display_name,
-    }));
+    return store.users
+      .filter((u) => u.status !== 'deleted')
+      .map((u) => ({
+        id: u.id,
+        email: u.email,
+        primary_role: u.primary_role,
+        roles: u.roles,
+        status: u.status,
+        created_at: u.created_at,
+        display_name: store.profiles[u.id]?.display_name,
+      }));
   },
 
   assertAdmin(adminId) {
@@ -772,11 +774,40 @@ export const localAuthStore = {
     if (!admin?.roles?.includes('admin') && admin?.primary_role !== 'admin') {
       throw new Error('Недостаточно прав');
     }
+    if (String(targetUserId) === String(adminId) && status !== 'active') {
+      throw new Error('Нельзя заблокировать или удалить свой аккаунт');
+    }
     const user = store.users.find((u) => u.id === targetUserId);
     if (!user) throw new Error('Пользователь не найден');
     user.status = status;
     writeStore(store);
     return user;
+  },
+
+  deleteUser(adminId, targetUserId) {
+    this.assertAdmin(adminId);
+    if (String(targetUserId) === String(adminId)) {
+      throw new Error('Нельзя удалить свой аккаунт');
+    }
+    const store = readStore();
+    const idx = store.users.findIndex((u) => u.id === targetUserId);
+    if (idx < 0) throw new Error('Пользователь не найден');
+    const target = store.users[idx];
+    if (target.primary_role === 'admin' || target.roles?.includes('admin')) {
+      const otherAdmins = store.users.filter(
+        (u) =>
+          u.id !== targetUserId &&
+          u.status === 'active' &&
+          (u.primary_role === 'admin' || u.roles?.includes('admin'))
+      );
+      if (otherAdmins.length < 1) {
+        throw new Error('Нельзя удалить последнего активного администратора');
+      }
+    }
+    store.users.splice(idx, 1);
+    if (store.profiles?.[targetUserId]) delete store.profiles[targetUserId];
+    writeStore(store);
+    return { ok: true, id: targetUserId, email: target.email };
   },
 
   setUserRole(adminId, targetUserId, role) {

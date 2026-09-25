@@ -44,6 +44,13 @@ async function setUserRoleAdmin(adminId, targetId, role) {
   localAuthStore.setUserRole(adminId, targetId, role);
 }
 
+async function deleteUserAdmin(adminId, targetId) {
+  if (apiDataEnabled) {
+    return api.delete(`/api/users/${encodeURIComponent(targetId)}`);
+  }
+  return localAuthStore.deleteUser(adminId, targetId);
+}
+
 export default function AdminUsersSection() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
@@ -76,7 +83,30 @@ export default function AdminUsersSection() {
     setBusyId(targetId);
     try {
       await setUserStatusAdmin(user.id, targetId, status);
-      setMessage(`Статус обновлён: ${status}`);
+      setMessage(status === 'blocked' ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteUser = async (u) => {
+    const label = u.display_name || u.email || u.id;
+    if (
+      !window.confirm(
+        `Удалить пользователя «${label}» безвозвратно?\n\nАккаунт, профиль и связанные данные пользователя будут удалены. Объекты (базы и т.п.) останутся на сайте без владельца.`
+      )
+    ) {
+      return;
+    }
+    setError('');
+    setMessage('');
+    setBusyId(u.id);
+    try {
+      await deleteUserAdmin(user.id, u.id);
+      setMessage(`Пользователь «${label}» удалён`);
       await load();
     } catch (err) {
       setError(err.message);
@@ -215,12 +245,21 @@ export default function AdminUsersSection() {
                     <button
                       type="button"
                       className="admin-btn admin-btn--sm admin-btn--primary"
-                      disabled={busyId === u.id}
+                      disabled={u.id === user.id || busyId === u.id}
                       onClick={() => setStatus(u.id, 'active')}
                     >
                       Разблок
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--sm admin-btn--danger"
+                    disabled={u.id === user.id || busyId === u.id}
+                    title={u.id === user.id ? 'Нельзя удалить себя' : 'Удалить безвозвратно'}
+                    onClick={() => deleteUser(u)}
+                  >
+                    Удалить
+                  </button>
                 </div>
               ),
             },
@@ -228,8 +267,8 @@ export default function AdminUsersSection() {
           rows={filtered.map((u) => ({ ...u, _key: u.id }))}
         />
         <p className="admin-field__hint" style={{ marginTop: 12 }}>
-          После смены роли пользователю нужно выйти и войти снова, чтобы обновились права в
-          кабинете.
+          «Блок» запрещает вход. «Удалить» снимает аккаунт навсегда (базы и карточки остаются на
+          сайте без владельца). После смены роли пользователю нужно выйти и войти снова.
         </p>
       </section>
     </>

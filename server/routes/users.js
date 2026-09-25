@@ -138,6 +138,9 @@ router.patch('/:id/status', requireAuth, requireAdmin, async (req, res, next) =>
     if (!['active', 'blocked', 'deleted'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
+    if (String(req.params.id) === String(req.user.sub) && status !== 'active') {
+      return res.status(400).json({ error: 'Нельзя заблокировать или удалить свой аккаунт' });
+    }
     const { rows } = await pool.query(
       `update public.users set status = $2, updated_at = now()
        where id = $1 returning id, email, status`,
@@ -145,6 +148,41 @@ router.patch('/:id/status', requireAuth, requireAdmin, async (req, res, next) =>
     );
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: permanently delete a user (cascades profile/roles; bases keep owner_id null) */
+router.delete('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const targetId = req.params.id;
+    if (String(targetId) === String(req.user.sub)) {
+      return res.status(400).json({ error: 'Нельзя удалить свой аккаунт' });
+    }
+
+    const existing = await pool.query(
+      `select id, email, primary_role, status from public.users where id = $1`,
+      [targetId]
+    );
+    if (!existing.rows[0]) return res.status(404).json({ error: 'Not found' });
+
+    // Keep at least one active admin on the site
+    if (existing.rows[0].primary_role === 'admin') {
+      const { rows: adminCnt } = await pool.query(
+        `select count(*)::int as cnt from public.users
+         where primary_role = 'admin' and status = 'active' and id <> $1`,
+        [targetId]
+      );
+      if ((Number(adminCnt[0]?.cnt) || 0) < 1) {
+        return res.status(400).json({
+          error: 'Нельзя удалить последнего активного администратора',
+        });
+      }
+    }
+
+    await pool.query(`delete from public.users where id = $1`, [targetId]);
+    res.json({ ok: true, id: targetId, email: existing.rows[0].email });
   } catch (err) {
     next(err);
   }
