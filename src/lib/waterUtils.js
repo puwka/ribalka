@@ -17,6 +17,18 @@ export function catalogPathForWaterType(type) {
   return '/paid-waters';
 }
 
+/** Yandex Maps placemark options by listing type */
+export function mapMarkerOptionsForType(type) {
+  if (type === WATER_TYPE.PAID_FISHING) {
+    // Dark yellow / gold for paid fishing spots
+    return { preset: 'islands#circleDotIcon', iconColor: '#A16207' };
+  }
+  if (type === WATER_TYPE.PAID) {
+    return { preset: 'islands#blueCircleDotIcon' };
+  }
+  return { preset: 'islands#greenCircleDotIcon' };
+}
+
 export function parsePriceValue(priceLabel) {
   if (!priceLabel) return null;
   const m = String(priceLabel).match(/(\d[\d\s]*)/);

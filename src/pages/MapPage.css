@@ -87,6 +87,10 @@
   color: var(--color-accent);
 }
 
+.map-stat--fishing .map-stat__value {
+  color: #a16207;
+}
+
 .map-stat--free .map-stat__value {
   color: var(--color-success);
 }
@@ -210,6 +214,11 @@
 .map-legend__dot--paid {
   background: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.map-legend__dot--fishing {
+  background: #a16207;
+  box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.3);
 }
 
 .map-legend__dot--free {
@@ -425,6 +434,11 @@
   color: #1d4ed8;
 }
 
+.map-sidebar__badge--fishing {
+  background: #fef3c7;
+  color: #a16207;
+}
+
 .map-sidebar__badge--free {
   background: #d1fae5;
   color: #047857;
@@ -616,6 +630,11 @@
 .ym-balloon__badge--paid {
   background: #dbeafe;
   color: #1d4ed8;
+}
+
+.ym-balloon__badge--fishing {
+  background: #fef3c7;
+  color: #a16207;
 }
 
 .ym-balloon__badge--free {

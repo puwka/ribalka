@@ -18,12 +18,41 @@ function voterKeyFrom(req, body = {}) {
 
 function parseWeightKg(raw) {
   if (raw == null || raw === '') return null;
-  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
-  const s = String(raw).replace(',', '.').trim();
-  const m = s.match(/(\d+(?:\.\d+)?)/);
-  if (!m) return null;
-  const n = Number(m[1]);
-  return Number.isFinite(n) ? n : null;
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0) return raw;
+  const s = String(raw).replace(/,/g, '.').toLowerCase().trim();
+  if (!s) return null;
+
+  const kgAndG = s.match(/(\d+(?:\.\d+)?)\s*кг\.?\s*(\d+(?:\.\d+)?)\s*(?:г|гр|грамм)/);
+  if (kgAndG) {
+    const kg = Number(kgAndG[1]);
+    const g = Number(kgAndG[2]);
+    if (Number.isFinite(kg) && Number.isFinite(g)) return kg + g / 1000;
+  }
+
+  const gramsOnly = s.match(/(\d+(?:\.\d+)?)\s*(?:г|гр|грамм)/);
+  if (gramsOnly && !/кг|kg/.test(s)) {
+    const g = Number(gramsOnly[1]);
+    return Number.isFinite(g) ? g / 1000 : null;
+  }
+
+  const kgOnly = s.match(/(\d+(?:\.\d+)?)\s*(?:кг|kg)/);
+  if (kgOnly) {
+    const kg = Number(kgOnly[1]);
+    return Number.isFinite(kg) ? kg : null;
+  }
+
+  const bare = s.match(/^(\d+(?:\.\d+)?)\s*$/);
+  if (bare) {
+    const n = Number(bare[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  const any = s.match(/(\d+(?:\.\d+)?)/);
+  if (!any) return null;
+  const n = Number(any[1]);
+  if (!Number.isFinite(n)) return null;
+  if (/(?:г|гр|грамм)/.test(s) && !/(?:кг|kg)/.test(s)) return n / 1000;
+  return n;
 }
 
 function mapReport(row, images = [], videos = [], social = {}) {

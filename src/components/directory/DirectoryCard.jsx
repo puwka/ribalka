@@ -103,9 +103,7 @@ export default function DirectoryCard({ item }) {
     <div className={classes}>
       <div className="card-image">
         {item.image ? <img src={item.image} alt={item.name} /> : null}
-        <div className="card-category">{getCategoryLabel(item.category)}</div>
         {isTop && <div className="card-badge-top">ТОП</div>}
-        {region ? <div className="card-region">{region}</div> : null}
       </div>
 
       <div className="card-body">

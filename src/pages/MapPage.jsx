@@ -3,13 +3,36 @@ import { Link } from 'react-router-dom';
 import { basesService } from '../services/basesService';
 import { catalogStats } from '../lib/catalogSeed';
 import { toYandexCoords } from '../lib/coords';
+import { WATER_TYPE, mapMarkerOptionsForType } from '../lib/waterUtils';
 import './MapPage.css';
 
 const FILTER_OPTIONS = [
   { id: 'all', label: 'Все', icon: '🗺️' },
-  { id: 'paid', label: 'Платные', icon: '💎' },
+  { id: 'paid', label: 'Базы', icon: '💎' },
+  { id: 'paid_fishing', label: 'Платная рыбалка', icon: '🎣' },
   { id: 'free', label: 'Бесплатные', icon: '🌲' },
 ];
+
+function placeIcon(type) {
+  if (type === WATER_TYPE.FREE) return '🌲';
+  if (type === WATER_TYPE.PAID_FISHING) return '🎣';
+  return '💎';
+}
+
+function placeBadge(type) {
+  if (type === WATER_TYPE.FREE) return { className: 'free', label: 'Бесплатно' };
+  if (type === WATER_TYPE.PAID_FISHING) return { className: 'fishing', label: 'Платная рыбалка' };
+  return { className: 'paid', label: 'Платная база' };
+}
+
+function pluralRu(n, one, few, many) {
+  const abs = Math.abs(Number(n) || 0) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (last === 1) return one;
+  if (last >= 2 && last <= 4) return few;
+  return many;
+}
 
 export default function MapPage() {
   const [filter, setFilter] = useState('all');
@@ -23,10 +46,12 @@ export default function MapPage() {
   const ymapsRef = useRef(null);
 
   const stats = useMemo(() => {
-    const paid = places.filter((p) => p.type === 'paid').length;
-    const free = places.filter((p) => p.type === 'free').length;
-    if (places.length) return { total: places.length, paid, free };
-    return catalogStats();
+    const paid = places.filter((p) => p.type === WATER_TYPE.PAID).length;
+    const fishing = places.filter((p) => p.type === WATER_TYPE.PAID_FISHING).length;
+    const free = places.filter((p) => p.type === WATER_TYPE.FREE).length;
+    if (places.length) return { total: places.length, paid, fishing, free };
+    const c = catalogStats();
+    return { total: c.total, paid: c.paid, fishing: 0, free: c.free };
   }, [places]);
 
   useEffect(() => {
@@ -39,7 +64,7 @@ export default function MapPage() {
         setPlaces(
           (rows || []).map((base) => ({
             ...base,
-            icon: base.type === 'free' ? '🌲' : '💎',
+            icon: placeIcon(base.type),
           }))
         );
       })
@@ -101,17 +126,18 @@ export default function MapPage() {
     const short = escapeHtml(place.short || '');
     const price = escapeHtml(place.price || '');
     const fish = escapeHtml(place.fish || '');
-    const isFree = place.type === 'free';
+    const badge = placeBadge(place.type);
+    const icon = placeIcon(place.type);
     const img = place.images?.[0]
       ? `<div class="ym-balloon__media"><img src="${escapeHtml(place.images[0])}" alt="" /></div>`
-      : `<div class="ym-balloon__media ym-balloon__media--empty"><span>${isFree ? '🌲' : '💎'}</span></div>`;
+      : `<div class="ym-balloon__media ym-balloon__media--empty"><span>${icon}</span></div>`;
 
     return `
       <div class="ym-balloon">
         ${img}
         <div class="ym-balloon__body">
-          <span class="ym-balloon__badge ym-balloon__badge--${isFree ? 'free' : 'paid'}">
-            ${isFree ? 'Бесплатно' : 'Платный'}
+          <span class="ym-balloon__badge ym-balloon__badge--${badge.className}">
+            ${badge.label}
           </span>
           <strong class="ym-balloon__title">${name}</strong>
           ${short ? `<p class="ym-balloon__text">${short}</p>` : ''}
@@ -208,8 +234,7 @@ export default function MapPage() {
           hintContent: place.name,
         },
         {
-          preset:
-            place.type === 'paid' ? 'islands#blueCircleDotIcon' : 'islands#greenCircleDotIcon',
+          ...mapMarkerOptionsForType(place.type),
           balloonShadow: false,
           balloonLayout: BalloonLayout,
           balloonContentLayout: BalloonContentLayout,
@@ -239,7 +264,7 @@ export default function MapPage() {
         <div className="map-hero__inner section-inner">
           <span className="map-hero__eyebrow">Пермский край</span>
           <h1>Карта водоёмов</h1>
-          <p>Платные базы и бесплатные места для рыбалки на одной карте</p>
+          <p>Платные базы, платная рыбалка и бесплатные места на одной карте</p>
 
           <div className="map-stats">
             <div className="map-stat">
@@ -248,36 +273,54 @@ export default function MapPage() {
             </div>
             <div className="map-stat map-stat--paid">
               <span className="map-stat__value">{stats.paid}</span>
-              <span className="map-stat__label">платных</span>
+              <span className="map-stat__label">
+                {pluralRu(stats.paid, 'база', 'базы', 'баз')}
+              </span>
             </div>
             <div className="map-stat map-stat--free">
               <span className="map-stat__value">{stats.free}</span>
-              <span className="map-stat__label">бесплатных</span>
+              <span className="map-stat__label">
+                {pluralRu(stats.free, 'бесплатный водоём', 'бесплатных водоёма', 'бесплатных водоёмов')}
+              </span>
+            </div>
+            <div className="map-stat map-stat--fishing">
+              <span className="map-stat__value">{stats.fishing}</span>
+              <span className="map-stat__label">
+                {pluralRu(stats.fishing, 'платная рыбалка', 'платных рыбалки', 'платных рыбалок')}
+              </span>
             </div>
           </div>
 
           <div className="map-filters" role="tablist" aria-label="Фильтр водоёмов">
-            {FILTER_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                role="tab"
-                aria-selected={filter === opt.id}
-                className={`map-filter ${filter === opt.id ? 'is-active' : ''}`}
-                onClick={() => {
-                  setFilter(opt.id);
-                  setSelectedItem(null);
-                }}
-              >
-                <span className="map-filter__icon" aria-hidden>
-                  {opt.icon}
-                </span>
-                {opt.label}
-                <span className="map-filter__count">
-                  {opt.id === 'all' ? stats.total : opt.id === 'paid' ? stats.paid : stats.free}
-                </span>
-              </button>
-            ))}
+            {FILTER_OPTIONS.map((opt) => {
+              const count =
+                opt.id === 'all'
+                  ? stats.total
+                  : opt.id === 'paid'
+                    ? stats.paid
+                    : opt.id === 'paid_fishing'
+                      ? stats.fishing
+                      : stats.free;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === opt.id}
+                  className={`map-filter ${filter === opt.id ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setFilter(opt.id);
+                    setSelectedItem(null);
+                  }}
+                >
+                  <span className="map-filter__icon" aria-hidden>
+                    {opt.icon}
+                  </span>
+                  {opt.label}
+                  <span className="map-filter__count">{count}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </header>
@@ -324,7 +367,11 @@ export default function MapPage() {
               <div className="map-legend">
                 <span className="map-legend__item">
                   <i className="map-legend__dot map-legend__dot--paid" />
-                  Платные
+                  Базы
+                </span>
+                <span className="map-legend__item">
+                  <i className="map-legend__dot map-legend__dot--fishing" />
+                  Платная рыбалка
                 </span>
                 <span className="map-legend__item">
                   <i className="map-legend__dot map-legend__dot--free" />
@@ -362,9 +409,9 @@ export default function MapPage() {
               <div className="map-sidebar__cover">
                 <img src={selectedItem.images[0]} alt="" />
                 <span
-                  className={`map-sidebar__badge map-sidebar__badge--${selectedItem.type === 'free' ? 'free' : 'paid'}`}
+                  className={`map-sidebar__badge map-sidebar__badge--${placeBadge(selectedItem.type).className}`}
                 >
-                  {selectedItem.type === 'free' ? 'Бесплатно' : 'Платный'}
+                  {placeBadge(selectedItem.type).label}
                 </span>
               </div>
             )}
@@ -372,9 +419,9 @@ export default function MapPage() {
             <div className="map-sidebar__body">
               {!selectedItem.images?.[0] && (
                 <span
-                  className={`map-sidebar__badge map-sidebar__badge--${selectedItem.type === 'free' ? 'free' : 'paid'}`}
+                  className={`map-sidebar__badge map-sidebar__badge--${placeBadge(selectedItem.type).className}`}
                 >
-                  {selectedItem.type === 'free' ? 'Бесплатно' : 'Платный'}
+                  {placeBadge(selectedItem.type).label}
                 </span>
               )}
 

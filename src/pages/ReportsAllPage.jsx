@@ -4,15 +4,8 @@ import { useReports } from '../hooks/useReports';
 import { useAuth } from '../components/auth/AuthContext';
 import { basesService } from '../services/basesService';
 import { api, apiDataEnabled } from '../lib/apiClient';
+import { reportWeightKg } from '../lib/reportWeight';
 import './ReportsPage.css';
-
-function parseWeightKg(report) {
-  if (report.weightKg != null && Number.isFinite(Number(report.weightKg))) {
-    return Number(report.weightKg);
-  }
-  const m = String(report.weight || '').replace(',', '.').match(/(\d+(?:\.\d+)?)/);
-  return m ? Number(m[1]) : null;
-}
 
 export default function ReportsAllPage() {
   const navigate = useNavigate();
@@ -73,10 +66,32 @@ export default function ReportsAllPage() {
     if (regionFilter !== 'all') {
       list = list.filter((r) => (r.region || '') === regionFilter);
     }
+
+    const byWeightDesc = (a, b) => {
+      const wa = reportWeightKg(a);
+      const wb = reportWeightKg(b);
+      const ha = wa != null;
+      const hb = wb != null;
+      if (ha && hb && wa !== wb) return wb - wa;
+      if (ha && !hb) return -1;
+      if (!ha && hb) return 1;
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    };
+    const byWeightAsc = (a, b) => {
+      const wa = reportWeightKg(a);
+      const wb = reportWeightKg(b);
+      const ha = wa != null;
+      const hb = wb != null;
+      if (ha && hb && wa !== wb) return wa - wb;
+      if (ha && !hb) return -1;
+      if (!ha && hb) return 1;
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    };
+
     if (sortBy === 'weight_desc') {
-      list.sort((a, b) => (parseWeightKg(b) ?? -1) - (parseWeightKg(a) ?? -1));
+      list.sort(byWeightDesc);
     } else if (sortBy === 'weight_asc') {
-      list.sort((a, b) => (parseWeightKg(a) ?? Infinity) - (parseWeightKg(b) ?? Infinity));
+      list.sort(byWeightAsc);
     } else if (sortBy === 'comments') {
       list.sort((a, b) => (b.comments?.length || 0) - (a.comments?.length || 0));
     } else if (sortBy === 'rating') {
@@ -86,7 +101,7 @@ export default function ReportsAllPage() {
           (b.comments?.length || 0) - (a.comments?.length || 0)
       );
     } else {
-      list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      list.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     }
     return list;
   }, [reports, searchQuery, regionFilter, sortBy]);
@@ -155,10 +170,11 @@ export default function ReportsAllPage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="reports-sort"
+              aria-label="Сортировка отчётов"
             >
               <option value="date">По дате</option>
-              <option value="weight_desc">Крупнейший улов</option>
-              <option value="weight_asc">Мельчайший улов</option>
+              <option value="weight_desc">По крупному улову</option>
+              <option value="weight_asc">По мелкому улову</option>
               <option value="comments">По комментариям</option>
               <option value="rating">По лайкам</option>
             </select>

@@ -3,6 +3,8 @@
  * Migrates legacy localStorage `fishing_reports` once.
  */
 
+import { parseReportWeightKg } from './reportWeight';
+
 const DB_NAME = 'rybalka_social_db';
 const DB_VERSION = 1;
 const LEGACY_KEY = 'fishing_reports';
@@ -78,6 +80,11 @@ function normalizeLegacyReport(r) {
     fish: r.fish || '',
     bait: r.bait || '',
     weight: r.weight || '',
+    weightKg:
+      r.weightKg != null && Number.isFinite(Number(r.weightKg))
+        ? Number(r.weightKg)
+        : parseReportWeightKg(r.weight),
+    region: r.region || '',
     description: r.description || '',
     extra: r.extra || '',
     images: Array.isArray(r.images) ? r.images : [],

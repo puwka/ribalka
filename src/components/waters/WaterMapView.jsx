@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toYandexCoords } from '../../lib/coords';
+import { mapMarkerOptionsForType } from '../../lib/waterUtils';
 import './WaterMapView.css';
 
 export default function WaterMapView({ items }) {
@@ -39,10 +40,7 @@ export default function WaterMapView({ items }) {
             `,
             hintContent: place.name,
           },
-          {
-            preset:
-              place.type === 'paid' ? 'islands#blueCircleDotIcon' : 'islands#greenCircleDotIcon',
-          }
+          mapMarkerOptionsForType(place.type)
         );
         map.geoObjects.add(placemark);
       });

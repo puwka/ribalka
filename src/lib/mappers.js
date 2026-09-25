@@ -126,6 +126,11 @@ export function mapReportToUi(row, rels = {}) {
     fish: row.fish_caught ?? '',
     bait: row.bait ?? '',
     weight: row.weight_label ?? '',
+    weightKg:
+      row.weight_kg != null && Number.isFinite(Number(row.weight_kg))
+        ? Number(row.weight_kg)
+        : null,
+    region: row.region ?? '',
     description: row.description,
     images,
     videos,
