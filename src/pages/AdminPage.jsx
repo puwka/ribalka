@@ -7,7 +7,7 @@ import AdminDashboard from '../components/admin/sections/AdminDashboard';
 import AdminModerationHub from '../components/admin/sections/AdminModerationHub';
 import AdminAuditSection from '../components/admin/sections/AdminAuditSection';
 import AdminContentHome from '../components/admin/sections/AdminContentHome';
-import { AdminContentPaidWaters, AdminContentFreeWaters } from '../components/admin/sections/AdminContentCatalogPages';
+import { AdminContentPaidWaters, AdminContentPaidFishing, AdminContentFreeWaters } from '../components/admin/sections/AdminContentCatalogPages';
 import AdminDirectorySection from '../components/admin/sections/AdminDirectorySection';
 import AdminNewsSection from '../components/admin/sections/AdminNewsSection';
 import AdminWatersSection from '../components/admin/sections/AdminWatersSection';
@@ -36,6 +36,7 @@ export default function AdminPage() {
           <Route path="audit" element={<AdminAuditSection />} />
           <Route path="content/home" element={<AdminContentHome />} />
           <Route path="content/paid-waters" element={<AdminContentPaidWaters />} />
+          <Route path="content/paid-fishing" element={<AdminContentPaidFishing />} />
           <Route path="content/free-waters" element={<AdminContentFreeWaters />} />
           <Route path="content/directory" element={<AdminDirectorySection />} />
           <Route path="news" element={<AdminNewsSection />} />

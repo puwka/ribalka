@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { usePaidBases } from '../../hooks/usePaidBases';
+import { usePaidFishing } from '../../hooks/usePaidFishing';
 import { useFreePlaces } from '../../hooks/useFreePlaces';
 import {
   PaidWaterCard,
@@ -11,6 +12,7 @@ import './WatersHomeSection.css';
 
 export default function WatersHomeSection() {
   const { data: paid, loading: loadingPaid } = usePaidBases({ limit: 8 });
+  const { data: fishing, loading: loadingFishing } = usePaidFishing({ limit: 8 });
   const { data: free, loading: loadingFree } = useFreePlaces({ limit: 8 });
 
   return (
@@ -19,15 +21,16 @@ export default function WatersHomeSection() {
         <header className="section-head">
           <h2 className="section-head__title">Водоёмы Прикамья</h2>
           <p className="section-head__desc">
-            Платные водоёмы и бесплатные места — отдельные каталоги с картой и фильтрами
+            Платные базы, платная рыбалка и бесплатные места — отдельные каталоги с картой и
+            фильтрами
           </p>
         </header>
 
         <div className="waters-home__paid">
           <div className="waters-home__head">
-            <h3>Базы отдыха и водоёмы</h3>
+            <h3>Платные базы</h3>
             <Link to="/paid-waters" className="btn btn--ghost">
-              Все платные
+              Все базы
             </Link>
           </div>
           {loadingPaid ? (
@@ -37,8 +40,28 @@ export default function WatersHomeSection() {
               {sortPromoFirst(paid)
                 .slice(0, 4)
                 .map((item) => (
-                <PaidWaterCard key={item.id} item={item} />
-              ))}
+                  <PaidWaterCard key={item.id} item={item} />
+                ))}
+            </div>
+          )}
+        </div>
+
+        <div className="waters-home__paid">
+          <div className="waters-home__head">
+            <h3>Платная рыбалка</h3>
+            <Link to="/paid-fishing" className="btn btn--ghost">
+              Все объекты
+            </Link>
+          </div>
+          {loadingFishing ? (
+            <WaterCardGridSkeleton count={4} />
+          ) : (
+            <div className="waters-home__grid">
+              {sortPromoFirst(fishing)
+                .slice(0, 4)
+                .map((item) => (
+                  <PaidWaterCard key={item.id} item={item} />
+                ))}
             </div>
           )}
         </div>
@@ -57,8 +80,8 @@ export default function WatersHomeSection() {
               {sortPromoFirst(free)
                 .slice(0, 4)
                 .map((item) => (
-                <FreeWaterCard key={item.id} item={item} />
-              ))}
+                  <FreeWaterCard key={item.id} item={item} />
+                ))}
             </div>
           )}
         </div>
@@ -66,4 +89,3 @@ export default function WatersHomeSection() {
     </section>
   );
 }
-

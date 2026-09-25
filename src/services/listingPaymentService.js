@@ -3,23 +3,25 @@ import { api, apiDataEnabled } from '../lib/apiClient';
 export const listingPaymentService = {
   isEnabled: () => apiDataEnabled,
 
-  async getPrice() {
+  async getPrice(type = 'paid') {
     if (!apiDataEnabled) {
       return {
-        title: 'Тариф Конструктор',
+        title: type === 'paid_fishing' ? 'Тариф Платная рыбалка' : 'Тариф Конструктор',
         amount: 2900,
         currency: 'RUB',
         enabled: false,
+        listingType: type,
       };
     }
-    return api.get('/api/payments/listing-price');
+    const qs = type && type !== 'paid' ? `?type=${encodeURIComponent(type)}` : '';
+    return api.get(`/api/payments/listing-price${qs}`);
   },
 
   /** Public read of base Constructor tariff (no auth) */
-  async getPublicListingPrice() {
+  async getPublicListingPrice(type = 'paid') {
     if (!apiDataEnabled) {
       return {
-        title: 'Тариф Конструктор',
+        title: type === 'paid_fishing' ? 'Тариф Платная рыбалка' : 'Тариф Конструктор',
         baseAmount: 2900,
         amount: 2900,
         addonTop: 1000,
@@ -33,9 +35,11 @@ export const listingPaymentService = {
         includedPhotos: 1,
         includedVideos: 1,
         enabled: true,
+        listingType: type,
       };
     }
-    return api.get('/api/payments/listing-price-public');
+    const qs = type && type !== 'paid' ? `?type=${encodeURIComponent(type)}` : '';
+    return api.get(`/api/payments/listing-price-public${qs}`);
   },
 
   async getCheckoutPreview(baseId, options = {}) {

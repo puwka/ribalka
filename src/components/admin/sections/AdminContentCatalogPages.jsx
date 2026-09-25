@@ -73,8 +73,18 @@ export function AdminContentPaidWaters() {
   return (
     <AdminContentCatalogPage
       pageKey={CMS_PAGES.PAID_WATERS}
-      title="Контент: Платные водоёмы"
+      title="Контент: Платные базы"
       previewPath="/paid-waters"
+    />
+  );
+}
+
+export function AdminContentPaidFishing() {
+  return (
+    <AdminContentCatalogPage
+      pageKey={CMS_PAGES.PAID_FISHING}
+      title="Контент: Платная рыбалка"
+      previewPath="/paid-fishing"
     />
   );
 }

@@ -7,9 +7,10 @@ const router = Router();
 router.use(authMiddleware);
 
 /** Public price (auth required for owners) */
-router.get('/listing-price', requireAuth, async (_req, res, next) => {
+router.get('/listing-price', requireAuth, async (req, res, next) => {
   try {
-    const settings = await listingOrders.getListingPriceSettings();
+    const type = req.query.type || req.query.listingType || 'paid';
+    const settings = await listingOrders.getListingPriceSettings({ type });
     res.json(settings);
   } catch (err) {
     next(err);
@@ -21,7 +22,13 @@ router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
   try {
     const baseId = req.query.baseId;
     if (!baseId) return res.status(400).json({ error: 'baseId required' });
-    const settings = await listingOrders.getListingPriceSettings();
+    const { pool } = await import('../db.js');
+    const { rows } = await pool.query(
+      `select type from public.bases where id = $1 and owner_id = $2 limit 1`,
+      [baseId, req.user.sub]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'База не найдена' });
+    const settings = await listingOrders.getListingPriceSettings({ type: rows[0].type });
     const activeOrder = await listingOrders.getActiveOrderForBase(req.user.sub, baseId);
     const options = {
       months: Number(req.query.months) || 3,
@@ -51,7 +58,15 @@ router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
 
 router.get('/listing-top-slots', requireAuth, async (req, res, next) => {
   try {
-    const settings = await listingOrders.getListingPriceSettings();
+    let type = req.query.type || req.query.listingType || 'paid';
+    if (req.query.baseId) {
+      const { pool } = await import('../db.js');
+      const { rows } = await pool.query(`select type from public.bases where id = $1 limit 1`, [
+        req.query.baseId,
+      ]);
+      if (rows[0]?.type) type = rows[0].type;
+    }
+    const settings = await listingOrders.getListingPriceSettings({ type });
     const topSlots = await listingOrders.getTopAvailability({
       baseId: req.query.baseId || null,
     });
@@ -101,9 +116,10 @@ router.get('/directory-top-slots', requireAuth, async (req, res, next) => {
 });
 
 /** Public constructor tariff for base owners (read) */
-router.get('/listing-price-public', async (_req, res, next) => {
+router.get('/listing-price-public', async (req, res, next) => {
   try {
-    const settings = await listingOrders.getListingPriceSettings();
+    const type = req.query.type || req.query.listingType || 'paid';
+    const settings = await listingOrders.getListingPriceSettings({ type });
     res.json(settings);
   } catch (err) {
     next(err);
@@ -276,13 +292,13 @@ router.get('/listing-upgrade-preview', requireAuth, async (req, res, next) => {
   try {
     const baseId = req.query.baseId;
     if (!baseId) return res.status(400).json({ error: 'baseId required' });
-    const settings = await listingOrders.getListingPriceSettings();
     const { pool } = await import('../db.js');
     const { rows } = await pool.query(
       `select * from public.bases where id = $1 and owner_id = $2 limit 1`,
       [baseId, req.user.sub]
     );
     if (!rows[0]) return res.status(404).json({ error: 'База не найдена' });
+    const settings = await listingOrders.getListingPriceSettings({ type: rows[0].type });
     const quote = listingOrders.quoteListingUpgrade(settings, rows[0], {
       months: Number(req.query.months) || 3,
       top: false,

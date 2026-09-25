@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../ui/ToastContext';
 import { favoritesService } from '../../services/favoritesService';
-import { formatPaidPrice } from '../../lib/waterUtils';
+import { analyticsTracker } from '../../services/ownerDashboardService';
+import { formatPaidPrice, getPrimarySiteUrl } from '../../lib/waterUtils';
 import './WaterCard.css';
 
 function PlaceholderImage() {
@@ -35,6 +36,47 @@ function WaterCardImage({ images = [], alt = '' }) {
 
 function favoriteType(item) {
   return item?.type === 'free' ? 'place' : 'base';
+}
+
+function WaterCardContactActions({ item }) {
+  const phone = String(item?.phone || '').trim();
+  const siteUrl = getPrimarySiteUrl(item);
+  if (!phone && !siteUrl) return null;
+
+  const onPhone = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    void analyticsTracker.trackClick(item, 'phone');
+    window.location.href = `tel:${phone.replace(/\s/g, '')}`;
+  };
+
+  const onSite = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    void analyticsTracker.trackClick(item, 'website');
+    window.open(siteUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="water-card__contacts">
+      {phone ? (
+        <a href={`tel:${phone.replace(/\s/g, '')}`} className="water-card__cta" onClick={onPhone}>
+          Позвонить
+        </a>
+      ) : null}
+      {siteUrl ? (
+        <a
+          href={siteUrl}
+          className="water-card__cta water-card__cta--secondary"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onSite}
+        >
+          Сайт
+        </a>
+      ) : null}
+    </div>
+  );
 }
 
 export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
@@ -152,6 +194,7 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
         </Link>
 
         <div className="water-card__row-actions">
+          <WaterCardContactActions item={item} />
           <Link to={detailPath} className="water-card__text-link">
             Подробнее
           </Link>
@@ -203,13 +246,16 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
       </Link>
 
       <div className="water-card__footer">
-        <Link to={detailPath} className="water-card__text-link">
-          Подробнее
-        </Link>
+        <WaterCardContactActions item={item} />
+        <div className="water-card__footer-links">
+          <Link to={detailPath} className="water-card__text-link">
+            Подробнее
+          </Link>
 
-        <button type="button" className={favClass} onClick={toggleFavorite} disabled={busy}>
-          {favLabel}
-        </button>
+          <button type="button" className={favClass} onClick={toggleFavorite} disabled={busy}>
+            {favLabel}
+          </button>
+        </div>
       </div>
     </article>
   );

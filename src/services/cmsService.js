@@ -6,6 +6,7 @@ import { DIRECTORY_PAGE_DEFAULTS } from '../data/directorySeed';
 export const CMS_PAGES = {
   HOME: 'home',
   PAID_WATERS: 'paid-waters',
+  PAID_FISHING: 'paid-fishing',
   FREE_WATERS: 'free-waters',
   DIRECTORY: 'directory',
   ABOUT: 'about',
@@ -68,7 +69,8 @@ const DEFAULT_PAGES = {
           'Соберите маршрут на карте, выберите водоём и сохраните понравившиеся места в избранное.',
         actions: [
           { label: 'Карта', url: '/map' },
-          { label: 'Платные', url: '/paid-waters' },
+          { label: 'Платные базы', url: '/paid-waters' },
+          { label: 'Платная рыбалка', url: '/paid-fishing' },
           { label: 'Бесплатные', url: '/free-waters' },
         ],
       },
@@ -76,9 +78,14 @@ const DEFAULT_PAGES = {
     blockOrder: ['watersSection', 'newsSection', 'support', 'cta'],
   },
   [CMS_PAGES.PAID_WATERS]: {
-    title: 'Базы отдыха и водоёмы',
-    description:
-      'Базы отдыха, водоёмы с платной рыбалкой в Пермском крае.',
+    title: 'Платные базы',
+    description: 'Базы отдыха с размещением и сервисом в Пермском крае.',
+    intro: '',
+    extraBlocks: [],
+  },
+  [CMS_PAGES.PAID_FISHING]: {
+    title: 'Платная рыбалка',
+    description: 'Водоёмы с платной рыбалкой в Пермском крае: цены, условия и карта.',
     intro: '',
     extraBlocks: [],
   },
@@ -120,9 +127,17 @@ const DEFAULT_SEO = {
     ogImage: '',
   },
   '/paid-waters': {
-    title: 'Базы отдыха и водоёмы Пермского края — Рыбалка в Прикамье',
-    description:
-      'Базы отдыха и водоёмы с платной рыбалкой в Прикамье: цены, регионы, карта и описания.',
+    title: 'Платные базы Пермского края — Рыбалка в Прикамье',
+    description: 'Базы отдыха Прикамья: цены, регионы, карта и описания.',
+    keywords: '',
+    canonical: '',
+    ogTitle: '',
+    ogDescription: '',
+    ogImage: '',
+  },
+  '/paid-fishing': {
+    title: 'Платная рыбалка Пермского края — Рыбалка в Прикамье',
+    description: 'Водоёмы с платной рыбалкой в Пермском крае: цены, условия, карта.',
     keywords: '',
     canonical: '',
     ogTitle: '',
@@ -161,7 +176,7 @@ const DEFAULT_SEO = {
   '/tariffs': {
     title: 'Тарифы размещения — Рыбалка в Прикамье',
     description:
-      'Тариф Конструктор для платных баз и тариф справочника для магазинов, сервисов, гидов и егерей.',
+      'Тарифы для платных баз, платной рыбалки и справочника (магазины, сервисы, гиды и егеря).',
     keywords: '',
     canonical: '',
     ogTitle: '',
@@ -178,7 +193,8 @@ const DEFAULT_FOOTER = {
     'Всё о рыбалке и отдыхе в Пермском крае. Найдите своё идеальное место для незабываемого отдыха на природе.',
   menuLinks: [
     { label: 'Главная', url: '/' },
-    { label: 'Базы отдыха и водоёмы', url: '/paid-waters' },
+    { label: 'Платные базы', url: '/paid-waters' },
+    { label: 'Платная рыбалка', url: '/paid-fishing' },
     { label: 'Бесплатные водоёмы', url: '/free-waters' },
     { label: 'Карта', url: '/map' },
     { label: 'Отчёты', url: '/reports' },

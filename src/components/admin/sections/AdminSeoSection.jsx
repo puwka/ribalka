@@ -7,7 +7,8 @@ import { uploadService } from '../../../services/uploadService';
 
 const PAGE_PATHS = [
   { path: '/', label: 'Главная' },
-  { path: '/paid-waters', label: 'Платные' },
+  { path: '/paid-waters', label: 'Платные базы' },
+  { path: '/paid-fishing', label: 'Платная рыбалка' },
   { path: '/free-waters', label: 'Бесплатные' },
   { path: '/map', label: 'Карта' },
 ];

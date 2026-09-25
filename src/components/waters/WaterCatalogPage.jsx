@@ -15,8 +15,13 @@ import './WaterCatalogPage.css';
 
 const FALLBACK_COPY = {
   [WATER_TYPE.PAID]: {
-    title: 'Базы отдыха и водоёмы',
-    desc: 'Базы отдыха, водоёмы с платной рыбалкой в Пермском крае.',
+    title: 'Платные базы',
+    desc: 'Базы отдыха с размещением и сервисом в Пермском крае.',
+    countLabel: (n) => `${n} ${n === 1 ? 'объект' : n < 5 ? 'объекта' : 'объектов'}`,
+  },
+  [WATER_TYPE.PAID_FISHING]: {
+    title: 'Платная рыбалка',
+    desc: 'Водоёмы с платной рыбалкой в Пермском крае: цены, условия и карта.',
     countLabel: (n) => `${n} ${n === 1 ? 'объект' : n < 5 ? 'объекта' : 'объектов'}`,
   },
   [WATER_TYPE.FREE]: {
@@ -29,7 +34,12 @@ const FALLBACK_COPY = {
 export default function WaterCatalogPage({ waterType }) {
   const [viewMode, setViewMode] = useState('list');
   const catalog = useWaterCatalog(waterType);
-  const pageKey = waterType === WATER_TYPE.PAID ? CMS_PAGES.PAID_WATERS : CMS_PAGES.FREE_WATERS;
+  const pageKey =
+    waterType === WATER_TYPE.PAID
+      ? CMS_PAGES.PAID_WATERS
+      : waterType === WATER_TYPE.PAID_FISHING
+        ? CMS_PAGES.PAID_FISHING
+        : CMS_PAGES.FREE_WATERS;
   const { data: cmsPage } = useCmsPage(pageKey);
   const fallback = FALLBACK_COPY[waterType];
 
@@ -40,11 +50,13 @@ export default function WaterCatalogPage({ waterType }) {
     countLabel: fallback.countLabel,
   };
 
-  const isPaid = waterType === WATER_TYPE.PAID;
-  const Card = isPaid ? PaidWaterCard : FreeWaterCard;
+  const isCommercial =
+    waterType === WATER_TYPE.PAID || waterType === WATER_TYPE.PAID_FISHING;
+  const Card = isCommercial ? PaidWaterCard : FreeWaterCard;
+  const skin = waterType === WATER_TYPE.FREE ? 'free' : 'paid';
 
   return (
-    <div className={`water-catalog-page water-catalog-page--${isPaid ? 'paid' : 'free'}`}>
+    <div className={`water-catalog-page water-catalog-page--${skin}`}>
       <header className="water-catalog-page__head section-inner">
         <WaterTypeSwitch />
         <div className="water-catalog-page__intro">
@@ -81,7 +93,7 @@ export default function WaterCatalogPage({ waterType }) {
 
       <div className="section-inner water-catalog-page__body">
         <WaterFilterPanel
-          isPaid={isPaid}
+          isPaid={isCommercial}
           query={catalog.query}
           onQueryChange={catalog.setQuery}
           filters={catalog.filters}

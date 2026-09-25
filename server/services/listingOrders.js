@@ -3,12 +3,26 @@ import * as yookassa from './yookassa.js';
 
 const SETTINGS_KEY = 'base_listing';
 const BASE_CONSTRUCTOR_KEY = 'base_listing_constructor';
+const PAID_FISHING_SETTINGS_KEY = 'paid_fishing_listing';
+const PAID_FISHING_CONSTRUCTOR_KEY = 'paid_fishing_listing_constructor';
 const DEFAULT_LISTING = {
   title: 'Тариф Конструктор',
   amount: 2900,
   currency: 'RUB',
   enabled: true,
 };
+const DEFAULT_PAID_FISHING_LISTING = {
+  title: 'Тариф Платная рыбалка',
+  amount: 2900,
+  currency: 'RUB',
+  enabled: true,
+};
+
+const COMMERCIAL_TYPES_SQL = `type in ('paid', 'paid_fishing')`;
+
+export function isCommercialBaseType(type) {
+  return type === 'paid' || type === 'paid_fishing';
+}
 
 const DIRECTORY_DEFAULTS = {
   constructor: {
@@ -70,7 +84,7 @@ export async function countActiveTopSlots({ excludeBaseId = null } = {}) {
   let sql = `
     select count(*)::int as cnt
     from public.bases
-    where type = 'paid'
+    where ${COMMERCIAL_TYPES_SQL}
       and status = 'approved'
       and is_top = true
       and (paid_until is null or paid_until > now())
@@ -90,7 +104,7 @@ async function countDisplaceableDailyTops({ excludeBaseId = null } = {}) {
   let sql = `
     select count(*)::int as cnt
     from public.bases
-    where type = 'paid'
+    where ${COMMERCIAL_TYPES_SQL}
       and status = 'approved'
       and is_top = true
       and coalesce(top_kind, '') = 'daily'
@@ -115,7 +129,7 @@ async function displaceEarliestDailyTop(client, excludeBaseId) {
        updated_at = now()
      where id = (
        select id from public.bases
-       where type = 'paid'
+       where ${COMMERCIAL_TYPES_SQL}
          and status = 'approved'
          and is_top = true
          and coalesce(top_kind, '') = 'daily'
@@ -408,7 +422,12 @@ function normalizeServiceSettings(raw = {}) {
   };
 }
 
-export async function getListingPriceSettings() {
+export async function getListingPriceSettings(opts = {}) {
+  const type = opts?.type || opts?.listingType || null;
+  if (type === 'paid_fishing') {
+    return getPaidFishingListingPriceSettings();
+  }
+
   const [ctorRaw, legacyCtor, flat] = await Promise.all([
     readSiteSettingRaw(BASE_CONSTRUCTOR_KEY),
     readSiteSettingRaw('directory_listing_constructor'),
@@ -432,14 +451,76 @@ export async function getListingPriceSettings() {
       currency: 'RUB',
       enabled: ctor.enabled,
       kind: 'constructor',
+      listingType: 'paid',
     };
   }
 
   const simple = await readSiteSetting(SETTINGS_KEY, DEFAULT_LISTING);
-  return { ...simple, kind: 'flat' };
+  return { ...simple, kind: 'flat', listingType: 'paid' };
+}
+
+async function getPaidFishingListingPriceSettings() {
+  const [ctorRaw, flat] = await Promise.all([
+    readSiteSettingRaw(PAID_FISHING_CONSTRUCTOR_KEY),
+    readSiteSettingRaw(PAID_FISHING_SETTINGS_KEY),
+  ]);
+  const source =
+    Object.keys(ctorRaw).length > 0
+      ? ctorRaw
+      : Object.keys(flat).length > 0 && (flat.baseAmount != null || flat.amount != null)
+        ? flat
+        : null;
+
+  if (source) {
+    const ctor = normalizeConstructorSettings({
+      ...DIRECTORY_DEFAULTS.constructor,
+      title: DEFAULT_PAID_FISHING_LISTING.title,
+      ...source,
+    });
+    return {
+      ...ctor,
+      title: ctor.title || DEFAULT_PAID_FISHING_LISTING.title,
+      amount: ctor.baseAmount,
+      currency: 'RUB',
+      enabled: ctor.enabled,
+      kind: 'constructor',
+      listingType: 'paid_fishing',
+    };
+  }
+
+  const ctor = normalizeConstructorSettings({
+    ...DIRECTORY_DEFAULTS.constructor,
+    title: DEFAULT_PAID_FISHING_LISTING.title,
+  });
+  return {
+    ...ctor,
+    title: ctor.title,
+    amount: ctor.baseAmount,
+    currency: 'RUB',
+    enabled: ctor.enabled,
+    kind: 'constructor',
+    listingType: 'paid_fishing',
+  };
 }
 
 export async function saveListingPriceSettings(adminId, input) {
+  const listingType = input?.listingType || input?.type || 'paid';
+  if (listingType === 'paid_fishing') {
+    const value = normalizeConstructorSettings({
+      ...DIRECTORY_DEFAULTS.constructor,
+      title: DEFAULT_PAID_FISHING_LISTING.title,
+      ...input,
+    });
+    await writeJsonSetting(PAID_FISHING_CONSTRUCTOR_KEY, adminId, value);
+    await writeSiteSetting(
+      PAID_FISHING_SETTINGS_KEY,
+      adminId,
+      { title: value.title, amount: value.baseAmount, enabled: value.enabled },
+      DEFAULT_PAID_FISHING_LISTING
+    );
+    return getListingPriceSettings({ type: 'paid_fishing' });
+  }
+
   if (
     input?.baseAmount != null ||
     input?.addonTop != null ||
@@ -454,7 +535,7 @@ export async function saveListingPriceSettings(adminId, input) {
       { title: value.title, amount: value.baseAmount, enabled: value.enabled },
       DEFAULT_LISTING
     );
-    return getListingPriceSettings();
+    return getListingPriceSettings({ type: 'paid' });
   }
   return writeSiteSetting(SETTINGS_KEY, adminId, input, DEFAULT_LISTING);
 }
@@ -552,7 +633,8 @@ async function getBaseOwned(baseId, userId) {
  * options: { months, top, frame, extraPhotos, extraVideos }
  */
 export async function createListingCheckout({ userId, baseId, returnUrl, options = {} }) {
-  const settings = await getListingPriceSettings();
+  const base = await getBaseOwned(baseId, userId);
+  const settings = await getListingPriceSettings({ type: base.type });
   if (!settings.enabled) {
     const err = new Error('Размещение временно отключено');
     err.status = 403;
@@ -562,7 +644,6 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
   const quote = calcConstructorQuote(settings, options);
   const amount = quote.total;
 
-  const base = await getBaseOwned(baseId, userId);
   // Allow paying for draft/rejected, and renewing approved/pending
   if (!['draft', 'rejected', 'pending', 'approved'].includes(base.status)) {
     const err = new Error('Оплата недоступна для этого статуса базы');
@@ -777,14 +858,14 @@ export async function createListingCheckout({ userId, baseId, returnUrl, options
  * Pay only for new options during an active paid period (does not extend paid_until).
  */
 export async function createListingUpgradeCheckout({ userId, baseId, returnUrl, options = {} }) {
-  const settings = await getListingPriceSettings();
+  const base = await getBaseOwned(baseId, userId);
+  const settings = await getListingPriceSettings({ type: base.type });
   if (!settings.enabled) {
     const err = new Error('Размещение временно отключено');
     err.status = 403;
     throw err;
   }
 
-  const base = await getBaseOwned(baseId, userId);
   const quote = calcListingUpgradeQuote(settings, base, options);
   if (!quote.canUpgrade) {
     const err = new Error(
@@ -993,7 +1074,8 @@ export async function createListingUpgradeCheckout({ userId, baseId, returnUrl, 
  * One-day homepage TOP boost (24h). Uses free slot or displaces another daily TOP.
  */
 export async function createTopDailyCheckout({ userId, baseId, returnUrl, topDays = 1 }) {
-  const settings = await getListingPriceSettings();
+  const base = await getBaseOwned(baseId, userId);
+  const settings = await getListingPriceSettings({ type: base.type });
   if (!settings.enabled) {
     const err = new Error('Размещение временно отключено');
     err.status = 403;
@@ -1003,7 +1085,6 @@ export async function createTopDailyCheckout({ userId, baseId, returnUrl, topDay
   const days = Math.max(1, Math.min(90, Number(topDays) || 1));
   const daily = Math.max(0, Number(settings.addonTopDaily) || 300);
   const amount = Math.round(daily * days);
-  const base = await getBaseOwned(baseId, userId);
 
   if (base.status !== 'approved') {
     const err = new Error('Суточный ТОП доступен только для одобренных баз');
@@ -1236,7 +1317,7 @@ async function applyPaidSideEffects(client, order) {
       const { rows: cntRows } = await client.query(
         `select count(*)::int as cnt
          from public.bases
-         where type = 'paid'
+         where ${COMMERCIAL_TYPES_SQL}
            and status = 'approved'
            and is_top = true
            and (paid_until is null or paid_until > now())
@@ -1363,7 +1444,7 @@ async function applyPaidSideEffects(client, order) {
       const { rows: cntRows } = await client.query(
         `select count(*)::int as cnt
          from public.bases
-         where type = 'paid'
+         where ${COMMERCIAL_TYPES_SQL}
            and status = 'approved'
            and is_top = true
            and (paid_until is null or paid_until > now())

@@ -87,7 +87,11 @@ export const favoritesService = {
       userId,
       'Добавлено в избранное',
       item.name,
-      type === FAVORITE_TYPES.PLACE ? '/free-waters' : '/paid-waters'
+      type === FAVORITE_TYPES.PLACE
+        ? '/free-waters'
+        : item?.type === 'paid_fishing'
+          ? '/paid-fishing'
+          : '/paid-waters'
     );
 
     return { favorited: true, type };

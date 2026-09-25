@@ -2,8 +2,20 @@
 
 export const WATER_TYPE = {
   PAID: 'paid',
+  PAID_FISHING: 'paid_fishing',
   FREE: 'free',
 };
+
+/** Commercial listings that require payment to publish */
+export function isCommercialWaterType(type) {
+  return type === WATER_TYPE.PAID || type === WATER_TYPE.PAID_FISHING;
+}
+
+export function catalogPathForWaterType(type) {
+  if (type === WATER_TYPE.FREE) return '/free-waters';
+  if (type === WATER_TYPE.PAID_FISHING) return '/paid-fishing';
+  return '/paid-waters';
+}
 
 export function parsePriceValue(priceLabel) {
   if (!priceLabel) return null;
@@ -14,9 +26,13 @@ export function parsePriceValue(priceLabel) {
 }
 
 export function formatPaidPrice(item) {
-  if (item.price) return item.price.startsWith('от') ? `Отдых ${item.price}` : `Отдых от ${item.price}`;
+  const isFishing = item?.type === WATER_TYPE.PAID_FISHING;
+  const prefix = isFishing ? 'Рыбалка' : 'Отдых';
+  if (item.price) {
+    return item.price.startsWith('от') ? `${prefix} ${item.price}` : `${prefix} от ${item.price}`;
+  }
   const from = parsePriceValue(item.price_label);
-  if (from) return `Отдых от ${from.toLocaleString('ru-RU')} ₽`;
+  if (from) return `${prefix} от ${from.toLocaleString('ru-RU')} ₽`;
   return 'Цена не указана';
 }
 
@@ -36,7 +52,8 @@ export function inferWaterBodyKind(item) {
   if (name.includes('река') || name.includes('устье')) return 'Река';
   if (name.includes('база')) return 'База отдыха';
   if (name.includes('водоём') || name.includes('водоем')) return 'Водоём';
-  return item.type === WATER_TYPE.FREE ? 'Водоём' : 'База отдыха';
+  if (item.type === WATER_TYPE.FREE || item.type === WATER_TYPE.PAID_FISHING) return 'Водоём';
+  return 'База отдыха';
 }
 
 /** Filter: object has a fishing water body vs recreation base without water focus */
@@ -75,7 +92,7 @@ export function filterWaters(items, { region, priceMin, priceMax, kind, hasWater
     if (kind && inferWaterBodyKind(item) !== kind) return false;
     if (hasWater === 'yes' && !listingHasWater(item)) return false;
     if (hasWater === 'no' && listingHasWater(item)) return false;
-    if (item.type === WATER_TYPE.PAID && (priceMin != null || priceMax != null)) {
+    if (isCommercialWaterType(item.type) && (priceMin != null || priceMax != null)) {
       const p = parsePriceValue(item.price || item.price_label);
       if (p == null) return false;
       if (priceMin != null && p < priceMin) return false;
@@ -112,7 +129,7 @@ export function sortWaters(items, sortBy, type) {
         })
       );
     case 'price':
-      if (type !== WATER_TYPE.PAID) return list.sort(byTopThen(byName));
+      if (!isCommercialWaterType(type)) return list.sort(byTopThen(byName));
       return list.sort(
         byTopThen((a, b) => {
           const pa = parsePriceValue(a.price || a.price_label) ?? Infinity;

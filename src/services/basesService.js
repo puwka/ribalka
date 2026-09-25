@@ -95,7 +95,7 @@ function formToRecord(form, { ownerId, existing }) {
 
   const type = form.type || 'paid';
   let hasWater = null;
-  if (type === 'free') hasWater = true;
+  if (type === 'free' || type === 'paid_fishing') hasWater = true;
   else if (form.has_water === true || form.has_water === 'yes' || form.has_water === 'true')
     hasWater = true;
   else if (form.has_water === false || form.has_water === 'no' || form.has_water === 'false')
@@ -577,7 +577,7 @@ export const basesService = {
           other: form.social_other?.trim() || null,
         },
         has_water:
-          form.type === 'free'
+          form.type === 'free' || form.type === 'paid_fishing'
             ? true
             : form.has_water === 'yes' || form.has_water === true
               ? true
@@ -662,7 +662,7 @@ export const basesService = {
         is_top: Boolean(form.is_top),
         yellow_frame: Boolean(form.yellow_frame),
         has_water:
-          form.type === 'free'
+          form.type === 'free' || form.type === 'paid_fishing'
             ? true
             : form.has_water === 'yes' || form.has_water === true
               ? true

@@ -16,6 +16,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
 const PaidWatersPage = lazy(() => import('./pages/PaidWatersPage'));
+const PaidFishingPage = lazy(() => import('./pages/PaidFishingPage'));
 const FreeWatersPage = lazy(() => import('./pages/FreeWatersPage'));
 const AllNewsPage = lazy(() => import('./pages/AllNewsPage'));
 const MapPage = lazy(() => import('./pages/MapPage'));
@@ -109,6 +110,7 @@ function App() {
                       <Route path="/news/all" element={<AllNewsPage />} />
                       <Route path="/news/:id" element={<NewsPage />} />
                       <Route path="/paid-waters" element={<PaidWatersPage />} />
+                      <Route path="/paid-fishing" element={<PaidFishingPage />} />
                       <Route path="/free-waters" element={<FreeWatersPage />} />
                       <Route path="/waters/:id" element={<BaseDetailPage />} />
                       <Route path="/bases/:id" element={<RedirectBaseToWater />} />

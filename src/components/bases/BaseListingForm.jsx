@@ -28,7 +28,10 @@ export default function BaseListingForm({
 }) {
   const [form, setForm] = useState(() => {
     const initial = initialForm || basesService.emptyForm();
-    if (!allowFreeType) return { ...initial, type: 'paid' };
+    if (!allowFreeType) {
+      const t = initial.type === 'paid_fishing' ? 'paid_fishing' : 'paid';
+      return { ...initial, type: t };
+    }
     return initial;
   });
   const [error, setError] = useState('');
@@ -140,16 +143,17 @@ export default function BaseListingForm({
           {allowFreeType ? (
             <select value={form.type} onChange={set('type')} disabled={disabled}>
               <option value="paid">Платная база</option>
+              <option value="paid_fishing">Платная рыбалка</option>
               <option value="free">Бесплатное место</option>
             </select>
           ) : (
-            <>
-              <input type="hidden" value="paid" readOnly />
-              <div className="base-form__type-fixed">Платная база (коммерческое размещение)</div>
-            </>
+            <select value={form.type || 'paid'} onChange={set('type')} disabled={disabled}>
+              <option value="paid">Платная база</option>
+              <option value="paid_fishing">Платная рыбалка</option>
+            </select>
           )}
         </label>
-        {(form.type === 'paid' || !allowFreeType) && (
+        {form.type === 'paid' && (
           <label>
             Водоём для рыбалки *
             <select
@@ -163,7 +167,7 @@ export default function BaseListingForm({
               <option value="no">Без водоёма (база отдыха)</option>
             </select>
             <small className="base-form__hint">
-              Нужно для фильтра «С водоёмом / Без водоёма» в каталоге платных объектов
+              Нужно для фильтра «С водоёмом / Без водоёма» в каталоге платных баз
             </small>
           </label>
         )}

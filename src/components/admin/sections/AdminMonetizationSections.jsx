@@ -22,8 +22,10 @@ function directoryCategoryRu(category) {
 export function AdminPlansSection() {
   const { user } = useAuth();
   const [listing, setListing] = useState(null);
+  const [paidFishing, setPaidFishing] = useState(null);
   const [directory, setDirectory] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [savingFishing, setSavingFishing] = useState(false);
   const [savingDir, setSavingDir] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -31,9 +33,13 @@ export function AdminPlansSection() {
   useEffect(() => {
     if (!apiDataEnabled) return;
     listingPaymentService
-      .getPrice()
+      .getPrice('paid')
       .then(setListing)
       .catch((err) => setError(err.message));
+    listingPaymentService
+      .getPrice('paid_fishing')
+      .then(setPaidFishing)
+      .catch(() => setPaidFishing(null));
     listingPaymentService
       .getDirectoryPrices()
       .then(setDirectory)
@@ -48,6 +54,7 @@ export function AdminPlansSection() {
       const saved = await listingPaymentService.savePrice({
         ...listing,
         kind: 'constructor',
+        listingType: 'paid',
       });
       setListing(saved);
       setMessage('Тариф Конструктор (базы) сохранён.');
@@ -55,6 +62,25 @@ export function AdminPlansSection() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const savePaidFishing = async () => {
+    setSavingFishing(true);
+    setError('');
+    setMessage('');
+    try {
+      const saved = await listingPaymentService.savePrice({
+        ...paidFishing,
+        kind: 'constructor',
+        listingType: 'paid_fishing',
+      });
+      setPaidFishing(saved);
+      setMessage('Тариф Конструктор (платная рыбалка) сохранён.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingFishing(false);
     }
   };
 
@@ -73,9 +99,132 @@ export function AdminPlansSection() {
     }
   };
 
+  const renderConstructorFields = (state, setState) => (
+    <>
+      <AdminField label="Название">
+        <input
+          className="admin-input"
+          value={state.title || ''}
+          onChange={(e) => setState((s) => ({ ...s, title: e.target.value }))}
+        />
+      </AdminField>
+      <div className="admin-grid-2">
+        <AdminField label="База ₽/мес (1 фото + 1 видео)">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            value={state.baseAmount ?? state.amount ?? 2900}
+            onChange={(e) =>
+              setState((s) => ({
+                ...s,
+                baseAmount: Number(e.target.value),
+                amount: Number(e.target.value),
+              }))
+            }
+          />
+        </AdminField>
+        <AdminField label="ТОП ₽/мес (устарело)">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            value={state.addonTop ?? 1000}
+            onChange={(e) => setState((s) => ({ ...s, addonTop: Number(e.target.value) }))}
+            disabled
+            title="Помесячный ТОП отключён — используйте «ТОП на сутки»"
+          />
+        </AdminField>
+        <AdminField label="ТОП на сутки ₽">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            value={state.addonTopDaily ?? 300}
+            onChange={(e) =>
+              setState((s) => ({ ...s, addonTopDaily: Number(e.target.value) }))
+            }
+          />
+        </AdminField>
+        <AdminField label="Жёлтая рамка ₽/мес">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            value={state.addonFrame ?? 390}
+            onChange={(e) => setState((s) => ({ ...s, addonFrame: Number(e.target.value) }))}
+          />
+        </AdminField>
+        <AdminField label="+1 фото ₽">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            value={state.addonPhoto ?? 100}
+            onChange={(e) => setState((s) => ({ ...s, addonPhoto: Number(e.target.value) }))}
+          />
+        </AdminField>
+        <AdminField label="+1 видео ₽">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            value={state.addonVideo ?? 100}
+            onChange={(e) => setState((s) => ({ ...s, addonVideo: Number(e.target.value) }))}
+          />
+        </AdminField>
+        <AdminField label="Статус">
+          <select
+            className="admin-select"
+            value={state.enabled ? '1' : '0'}
+            onChange={(e) => setState((s) => ({ ...s, enabled: e.target.value === '1' }))}
+          >
+            <option value="1">Включено</option>
+            <option value="0">Выключено</option>
+          </select>
+        </AdminField>
+      </div>
+      <div className="admin-grid-2">
+        <AdminField label="Скидка 3 мес. %">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            max="100"
+            value={state.discount3 ?? 10}
+            onChange={(e) => setState((s) => ({ ...s, discount3: Number(e.target.value) }))}
+          />
+        </AdminField>
+        <AdminField label="Скидка 6 мес. %">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            max="100"
+            value={state.discount6 ?? 20}
+            onChange={(e) => setState((s) => ({ ...s, discount6: Number(e.target.value) }))}
+          />
+        </AdminField>
+        <AdminField label="Скидка 12 мес. %">
+          <input
+            className="admin-input"
+            type="number"
+            min="0"
+            max="100"
+            value={state.discount12 ?? 30}
+            onChange={(e) => setState((s) => ({ ...s, discount12: Number(e.target.value) }))}
+          />
+        </AdminField>
+      </div>
+    </>
+  );
+
   return (
     <>
-      <AdminPageHead title="Тарифы" subtitle="Конструктор — платные базы; второй тариф — справочник" />
+      <AdminPageHead
+        title="Тарифы"
+        subtitle="Конструктор — платные базы и платная рыбалка; отдельно — справочник"
+      />
       <AdminAlert type="error">{error}</AdminAlert>
       <AdminAlert type="success">{message}</AdminAlert>
 
@@ -90,128 +239,39 @@ export function AdminPlansSection() {
             <AdminLoading />
           ) : (
             <>
-              <AdminField label="Название">
-                <input
-                  className="admin-input"
-                  value={listing.title || ''}
-                  onChange={(e) => setListing((s) => ({ ...s, title: e.target.value }))}
-                />
-              </AdminField>
-              <div className="admin-grid-2">
-                <AdminField label="База ₽/мес (1 фото + 1 видео)">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    value={listing.baseAmount ?? listing.amount ?? 2900}
-                    onChange={(e) =>
-                      setListing((s) => ({
-                        ...s,
-                        baseAmount: Number(e.target.value),
-                        amount: Number(e.target.value),
-                      }))
-                    }
-                  />
-                </AdminField>
-                <AdminField label="ТОП ₽/мес (устарело)">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    value={listing.addonTop ?? 1000}
-                    onChange={(e) => setListing((s) => ({ ...s, addonTop: Number(e.target.value) }))}
-                    disabled
-                    title="Помесячный ТОП отключён — используйте «ТОП на сутки»"
-                  />
-                </AdminField>
-                <AdminField label="ТОП на сутки ₽">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    value={listing.addonTopDaily ?? 300}
-                    onChange={(e) =>
-                      setListing((s) => ({ ...s, addonTopDaily: Number(e.target.value) }))
-                    }
-                  />
-                </AdminField>
-                <AdminField label="Жёлтая рамка ₽/мес">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    value={listing.addonFrame ?? 390}
-                    onChange={(e) => setListing((s) => ({ ...s, addonFrame: Number(e.target.value) }))}
-                  />
-                </AdminField>
-                <AdminField label="+1 фото ₽">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    value={listing.addonPhoto ?? 100}
-                    onChange={(e) => setListing((s) => ({ ...s, addonPhoto: Number(e.target.value) }))}
-                  />
-                </AdminField>
-                <AdminField label="+1 видео ₽">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    value={listing.addonVideo ?? 100}
-                    onChange={(e) => setListing((s) => ({ ...s, addonVideo: Number(e.target.value) }))}
-                  />
-                </AdminField>
-                <AdminField label="Статус">
-                  <select
-                    className="admin-select"
-                    value={listing.enabled ? '1' : '0'}
-                    onChange={(e) => setListing((s) => ({ ...s, enabled: e.target.value === '1' }))}
-                  >
-                    <option value="1">Включено</option>
-                    <option value="0">Выключено</option>
-                  </select>
-                </AdminField>
-              </div>
-              <div className="admin-grid-2">
-                <AdminField label="Скидка 3 мес. %">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={listing.discount3 ?? 10}
-                    onChange={(e) => setListing((s) => ({ ...s, discount3: Number(e.target.value) }))}
-                  />
-                </AdminField>
-                <AdminField label="Скидка 6 мес. %">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={listing.discount6 ?? 20}
-                    onChange={(e) => setListing((s) => ({ ...s, discount6: Number(e.target.value) }))}
-                  />
-                </AdminField>
-                <AdminField label="Скидка 12 мес. %">
-                  <input
-                    className="admin-input"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={listing.discount12 ?? 30}
-                    onChange={(e) => setListing((s) => ({ ...s, discount12: Number(e.target.value) }))}
-                  />
-                </AdminField>
-              </div>
+              {renderConstructorFields(listing, setListing)}
               <button
                 type="button"
                 className="admin-btn admin-btn--primary"
                 disabled={saving}
                 onClick={saveListing}
               >
-                {saving ? 'Сохранение…' : 'Сохранить Конструктор'}
+                {saving ? 'Сохранение…' : 'Сохранить Конструктор (базы)'}
+              </button>
+            </>
+          )}
+        </section>
+      )}
+
+      {apiDataEnabled && (
+        <section className="admin-panel" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Тариф Конструктор (платная рыбалка)</h3>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+            Отдельный тариф для каталога «Платная рыбалка». Структура как у баз: базовый месяц,
+            опции и скидки.
+          </p>
+          {!paidFishing ? (
+            <AdminLoading />
+          ) : (
+            <>
+              {renderConstructorFields(paidFishing, setPaidFishing)}
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                disabled={savingFishing}
+                onClick={savePaidFishing}
+              >
+                {savingFishing ? 'Сохранение…' : 'Сохранить Конструктор (рыбалка)'}
               </button>
             </>
           )}

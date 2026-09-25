@@ -9,7 +9,8 @@ import './Header.css';
 
 /** Быстрые ссылки в шапке (desktop) */
 const DESKTOP_NAV = [
-  { to: '/paid-waters', label: 'Платные' },
+  { to: '/paid-waters', label: 'Платные базы' },
+  { to: '/paid-fishing', label: 'Платная рыбалка' },
   { to: '/free-waters', label: 'Бесплатные' },
   { to: '/map', label: 'Карта' },
   { to: '/reports', label: 'Отчёты' },
@@ -20,7 +21,8 @@ const DESKTOP_NAV = [
 
 /** Основные разделы — в бургере на мобиле (на desktop уже в шапке) */
 const DRAWER_PRIMARY = [
-  { href: '/paid-waters', label: 'Базы и водоёмы' },
+  { href: '/paid-waters', label: 'Платные базы' },
+  { href: '/paid-fishing', label: 'Платная рыбалка' },
   { href: '/free-waters', label: 'Бесплатные водоёмы' },
   { href: '/map', label: 'Карта' },
   { href: '/reports', label: 'Отчёты' },

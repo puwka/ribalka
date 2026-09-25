@@ -150,7 +150,8 @@ export default function AdminWatersSection() {
           onChange={(e) => setFilter((f) => ({ ...f, type: e.target.value }))}
         >
           <option value="">Все типы</option>
-          <option value="paid">Платные</option>
+          <option value="paid">Платные базы</option>
+          <option value="paid_fishing">Платная рыбалка</option>
           <option value="free">Бесплатные</option>
         </select>
         <input
@@ -176,7 +177,13 @@ export default function AdminWatersSection() {
               >
                 <div className="admin-list-item__title">{w.name}</div>
                 <div className="admin-list-item__meta">
-                  <AdminStatus status={w.type}>{w.type === 'free' ? 'Бесплатный' : 'Платный'}</AdminStatus>
+                  <AdminStatus status={w.type}>
+                    {w.type === 'free'
+                      ? 'Бесплатный'
+                      : w.type === 'paid_fishing'
+                        ? 'Платная рыбалка'
+                        : 'Платная база'}
+                  </AdminStatus>
                   {' · '}
                   {w.region}
                 </div>

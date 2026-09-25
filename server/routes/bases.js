@@ -161,9 +161,14 @@ function parsePayload(body) {
         .map((s) => s.trim())
         .filter(Boolean);
 
-  const type = body.type === 'free' ? 'free' : 'paid';
+  const type =
+    body.type === 'free'
+      ? 'free'
+      : body.type === 'paid_fishing'
+        ? 'paid_fishing'
+        : 'paid';
   let hasWater = null;
-  if (type === 'free') {
+  if (type === 'free' || type === 'paid_fishing') {
     hasWater = true;
   } else {
     const raw = body.has_water ?? body.hasWater;
@@ -355,7 +360,7 @@ router.post('/', requireAuth, async (req, res, next) => {
     const data = parsePayload(req.body || {});
     const isAdmin = (req.user.roles || []).includes('admin');
     if (!isAdmin) {
-      data.type = 'paid';
+      data.type = data.type === 'paid_fishing' ? 'paid_fishing' : 'paid';
     }
     assertOwnerMediaLimits(data, { paid_extra_photos: 0, paid_extra_videos: 0 }, isAdmin);
     await ensurePromoColumns();
@@ -425,7 +430,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
     const data = parsePayload(req.body || {});
     await ensurePromoColumns();
     if (!isAdmin) {
-      data.type = 'paid';
+      data.type = data.type === 'paid_fishing' ? 'paid_fishing' : 'paid';
     }
     assertOwnerMediaLimits(data, existing, isAdmin);
     await client.query('begin');

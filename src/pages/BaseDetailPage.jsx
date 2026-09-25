@@ -237,7 +237,7 @@ export default function BaseDetailPage() {
           <div className="water-detail__breadcrumbs">
             <Link to="/">Главная</Link>
             <span>/</span>
-            <Link to={item.type === 'free' ? '/free-waters' : '/paid-waters'}>
+            <Link to={item.type === 'free' ? '/free-waters' : item.type === 'paid_fishing' ? '/paid-fishing' : '/paid-waters'}>
               {item.type === 'free' ? 'Бесплатные водоёмы' : 'Базы отдыха и водоёмы'}
             </Link>
           </div>
