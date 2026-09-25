@@ -1,6 +1,6 @@
 /**
  * Parse catch weight into kilograms for sorting/filtering reports.
- * Supports: "5", "5 кг", "2 кг 300 г", "800 г", "1,5 кг".
+ * Supports: "5", "5 кг", "2 кг 300 г", "800 г", "840 гр", "1,5 кг".
  */
 export function parseReportWeightKg(raw) {
   if (raw == null || raw === '') return null;
@@ -9,23 +9,27 @@ export function parseReportWeightKg(raw) {
   const s = String(raw).replace(/,/g, '.').toLowerCase().trim();
   if (!s) return null;
 
+  // Longer unit tokens first: грамм / гр / г
+  const G = String.raw`(?:грамм|гр\.?|г(?![а-яёa-z]))`;
+  const KG = String.raw`(?:кг\.?|kg)`;
+
   // "2 кг 300 г" / "2кг300г"
-  const kgAndG = s.match(/(\d+(?:\.\d+)?)\s*кг\.?\s*(\d+(?:\.\d+)?)\s*(?:г|гр|грамм)/i);
+  const kgAndG = s.match(new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${KG}\s*(\d+(?:\.\d+)?)\s*${G}`));
   if (kgAndG) {
     const kg = Number(kgAndG[1]);
     const g = Number(kgAndG[2]);
     if (Number.isFinite(kg) && Number.isFinite(g)) return kg + g / 1000;
   }
 
-  // grams only — avoid treating "800 г" as 800 kg
-  const gramsOnly = s.match(/(\d+(?:\.\d+)?)\s*(?:г|гр|грамм)/i);
-  if (gramsOnly && !/кг|kg/.test(s)) {
+  // grams only — "840 гр", "800 г" (must NOT become 840 kg)
+  const gramsOnly = s.match(new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${G}`));
+  if (gramsOnly && !new RegExp(KG).test(s)) {
     const g = Number(gramsOnly[1]);
     return Number.isFinite(g) ? g / 1000 : null;
   }
 
   // kilograms
-  const kgOnly = s.match(/(\d+(?:\.\d+)?)\s*(?:кг|kg)/i);
+  const kgOnly = s.match(new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${KG}`));
   if (kgOnly) {
     const kg = Number(kgOnly[1]);
     return Number.isFinite(kg) ? kg : null;
@@ -38,21 +42,31 @@ export function parseReportWeightKg(raw) {
     return Number.isFinite(n) ? n : null;
   }
 
-  // fallback: first number in the string, convert if unit is grams
+  // fallback: first number; convert if grams mentioned
   const any = s.match(/(\d+(?:\.\d+)?)/);
   if (!any) return null;
   const n = Number(any[1]);
   if (!Number.isFinite(n)) return null;
-  if (/(?:г|гр|грамм)/.test(s) && !/(?:кг|kg)/.test(s)) return n / 1000;
+  if (new RegExp(G).test(s) && !new RegExp(KG).test(s)) return n / 1000;
   return n;
 }
 
-/** Normalize report object so weightKg is always usable for sorting */
+/**
+ * Prefer text label with units over stored weightKg — DB may have wrong values
+ * like weight_kg=840 for label "840 гр" from an older parser.
+ */
 export function reportWeightKg(report) {
   if (!report) return null;
+  const label = report.weight || report.weight_label || '';
+  const fromLabel = parseReportWeightKg(label);
+  if (fromLabel != null) return fromLabel;
+
   const direct = report.weightKg ?? report.weight_kg;
   if (direct != null && direct !== '' && Number.isFinite(Number(direct))) {
-    return Number(direct);
+    const n = Number(direct);
+    // Sanity: freshwater catch over 100 kg is almost always mis-stored grams
+    if (n > 100) return n / 1000;
+    return n;
   }
-  return parseReportWeightKg(report.weight || report.weight_label || '');
+  return null;
 }

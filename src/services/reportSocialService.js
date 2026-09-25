@@ -8,7 +8,7 @@ import { gamificationService } from './gamificationService';
 import { notificationService } from './notificationService';
 import { engagementDb } from '../lib/engagementDb';
 import { api, apiDataEnabled } from '../lib/apiClient';
-import { parseReportWeightKg } from '../lib/reportWeight';
+import { parseReportWeightKg, reportWeightKg } from '../lib/reportWeight';
 
 const REPORT_SELECT = `
   *,
@@ -39,7 +39,7 @@ function parseWeightKg(raw) {
 
 function localShapeFromRemote(row, rels = {}) {
   const ui = mapReportToUi(row, rels);
-  return {
+  const shaped = {
     id: String(row.id),
     author: ui.author,
     authorUserId: row.user_id || null,
@@ -50,10 +50,7 @@ function localShapeFromRemote(row, rels = {}) {
     fish: ui.fish,
     bait: ui.bait,
     weight: ui.weight,
-    weightKg:
-      row.weight_kg != null && Number.isFinite(Number(row.weight_kg))
-        ? Number(row.weight_kg)
-        : parseWeightKg(ui.weight),
+    weightKg: row.weight_kg != null ? Number(row.weight_kg) : null,
     region: row.region || ui.region || '',
     description: ui.description,
     extra: '',
@@ -72,6 +69,8 @@ function localShapeFromRemote(row, rels = {}) {
     updatedAt: row.updated_at,
     _source: 'supabase',
   };
+  shaped.weightKg = reportWeightKg(shaped);
+  return shaped;
 }
 
 function enrichRemoteRow(row) {
@@ -88,13 +87,9 @@ function enrichRemoteRow(row) {
 function publicReport(report, viewerKey) {
   if (!report) return null;
   const likedBy = Array.isArray(report.likedBy) ? report.likedBy : [];
-  const weightKg =
-    report.weightKg != null && Number.isFinite(Number(report.weightKg))
-      ? Number(report.weightKg)
-      : parseWeightKg(report.weight || report.weight_label);
   return {
     ...report,
-    weightKg,
+    weightKg: reportWeightKg(report),
     rating: likedBy.length,
     likedBy,
     starAvg: avgStars(report),

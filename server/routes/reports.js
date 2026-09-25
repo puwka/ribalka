@@ -18,24 +18,30 @@ function voterKeyFrom(req, body = {}) {
 
 function parseWeightKg(raw) {
   if (raw == null || raw === '') return null;
-  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0) return raw;
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0) {
+    // Bare numbers from old clients may be grams stored as kg
+    return raw;
+  }
   const s = String(raw).replace(/,/g, '.').toLowerCase().trim();
   if (!s) return null;
 
-  const kgAndG = s.match(/(\d+(?:\.\d+)?)\s*кг\.?\s*(\d+(?:\.\d+)?)\s*(?:г|гр|грамм)/);
+  const G = String.raw`(?:грамм|гр\.?|г(?![а-яёa-z]))`;
+  const KG = String.raw`(?:кг\.?|kg)`;
+
+  const kgAndG = s.match(new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${KG}\s*(\d+(?:\.\d+)?)\s*${G}`));
   if (kgAndG) {
     const kg = Number(kgAndG[1]);
     const g = Number(kgAndG[2]);
     if (Number.isFinite(kg) && Number.isFinite(g)) return kg + g / 1000;
   }
 
-  const gramsOnly = s.match(/(\d+(?:\.\d+)?)\s*(?:г|гр|грамм)/);
-  if (gramsOnly && !/кг|kg/.test(s)) {
+  const gramsOnly = s.match(new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${G}`));
+  if (gramsOnly && !new RegExp(KG).test(s)) {
     const g = Number(gramsOnly[1]);
     return Number.isFinite(g) ? g / 1000 : null;
   }
 
-  const kgOnly = s.match(/(\d+(?:\.\d+)?)\s*(?:кг|kg)/);
+  const kgOnly = s.match(new RegExp(String.raw`(\d+(?:\.\d+)?)\s*${KG}`));
   if (kgOnly) {
     const kg = Number(kgOnly[1]);
     return Number.isFinite(kg) ? kg : null;
@@ -51,8 +57,19 @@ function parseWeightKg(raw) {
   if (!any) return null;
   const n = Number(any[1]);
   if (!Number.isFinite(n)) return null;
-  if (/(?:г|гр|грамм)/.test(s) && !/(?:кг|kg)/.test(s)) return n / 1000;
+  if (new RegExp(G).test(s) && !new RegExp(KG).test(s)) return n / 1000;
   return n;
+}
+
+function resolveWeightKg(row) {
+  const fromLabel = parseWeightKg(row.weight_label);
+  if (fromLabel != null) return fromLabel;
+  if (row.weight_kg != null && Number.isFinite(Number(row.weight_kg))) {
+    const n = Number(row.weight_kg);
+    if (n > 100) return n / 1000;
+    return n;
+  }
+  return null;
 }
 
 function mapReport(row, images = [], videos = [], social = {}) {
@@ -71,7 +88,7 @@ function mapReport(row, images = [], videos = [], social = {}) {
     fish: row.fish_caught || '',
     bait: row.bait || '',
     weight: row.weight_label || '',
-    weightKg: row.weight_kg != null ? Number(row.weight_kg) : parseWeightKg(row.weight_label),
+    weightKg: resolveWeightKg(row),
     region: row.region || '',
     description: row.description || '',
     extra: '',
