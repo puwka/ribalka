@@ -1,10 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { normalizeRichHtml, toEditorHtml } from '../../lib/richText';
 import './RichTextEditor.css';
 
-function ToolbarButton({ label, title, onMouseDown }) {
+function ToolbarButton({ label, title, onMouseDown, active = false }) {
   return (
-    <button type="button" className="rich-editor__btn" title={title} onMouseDown={onMouseDown}>
+    <button
+      type="button"
+      className={`rich-editor__btn${active ? ' is-active' : ''}`}
+      title={title}
+      aria-pressed={active}
+      onMouseDown={onMouseDown}
+    >
       {label}
     </button>
   );
@@ -82,6 +88,77 @@ function caretInside(el) {
   return el === sel.anchorNode || el.contains(sel.anchorNode);
 }
 
+function closestBlock(node, root) {
+  let cur = node?.nodeType === 3 ? node.parentElement : node;
+  while (cur && cur !== root) {
+    if (BLOCK_TAGS.has(cur.tagName) && cur.tagName !== 'LI') return cur;
+    if (cur.tagName === 'LI') return cur;
+    cur = cur.parentElement;
+  }
+  return null;
+}
+
+function currentBlockTag(root) {
+  const sel = window.getSelection?.();
+  if (!sel?.anchorNode || !root) return 'P';
+  const block = closestBlock(sel.anchorNode, root);
+  if (!block) return 'P';
+  if (block.tagName === 'LI') {
+    const list = block.closest('ul, ol');
+    return list?.tagName || 'LI';
+  }
+  return block.tagName;
+}
+
+/**
+ * Apply block format. Browsers disagree on formatBlock arg (`h2` vs `<h2>`),
+ * so we try both and fall back to replace the current block element.
+ */
+function applyFormatBlock(root, tagName) {
+  const tag = String(tagName || 'p').toLowerCase().replace(/[<>]/g, '');
+  const tries = [tag, `<${tag}>`, tag.toUpperCase(), `<${tag.toUpperCase()}>`];
+  for (const arg of tries) {
+    try {
+      if (document.execCommand('formatBlock', false, arg)) {
+        // Verify it stuck (some browsers return true but wrap in div)
+        const now = currentBlockTag(root);
+        if (now.toLowerCase() === tag || (tag === 'p' && (now === 'P' || now === 'DIV'))) {
+          return true;
+        }
+      }
+    } catch {
+      /* try next */
+    }
+  }
+
+  const sel = window.getSelection?.();
+  if (!sel?.rangeCount) return false;
+  const block = closestBlock(sel.anchorNode, root);
+  if (!block || block === root) return false;
+  if (block.tagName === 'LI') {
+    // Convert list item text to heading after the list
+    const heading = document.createElement(tag);
+    heading.innerHTML = block.innerHTML || '<br>';
+    const list = block.closest('ul, ol');
+    if (list?.parentNode) {
+      list.parentNode.insertBefore(heading, list.nextSibling);
+      block.remove();
+      if (!list.querySelector('li')) list.remove();
+    }
+    return true;
+  }
+
+  const next = document.createElement(tag);
+  next.innerHTML = block.innerHTML || '<br>';
+  block.replaceWith(next);
+  const range = document.createRange();
+  range.selectNodeContents(next);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return true;
+}
+
 /**
  * Simple WYSIWYG for admin/owner description fields.
  * Always maintains an editable paragraph — no need to press «Абзац» to type.
@@ -97,7 +174,15 @@ export default function RichTextEditor({
 }) {
   const ref = useRef(null);
   const focused = useRef(false);
+  const [, setTick] = useState(0);
   const extended = variant === 'extended';
+  const activeBlock = (() => {
+    try {
+      return currentBlockTag(ref.current);
+    } catch {
+      return 'P';
+    }
+  })();
 
   useEffect(() => {
     try {
@@ -117,10 +202,13 @@ export default function RichTextEditor({
     }
   }, [value]);
 
+  const refreshToolbar = () => setTick((n) => n + 1);
+
   const emit = () => {
     if (!ref.current || !onChange) return;
     ensureEditorStructure(ref.current);
     onChange(normalizeRichHtml(ref.current.innerHTML));
+    refreshToolbar();
   };
 
   const prepare = () => {
@@ -141,7 +229,7 @@ export default function RichTextEditor({
     const el = prepare();
     if (!el) return;
     if (command === 'formatBlock') {
-      document.execCommand('formatBlock', false, arg || 'p');
+      applyFormatBlock(el, arg || 'p');
     } else if (command === 'createLink') {
       const url = window.prompt('Ссылка (https://…)', 'https://');
       if (!url || !/^https?:\/\//i.test(url.trim())) return;
@@ -150,7 +238,6 @@ export default function RichTextEditor({
       document.execCommand(command, false, arg);
     }
     ensureEditorStructure(el);
-    // After list commands, ensure we still have a usable caret target
     if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
       if (!caretInside(el) || isBlankEditorHtml(el.innerHTML)) {
         placeCaretInEmptyEditor(el);
@@ -162,6 +249,7 @@ export default function RichTextEditor({
   const handleFocus = () => {
     focused.current = true;
     prepare();
+    refreshToolbar();
   };
 
   const handleInput = () => {
@@ -169,7 +257,6 @@ export default function RichTextEditor({
     if (!el) return;
     const wasBlank = isBlankEditorHtml(el.innerHTML);
     ensureEditorStructure(el);
-    // Only force caret when recovering from empty state — avoid fighting normal typing
     if (wasBlank) {
       placeCaretInEmptyEditor(el);
     }
@@ -190,15 +277,21 @@ export default function RichTextEditor({
           ensureEditorStructure(ref.current);
           placeCaretInEmptyEditor(ref.current);
         }
+        refreshToolbar();
       });
+    } else {
+      requestAnimationFrame(refreshToolbar);
     }
   };
+
+  const isH2 = activeBlock === 'H2';
+  const isH3 = activeBlock === 'H3';
+  const isP = activeBlock === 'P' || activeBlock === 'DIV';
 
   return (
     <div
       className={`rich-editor${disabled ? ' is-disabled' : ''}${extended ? ' rich-editor--extended' : ''}`}
       onMouseDown={(e) => {
-        // Toolbar clicks must not activate a parent <label> (steals caret)
         if (e.target.closest('.rich-editor__toolbar')) {
           e.preventDefault();
         }
@@ -213,7 +306,8 @@ export default function RichTextEditor({
         <span className="rich-editor__sep" />
         <ToolbarButton
           label="Текст"
-          title="Обычный абзац (если курсор «застрял» в списке)"
+          title="Обычный абзац"
+          active={isP && extended}
           onMouseDown={run('formatBlock', 'p')}
         />
         <ToolbarButton
@@ -229,8 +323,18 @@ export default function RichTextEditor({
         {extended ? (
           <>
             <span className="rich-editor__sep" />
-            <ToolbarButton label="H2" title="Подзаголовок" onMouseDown={run('formatBlock', 'h2')} />
-            <ToolbarButton label="H3" title="Мелкий заголовок" onMouseDown={run('formatBlock', 'h3')} />
+            <ToolbarButton
+              label="Заголовок"
+              title="Крупный подзаголовок (H2)"
+              active={isH2}
+              onMouseDown={run('formatBlock', 'h2')}
+            />
+            <ToolbarButton
+              label="Подзаголовок"
+              title="Мелкий заголовок (H3)"
+              active={isH3}
+              onMouseDown={run('formatBlock', 'h3')}
+            />
             <span className="rich-editor__sep" />
             <ToolbarButton label="Ссылка" title="Вставить ссылку" onMouseDown={run('createLink')} />
             <ToolbarButton
@@ -251,6 +355,8 @@ export default function RichTextEditor({
         data-placeholder={placeholder}
         suppressContentEditableWarning
         onFocus={handleFocus}
+        onMouseUp={refreshToolbar}
+        onKeyUp={refreshToolbar}
         onMouseDown={(e) => {
           e.stopPropagation();
           if (disabled) return;
@@ -269,6 +375,7 @@ export default function RichTextEditor({
           if (isBlankEditorHtml(el.innerHTML) || !caretInside(el)) {
             placeCaretInEmptyEditor(el);
           }
+          refreshToolbar();
         }}
         onKeyDown={handleKeyDown}
         onBlur={() => {
@@ -279,7 +386,7 @@ export default function RichTextEditor({
       />
       <p className="rich-editor__hint">
         {extended
-          ? 'Кликните в поле и пишите. Enter — новый абзац. Можно выделить текст и оформить (жирный, списки, заголовки, ссылки).'
+          ? 'Выделите строку и нажмите «Заголовок» или «Подзаголовок» — в тексте они крупнее обычного абзаца. Enter — новый абзац.'
           : 'Кликните в поле и сразу пишите. Enter — новый абзац. Кнопка «Текст» возвращает обычный абзац, если список мешает набору.'}
       </p>
     </div>

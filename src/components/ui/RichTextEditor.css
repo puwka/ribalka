@@ -37,6 +37,12 @@
   color: var(--color-accent, #2563eb);
 }
 
+.rich-editor__btn.is-active {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
 .rich-editor__sep {
   width: 1px;
   height: 18px;
@@ -47,13 +53,13 @@
 .rich-editor__area {
   padding: 10px 12px;
   font: inherit;
+  font-size: 1rem;
   font-weight: 400;
   line-height: 1.55;
   color: var(--color-text, #334155);
   outline: none;
   overflow-wrap: anywhere;
   cursor: text;
-  /* Keep height clickable even when "empty" */
   min-height: 120px;
 }
 
@@ -69,6 +75,8 @@
 .rich-editor__area p {
   margin: 0 0 0.65em;
   min-height: 1.55em;
+  font-size: 1rem;
+  font-weight: 400;
 }
 
 .rich-editor__area p:last-child {
@@ -86,19 +94,24 @@
 }
 
 .rich-editor__area h2 {
-  margin: 0.85em 0 0.45em;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--color-primary, #0f172a);
+  display: block;
+  margin: 1.1em 0 0.55em;
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.25em;
 }
 
 .rich-editor__area h3 {
-  margin: 0.75em 0 0.4em;
-  font-size: 1.05rem;
+  display: block;
+  margin: 0.95em 0 0.45em;
+  font-size: 1.3rem;
   font-weight: 700;
-  line-height: 1.35;
-  color: var(--color-primary, #0f172a);
+  line-height: 1.3;
+  color: #1e293b;
 }
 
 .rich-editor__area a {
