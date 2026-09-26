@@ -139,7 +139,7 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
   const ratingCount = Number(item.ratingCount ?? item.rating_count) || 0;
 
   const favLabel = favorited ? 'В избранном' : 'В избранное';
-  const favClass = `water-card__text-link${favorited ? ' is-favorited' : ''}`;
+  const favClass = `water-card__fav${favorited ? ' is-favorited' : ''}`;
   const isTop = Boolean(item.isTop || item.is_top || item.top);
   const hasFrame = Boolean(item.yellowFrame || item.yellow_frame);
   const cardClass = [
@@ -195,12 +195,19 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
 
         <div className="water-card__row-actions">
           <WaterCardContactActions item={item} />
-          <Link to={detailPath} className="water-card__text-link">
+          <Link to={detailPath} className="water-card__text-link water-card__text-link--more">
             Подробнее
           </Link>
 
-          <button type="button" className={favClass} onClick={toggleFavorite} disabled={busy}>
-            {favLabel}
+          <button
+            type="button"
+            className={favClass}
+            onClick={toggleFavorite}
+            disabled={busy}
+            aria-label={favLabel}
+            title={favLabel}
+          >
+            <span aria-hidden="true">{favorited ? '♥' : '♡'}</span>
           </button>
         </div>
       </article>
@@ -248,12 +255,19 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
       <div className="water-card__footer">
         <WaterCardContactActions item={item} />
         <div className="water-card__footer-links">
-          <Link to={detailPath} className="water-card__text-link">
+          <Link to={detailPath} className="water-card__text-link water-card__text-link--more">
             Подробнее
           </Link>
 
-          <button type="button" className={favClass} onClick={toggleFavorite} disabled={busy}>
-            {favLabel}
+          <button
+            type="button"
+            className={favClass}
+            onClick={toggleFavorite}
+            disabled={busy}
+            aria-label={favLabel}
+            title={favLabel}
+          >
+            <span aria-hidden="true">{favorited ? '♥' : '♡'}</span>
           </button>
         </div>
       </div>

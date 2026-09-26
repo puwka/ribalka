@@ -361,7 +361,7 @@ export default function BaseDetailPage() {
             {item.howToGet && (
               <section className="water-detail__section">
                 <h2>Как добраться</h2>
-                <p>{item.howToGet}</p>
+                <RichText value={item.howToGet} className="water-detail__description" />
                 {item.transport && <p className="water-detail__muted">Транспорт: {item.transport}</p>}
               </section>
             )}
@@ -534,7 +534,7 @@ export default function BaseDetailPage() {
               {item.weather && (
                 <div className="water-detail__info-row">
                   <span>Примечание</span>
-                  <strong>{item.weather}</strong>
+                  <strong className="water-detail__pre">{item.weather}</strong>
                 </div>
               )}
             </div>

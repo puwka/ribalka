@@ -198,8 +198,44 @@
   text-decoration: underline;
 }
 
-.water-card__text-link.is-favorited {
-  color: var(--color-primary);
+.water-card__text-link--more {
+  color: #a16207;
+}
+
+.water-card__text-link--more:hover {
+  color: #854d0e;
+  text-decoration: underline;
+}
+
+.water-card__fav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #94a3b8;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.water-card__fav:hover:not(:disabled) {
+  color: #e11d48;
+  background: rgba(225, 29, 72, 0.08);
+}
+
+.water-card__fav.is-favorited {
+  color: #e11d48;
+}
+
+.water-card__fav:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .water-card__text-link:disabled {

@@ -289,7 +289,7 @@ export default function BaseModal({ item, onClose }) {
                 <div className="info-icon">🚗</div>
                 <div className="info-content">
                   <h4>Условия / как добраться</h4>
-                  <p>{item.howToGet}</p>
+                  <RichText value={item.howToGet} />
                 </div>
               </div>
             )}

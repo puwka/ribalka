@@ -25,6 +25,9 @@ export default function BaseListingForm({
   /** Admin can place free waters; owners only commercial (paid) bases */
   allowFreeType = false,
   mediaQuota = null,
+  /** Hide bottom action buttons (e.g. submit lives outside the form) */
+  hideActions = false,
+  formId,
 }) {
   const [form, setForm] = useState(() => {
     const initial = initialForm || basesService.emptyForm();
@@ -108,7 +111,7 @@ export default function BaseListingForm({
   };
 
   return (
-    <form className="base-form" onSubmit={handleSubmit}>
+    <form id={formId || undefined} className="base-form" onSubmit={handleSubmit}>
       {showPromoOptions && (
         <div className="base-form__promo">
           <p className="base-form__promo-title">Опции размещения</p>
@@ -402,21 +405,23 @@ export default function BaseListingForm({
 
       {error && <div className="auth-error">{error}</div>}
 
-      <div className="base-form__actions">
-        <button className="btn-primary" type="submit" disabled={disabled || saving}>
-          {saving ? 'Сохранение…' : submitLabel}
-        </button>
-        {onSubmitAndSend && (
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={disabled || saving}
-            onClick={() => run(onSubmitAndSend)}
-          >
-            {sendLabel}
+      {!hideActions && (
+        <div className="base-form__actions">
+          <button className="btn-primary" type="submit" disabled={disabled || saving}>
+            {saving ? 'Сохранение…' : submitLabel}
           </button>
-        )}
-      </div>
+          {onSubmitAndSend && (
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={disabled || saving}
+              onClick={() => run(onSubmitAndSend)}
+            >
+              {sendLabel}
+            </button>
+          )}
+        </div>
+      )}
     </form>
   );
 }

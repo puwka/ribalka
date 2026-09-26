@@ -348,8 +348,9 @@ export default function AdminBasesSection() {
 
                 <BaseListingForm
                   key={`${selected.id}-${selected.updated_at}`}
+                  formId="admin-base-edit-form"
+                  hideActions
                   initialForm={basesService.recordToForm(selected)}
-                  submitLabel="Сохранить"
                   showPromoOptions
                   allowFreeType
                   onSubmit={async (form) => {
@@ -387,6 +388,14 @@ export default function AdminBasesSection() {
 
 
                 <div className="admin-toolbar">
+
+                  <button
+                    type="submit"
+                    form="admin-base-edit-form"
+                    className="admin-btn admin-btn--blue"
+                  >
+                    Сохранить
+                  </button>
 
                   <button type="button" className="admin-btn admin-btn--primary" onClick={() => runModeration('approve')}>
 

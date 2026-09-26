@@ -308,6 +308,17 @@
   box-shadow: 0 2px 8px rgba(26, 95, 74, 0.22);
 }
 
+.admin-btn--blue {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.admin-btn--blue:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+
 .admin-btn--danger {
   color: #b42318;
   border-color: #fecdca;

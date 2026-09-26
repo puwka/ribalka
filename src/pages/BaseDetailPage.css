@@ -205,6 +205,11 @@
   color: var(--color-text-secondary);
 }
 
+.water-detail__pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .water-detail__tags {
   display: flex;
   flex-wrap: wrap;
