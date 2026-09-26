@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { api, apiDataEnabled } from '../../lib/apiClient';
 import { getItemRegion, isDirectoryTopActive } from '../../lib/directoryRegion';
+import CardCoverMedia from '../media/CardCoverMedia';
+import { pickCardCover } from '../../lib/mediaCover';
 
 export function getCategoryLabel(category) {
   const labels = {
@@ -98,11 +100,14 @@ export default function DirectoryCard({ item }) {
 
   const website = hasWebsite(item) ? String(item.website).trim() : '';
   const hoursLines = formatHoursLines(item.hours);
+  const cover = pickCardCover(item);
 
   return (
     <div className={classes}>
       <div className="card-image">
-        {item.image ? <img src={item.image} alt={item.name} /> : null}
+        {(cover.imageUrl || cover.videoUrl) ? (
+          <CardCoverMedia imageUrl={cover.imageUrl} videoUrl={cover.videoUrl} alt={item.name} />
+        ) : null}
         {isTop && <div className="card-badge-top">ТОП</div>}
       </div>
 

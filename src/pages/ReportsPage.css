@@ -457,14 +457,19 @@
   position: relative;
 }
 
-.report-card__image img {
+.report-card__image img,
+.report-card__image .card-cover-media,
+.report-card__image .card-cover-media__img,
+.report-card__image .card-cover-media__video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.5s ease;
 }
 
-.report-card:hover .report-card__image img {
+.report-card:hover .report-card__image img,
+.report-card:hover .report-card__image .card-cover-media__img,
+.report-card:hover .report-card__image .card-cover-media__video {
   transform: scale(1.05);
 }
 

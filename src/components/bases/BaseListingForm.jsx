@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { basesService } from '../../services/basesService';
 import { ImageUploadListField } from '../media/ImageUpload';
+import CoverMediaField from '../media/CoverMediaField';
 import { uploadService } from '../../services/uploadService';
 import { DEFAULT_CONSTRUCTOR, formatRub } from '../../lib/directoryPricing';
+import { firstDirectVideo, isDirectVideoUrl } from '../../lib/mediaCover';
 import RichTextEditor from '../ui/RichTextEditor';
 import './BaseListingForm.css';
 
@@ -319,6 +321,53 @@ export default function BaseListingForm({
               Сейчас доступно: {maxPhotos} фото, {maxVideos} видео.
             </p>
           )}
+          <CoverMediaField
+            label="Обложка в каталоге (фото или видео до 15 сек)"
+            value={
+              firstDirectVideo(parseLines(form.videosText)) ||
+              parseLines(form.imagesText)[0] ||
+              ''
+            }
+            kind={
+              firstDirectVideo(parseLines(form.videosText))
+                ? 'video'
+                : parseLines(form.imagesText)[0]
+                  ? 'image'
+                  : ''
+            }
+            imageBucket={uploadService.buckets.base}
+            videoBucket={uploadService.buckets.baseVideo}
+            disabled={disabled}
+            onChange={({ url, kind }) => {
+              setForm((f) => {
+                const imgs = parseLines(f.imagesText);
+                const vids = parseLines(f.videosText);
+                const otherVids = vids.filter((v) => !isDirectVideoUrl(v));
+                if (kind === 'video' && url) {
+                  return {
+                    ...f,
+                    videosText: [url, ...otherVids].join('\n'),
+                  };
+                }
+                if (kind === 'image' && url) {
+                  return {
+                    ...f,
+                    imagesText: [url, ...imgs.filter((i) => i !== url)].join('\n'),
+                    videosText: otherVids.join('\n'),
+                  };
+                }
+                // Clear cover: drop uploaded cover video, else first gallery photo used as cover
+                if (firstDirectVideo(vids)) {
+                  return { ...f, videosText: otherVids.join('\n') };
+                }
+                return {
+                  ...f,
+                  imagesText: imgs.slice(1).join('\n'),
+                  videosText: otherVids.join('\n'),
+                };
+              });
+            }}
+          />
           <ImageUploadListField
             label="Фотографии"
             value={form.imagesText}
@@ -343,7 +392,7 @@ export default function BaseListingForm({
         </div>
 
         <div className="base-form__full">
-          <span className="base-form__field-label">Видео (YouTube)</span>
+          <span className="base-form__field-label">Видео YouTube (дополнительно)</span>
           {enforceQuota ? (
             <div className="base-form__videos">
               {videos.length > 0 && (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ImageUploadField } from '../media/ImageUpload';
+import CoverMediaField from '../media/CoverMediaField';
 import { uploadService } from '../../services/uploadService';
 import { api, apiDataEnabled } from '../../lib/apiClient';
 import './DirectoryListingForm.css';
@@ -39,6 +39,7 @@ export default function DirectoryListingForm({
     website: '',
     hours: '',
     image: '',
+    coverVideo: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -72,6 +73,7 @@ export default function DirectoryListingForm({
       website: initial.website || '',
       hours: initial.hours || '',
       image: initial.image || '',
+      coverVideo: initial.coverVideo || '',
     });
   }, [initial]);
 
@@ -186,13 +188,22 @@ export default function DirectoryListingForm({
           />
         </label>
         <div className="dir-listing-form__full dir-listing-form__upload">
-          <ImageUploadField
-            label="Изображение (необязательно)"
-            value={form.image}
-            onChange={(url) => setField('image', url)}
-            bucket={uploadService.buckets.site}
+          <CoverMediaField
+            label="Обложка карточки (фото или видео до 15 сек)"
+            value={form.coverVideo || form.image}
+            kind={form.coverVideo ? 'video' : form.image ? 'image' : ''}
+            imageBucket={uploadService.buckets.site}
+            videoBucket={uploadService.buckets.siteVideo}
             disabled={saving}
-            hint="JPG, PNG, WebP · до 8 МБ"
+            onChange={({ url, kind }) => {
+              if (kind === 'video') {
+                setForm((f) => ({ ...f, coverVideo: url, image: '' }));
+              } else if (kind === 'image') {
+                setForm((f) => ({ ...f, image: url, coverVideo: '' }));
+              } else {
+                setForm((f) => ({ ...f, image: '', coverVideo: '' }));
+              }
+            }}
           />
         </div>
       </div>

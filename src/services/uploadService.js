@@ -1,5 +1,6 @@
 import { cmsDb } from '../lib/cmsDb';
 import { mediaService } from './mediaService';
+import { assertShortVideoFile, SHORT_VIDEO_MAX_BYTES } from '../lib/mediaCover';
 
 const MAX_INPUT_BYTES = 8 * 1024 * 1024;
 const MAX_OUTPUT_BYTES = 1_500_000;
@@ -80,9 +81,12 @@ export const uploadService = {
   buckets: {
     news: 'news-images',
     base: 'base-images',
+    baseVideo: 'base-videos',
     site: 'advertising',
+    siteVideo: 'advertising',
     avatar: 'avatars',
     report: 'report-images',
+    reportVideo: 'report-videos',
   },
 
   async uploadImage(file, { userId, bucket = 'news-images' } = {}) {
@@ -112,5 +116,27 @@ export const uploadService = {
       urls.push(await this.uploadImage(file, options));
     }
     return urls;
+  },
+
+  /**
+   * Short card-cover video (MP4/WebM, ≤15s). Uses API upload when enabled;
+   * otherwise stores a data URL (local-only fallback).
+   */
+  async uploadShortVideo(file, { userId, bucket = 'report-videos' } = {}) {
+    await assertShortVideoFile(file, { maxBytes: SHORT_VIDEO_MAX_BYTES });
+
+    if (mediaService.isEnabled()) {
+      const { publicUrl } = await mediaService.upload(bucket, file, userId);
+      if (!publicUrl) throw new Error('Не удалось загрузить видео');
+      await saveToMediaLibrary(file, publicUrl, userId);
+      return publicUrl;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      throw new Error('Без API видео до 8 МБ. Включите сервер загрузок или сожмите ролик.');
+    }
+    const dataUrl = await fileToDataUrl(file);
+    await saveToMediaLibrary(file, dataUrl, userId);
+    return dataUrl;
   },
 };

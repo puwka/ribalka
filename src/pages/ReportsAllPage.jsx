@@ -5,6 +5,8 @@ import { useAuth } from '../components/auth/AuthContext';
 import { basesService } from '../services/basesService';
 import { api, apiDataEnabled } from '../lib/apiClient';
 import { reportWeightKg } from '../lib/reportWeight';
+import CardCoverMedia from '../components/media/CardCoverMedia';
+import { pickCardCover } from '../lib/mediaCover';
 import './ReportsPage.css';
 
 export default function ReportsAllPage() {
@@ -188,16 +190,22 @@ export default function ReportsAllPage() {
           </div>
         ) : (
           <div className="reports-grid">
-            {filteredReports.map((report) => (
+            {filteredReports.map((report) => {
+              const cover = pickCardCover(report);
+              return (
               <Link
                 key={report.id}
                 to={`/reports/${report.id}`}
                 className="report-card"
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
-                {report.images?.[0] && (
+                {(cover.imageUrl || cover.videoUrl) && (
                   <div className="report-card__image">
-                    <img src={report.images[0]} alt={report.place} />
+                    <CardCoverMedia
+                      imageUrl={cover.imageUrl}
+                      videoUrl={cover.videoUrl}
+                      alt={report.place}
+                    />
                     <div className="rating-badge">
                       ★ {report.starAvg || 0} · ♥ {report.rating || 0}
                     </div>
@@ -235,7 +243,8 @@ export default function ReportsAllPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

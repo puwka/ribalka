@@ -1,0 +1,25 @@
+.card-cover-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg-subtle, #eef1f4);
+}
+
+.card-cover-media--empty {
+  min-height: 100%;
+}
+
+.card-cover-media__img,
+.card-cover-media__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+  pointer-events: none;
+}
+
+.card-cover-media__video {
+  background: #0f172a;
+}

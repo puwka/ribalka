@@ -5,33 +5,18 @@ import { useToast } from '../ui/ToastContext';
 import { favoritesService } from '../../services/favoritesService';
 import { analyticsTracker } from '../../services/ownerDashboardService';
 import { formatPaidPrice, getPrimarySiteUrl } from '../../lib/waterUtils';
+import CardCoverMedia from '../media/CardCoverMedia';
+import { pickCardCover } from '../../lib/mediaCover';
 import './WaterCard.css';
 
 function PlaceholderImage() {
   return <div className="water-card__placeholder" aria-hidden />;
 }
 
-function WaterCardImage({ images = [], alt = '' }) {
-  const [index, setIndex] = useState(0);
-  const list = images.filter(Boolean);
-  const src = list[index];
-
-  if (!src || index < 0) return <PlaceholderImage />;
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => {
-        if (index < list.length - 1) {
-          setIndex((i) => i + 1);
-        } else {
-          setIndex(-1);
-        }
-      }}
-    />
-  );
+function WaterCardMedia({ item, alt = '' }) {
+  const cover = pickCardCover(item);
+  if (!cover.imageUrl && !cover.videoUrl) return <PlaceholderImage />;
+  return <CardCoverMedia imageUrl={cover.imageUrl} videoUrl={cover.videoUrl} alt={alt} />;
 }
 
 function favoriteType(item) {
@@ -157,7 +142,7 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
       <article className={cardClass}>
         <Link to={detailPath} className="water-card__row-link">
           <div className="water-card__media water-card__media--sm">
-            <WaterCardImage images={item.images} alt="" />
+            <WaterCardMedia item={item} alt="" />
             {isTop && <span className="water-card__badge-top">ТОП</span>}
           </div>
 
@@ -218,7 +203,7 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
     <article className={cardClass}>
       <Link to={detailPath} className="water-card__link">
         <div className="water-card__media">
-          <WaterCardImage images={item.images} alt={item.name} />
+          <WaterCardMedia item={item} alt={item.name} />
           {isTop && <span className="water-card__badge-top">ТОП</span>}
         </div>
 

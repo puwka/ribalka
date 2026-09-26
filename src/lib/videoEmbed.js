@@ -1,9 +1,15 @@
 /**
  * Convert common video watch URLs to embeddable iframe src.
+ * Direct uploaded files (mp4/webm) are left unchanged for <video> covers.
  */
+import { isDirectVideoUrl } from './mediaCover';
+
 export function toVideoEmbedUrl(raw) {
   const url = String(raw || '').trim();
   if (!url) return '';
+
+  // Keep uploaded / data-URL videos as-is (card autoplay + detail <video>)
+  if (isDirectVideoUrl(url)) return url;
 
   try {
     const u = new URL(url);

@@ -8,10 +8,10 @@ import { gamificationService } from '../../services/gamificationService';
 import BookingForm from '../booking/BookingForm';
 import { useToast } from '../ui/ToastContext';
 import './BaseModal.css';
-import { toVideoEmbedUrl } from '../../lib/videoEmbed';
 import { toYandexCoords } from '../../lib/coords';
 import RichText from '../ui/RichText';
 import ImageLightbox from '../ui/ImageLightbox';
+import MediaVideoFrame from '../media/MediaVideoFrame';
 
 export default function BaseModal({ item, onClose }) {
   const { user, isAuthenticated, refresh } = useAuth();
@@ -334,7 +334,10 @@ export default function BaseModal({ item, onClose }) {
         {activeTab === 'video' && item.videos?.length > 0 && (
           <div className="base-modal__videos">
             <div className="video-main">
-              <iframe src={toVideoEmbedUrl(item.videos[activeVideo])} title="Видео" frameBorder="0" allowFullScreen />
+              <MediaVideoFrame
+                src={item.videos[activeVideo]}
+                title="Видео"
+              />
             </div>
             <div className="video-buttons">
               {item.videos.map((_, i) => (

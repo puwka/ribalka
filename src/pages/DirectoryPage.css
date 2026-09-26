@@ -253,14 +253,19 @@
   overflow: hidden;
 }
 
-.card-image img {
+.card-image img,
+.card-image .card-cover-media,
+.card-image .card-cover-media__img,
+.card-image .card-cover-media__video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
 }
 
-.directory-card:hover .card-image img {
+.directory-card:hover .card-image img,
+.directory-card:hover .card-image .card-cover-media__img,
+.directory-card:hover .card-image .card-cover-media__video {
   transform: scale(1.04);
 }
 

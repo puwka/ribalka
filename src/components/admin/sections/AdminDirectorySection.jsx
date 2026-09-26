@@ -8,7 +8,7 @@ import {
   AdminLoading,
   AdminStatus,
 } from '../AdminUI';
-import { ImageUploadField } from '../../media/ImageUpload';
+import CoverMediaField from '../../media/CoverMediaField';
 import { uploadService } from '../../../services/uploadService';
 import { api, apiDataEnabled } from '../../../lib/apiClient';
 
@@ -85,6 +85,7 @@ export default function AdminDirectorySection() {
       website: item.website || '',
       hours: item.hours || '',
       image: item.image || '',
+      coverVideo: item.coverVideo || '',
       tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
       status: item.status || 'published',
       yellowFrame: Boolean(item.yellowFrame || item.highlight),
@@ -372,11 +373,21 @@ export default function AdminDirectorySection() {
                     onChange={(e) => setField('tags', e.target.value)}
                   />
                 </AdminField>
-                <ImageUploadField
-                  label="Фото"
-                  value={form.image}
-                  onChange={(url) => setField('image', url)}
-                  bucket={uploadService.buckets.site}
+                <CoverMediaField
+                  label="Обложка карточки"
+                  value={form.coverVideo || form.image}
+                  kind={form.coverVideo ? 'video' : form.image ? 'image' : ''}
+                  imageBucket={uploadService.buckets.site}
+                  videoBucket={uploadService.buckets.siteVideo}
+                  onChange={({ url, kind }) => {
+                    if (kind === 'video') {
+                      setForm((f) => ({ ...f, coverVideo: url, image: '' }));
+                    } else if (kind === 'image') {
+                      setForm((f) => ({ ...f, image: url, coverVideo: '' }));
+                    } else {
+                      setForm((f) => ({ ...f, image: '', coverVideo: '' }));
+                    }
+                  }}
                 />
                 <div className="admin-toolbar">
                   <button

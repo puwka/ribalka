@@ -221,6 +221,7 @@ export async function createDirectoryCheckout({
     website: String(listing.website || existingItem?.website || '').trim(),
     hours: String(listing.hours || existingItem?.hours || '').trim(),
     image: String(listing.image || existingItem?.image || '').trim(),
+    coverVideo: String(listing.coverVideo || existingItem?.coverVideo || '').trim(),
     tags: Array.isArray(listing.tags)
       ? listing.tags
       : String(listing.tags || '')
@@ -459,6 +460,7 @@ export async function createDirectoryUpgradeCheckout({
     website: existingItem.website || '',
     hours: existingItem.hours || '',
     image: existingItem.image || '',
+    coverVideo: existingItem.coverVideo || '',
     tags: existingItem.tags || [],
     yellowFrame: hasFrame || addFrame,
     isTop: days > 0 || Boolean(existingItem.isTop || existingItem.top),
@@ -788,6 +790,7 @@ async function publishDirectoryItem(client, order) {
     website: payload.website ?? existing?.website ?? '',
     hours: payload.hours ?? existing?.hours ?? '',
     image: payload.image ?? existing?.image ?? '',
+    coverVideo: payload.coverVideo ?? existing?.coverVideo ?? '',
     tags: Array.isArray(payload.tags) ? payload.tags : existing?.tags || [],
     status: nextStatus,
     yellowFrame: Boolean(

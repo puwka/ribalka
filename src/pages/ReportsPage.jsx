@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useReports } from '../hooks/useReports';
 import { useAuth } from '../components/auth/AuthContext';
 import { basesService } from '../services/basesService';
+import CoverMediaField from '../components/media/CoverMediaField';
+import CardCoverMedia from '../components/media/CardCoverMedia';
+import { pickCardCover } from '../lib/mediaCover';
+import { uploadService } from '../services/uploadService';
 import './ReportsPage.css';
 
 const emptyForm = () => ({
@@ -17,6 +21,8 @@ const emptyForm = () => ({
   extra: '',
   images: [],
   videos: [],
+  coverUrl: '',
+  coverKind: '',
 });
 
 function pickBestReports(reports, limit = 4) {
@@ -91,8 +97,17 @@ export default function ReportsPage() {
     setSubmitting(true);
     try {
       const base = bases.find((b) => String(b.id) === String(formData.baseId));
+      let images = [...(formData.images || [])];
+      let videos = [...(formData.videos || [])];
+      if (formData.coverKind === 'image' && formData.coverUrl) {
+        images = [formData.coverUrl, ...images.filter((u) => u !== formData.coverUrl)];
+      } else if (formData.coverKind === 'video' && formData.coverUrl) {
+        videos = [formData.coverUrl, ...videos.filter((u) => u !== formData.coverUrl)];
+      }
       const created = await addReport({
         ...formData,
+        images,
+        videos,
         place: base?.name || formData.place,
         baseId: base?.id || null,
         baseName: base?.name || null,
@@ -312,7 +327,20 @@ export default function ReportsPage() {
               </div>
 
               <div className="form-group">
-                <label>Фото (до 5)</label>
+                <CoverMediaField
+                  label="Обложка карточки"
+                  value={formData.coverUrl}
+                  kind={formData.coverKind}
+                  imageBucket={uploadService.buckets.report}
+                  videoBucket={uploadService.buckets.reportVideo}
+                  onChange={({ url, kind }) =>
+                    setFormData((p) => ({ ...p, coverUrl: url, coverKind: kind }))
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Доп. фото в галерею (до 5)</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -344,7 +372,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="form-group">
-                <label>Видео YouTube (до 2)</label>
+                <label>Видео YouTube (до 2, отдельно от обложки)</label>
                 <button
                   type="button"
                   className="add-video-btn"
@@ -398,16 +426,22 @@ export default function ReportsPage() {
           </div>
         ) : (
           <div className="reports-grid reports-grid--best">
-            {bestReports.map((report) => (
+            {bestReports.map((report) => {
+              const cover = pickCardCover(report);
+              return (
               <Link
                 key={report.id}
                 to={`/reports/${report.id}`}
                 className="report-card report-card--best"
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
-                {report.images?.[0] && (
+                {(cover.imageUrl || cover.videoUrl) && (
                   <div className="report-card__image">
-                    <img src={report.images[0]} alt={report.place} />
+                    <CardCoverMedia
+                      imageUrl={cover.imageUrl}
+                      videoUrl={cover.videoUrl}
+                      alt={report.place}
+                    />
                     <div className="rating-badge">
                       ★ {report.starAvg || 0} · ♥ {report.rating || 0}
                     </div>
@@ -444,7 +478,8 @@ export default function ReportsPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

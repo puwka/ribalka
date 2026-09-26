@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { favoritesService } from '../../services/favoritesService';
 import { useToast } from '../ui/ToastContext';
+import MediaVideoFrame from '../media/MediaVideoFrame';
 import './ReportModal.css';
 
 export default function ReportModal({
@@ -262,12 +263,7 @@ export default function ReportModal({
           <div className="rm-videos">
             {report.videos.map((video, i) => (
               <div key={i} className="rm-video-wrapper">
-                <iframe 
-                  src={video}
-                  title={`Видео ${i + 1}`}
-                  frameBorder="0"
-                  allowFullScreen
-                />
+                <MediaVideoFrame src={video} title={`Видео ${i + 1}`} />
               </div>
             ))}
           </div>

@@ -159,6 +159,7 @@ export default function OwnerDirectoryCheckout() {
             website: item.website,
             hours: item.hours,
             image: item.image,
+            coverVideo: item.coverVideo,
           },
         });
       }

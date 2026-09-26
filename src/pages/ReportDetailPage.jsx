@@ -4,6 +4,7 @@ import { useAuth } from '../components/auth/AuthContext';
 import { reportSocialService } from '../services/reportSocialService';
 import { favoritesService } from '../services/favoritesService';
 import { useToast } from '../components/ui/ToastContext';
+import MediaVideoFrame from '../components/media/MediaVideoFrame';
 import './ReportDetailPage.css';
 
 function buildTree(comments) {
@@ -472,7 +473,7 @@ export default function ReportDetailPage() {
           {report.videos?.length > 0 && (
             <div className="rdp__videos">
               {report.videos.map((src, i) => (
-                <iframe key={i} src={src} title={`video-${i}`} allowFullScreen />
+                <MediaVideoFrame key={i} src={src} title={`video-${i}`} />
               ))}
             </div>
           )}

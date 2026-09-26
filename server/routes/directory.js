@@ -69,6 +69,7 @@ function mapMineItem(item) {
     website: item.website || '',
     hours: item.hours || '',
     image: item.image || '',
+    coverVideo: item.coverVideo || '',
     tags: Array.isArray(item.tags) ? item.tags : [],
     status: item.status || 'draft',
     yellowFrame: Boolean(item.yellowFrame),
@@ -147,6 +148,7 @@ function parseListingBody(body = {}) {
     website: String(body.website || '').trim(),
     hours: String(body.hours || '').trim(),
     image: String(body.image || '').trim(),
+    coverVideo: String(body.coverVideo || '').trim(),
     tags,
   };
 }
