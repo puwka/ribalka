@@ -182,6 +182,20 @@
   color: var(--color-text);
 }
 
+.water-card__cta--more {
+  background: #a16207;
+  border-color: #a16207;
+  color: #fff;
+  min-width: 7.5rem;
+  padding: 0.45rem 1rem;
+}
+
+.water-card__cta--more:hover {
+  background: #854d0e;
+  border-color: #854d0e;
+  color: #fff;
+}
+
 .water-card__text-link {
   font-size: var(--text-sm);
   font-weight: 600;
@@ -198,30 +212,27 @@
   text-decoration: underline;
 }
 
-.water-card__text-link--more {
-  color: #a16207;
-}
-
-.water-card__text-link--more:hover {
-  color: #854d0e;
-  text-decoration: underline;
-}
-
 .water-card__fav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 0;
   border: none;
   background: none;
   color: #94a3b8;
-  font-size: 1.35rem;
+  font-size: 1.85rem;
   line-height: 1;
   cursor: pointer;
   border-radius: 999px;
   transition: color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.water-card__fav span {
+  display: block;
+  transform: scale(1.05);
 }
 
 .water-card__fav:hover:not(:disabled) {

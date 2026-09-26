@@ -195,7 +195,7 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
 
         <div className="water-card__row-actions">
           <WaterCardContactActions item={item} />
-          <Link to={detailPath} className="water-card__text-link water-card__text-link--more">
+          <Link to={detailPath} className="water-card__cta water-card__cta--more">
             Подробнее
           </Link>
 
@@ -255,7 +255,7 @@ export default function WaterCard({ item, variant = 'paid', layout = 'grid' }) {
       <div className="water-card__footer">
         <WaterCardContactActions item={item} />
         <div className="water-card__footer-links">
-          <Link to={detailPath} className="water-card__text-link water-card__text-link--more">
+          <Link to={detailPath} className="water-card__cta water-card__cta--more">
             Подробнее
           </Link>
 
