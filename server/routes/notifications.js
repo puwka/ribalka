@@ -35,4 +35,29 @@ router.post('/read-all', requireAuth, async (req, res, next) => {
   }
 });
 
+router.delete('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { rowCount } = await pool.query(
+      `delete from public.notifications where id = $1 and user_id = $2`,
+      [req.params.id, req.user.sub]
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/clear-read', requireAuth, async (req, res, next) => {
+  try {
+    await pool.query(
+      `delete from public.notifications where user_id = $1 and is_read = true`,
+      [req.user.sub]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

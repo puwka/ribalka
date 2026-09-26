@@ -42,36 +42,33 @@ const EMAIL_OPTS = [
 ];
 
 export default function NotificationsPanel() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, notifications } = useAuth();
   const [tab, setTab] = useState('inbox');
-  const [items, setItems] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS);
   const [filter, setFilter] = useState('all');
   const [message, setMessage] = useState('');
 
-  const load = () => {
+  const items = notifications || [];
+
+  const loadSettings = () => {
     if (!user) return;
-    setItems(notificationService.list(user.id));
     setSettings(notificationService.getSettings(user.id));
   };
 
-  useEffect(load, [user]);
+  useEffect(loadSettings, [user]);
 
   const markOne = async (id) => {
     await notificationService.markRead(user.id, id);
-    load();
     await refresh();
   };
 
   const markAll = async () => {
     await notificationService.markAllRead(user.id);
-    load();
     await refresh();
   };
 
   const removeOne = async (id) => {
-    notificationService.remove(user.id, id);
-    load();
+    await notificationService.remove(user.id, id);
     await refresh();
   };
 
@@ -129,8 +126,7 @@ export default function NotificationsPanel() {
               type="button"
               className="btn-secondary"
               onClick={async () => {
-                notificationService.clearRead(user.id);
-                load();
+                await notificationService.clearRead(user.id);
                 await refresh();
               }}
             >
@@ -208,7 +204,7 @@ export default function NotificationsPanel() {
                       ? 'Разрешение на уведомления получено'
                       : `Push недоступен: ${res.permission || res.reason}`
                   );
-                  load();
+                  loadSettings();
                 } else {
                   saveSettings({ push: { enabled: false } });
                 }

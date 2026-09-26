@@ -169,12 +169,42 @@ export const notificationService = {
     }
   },
 
-  remove(userId, id) {
-    return localAuthStore.removeNotification(userId, id);
+  async remove(userId, id) {
+    if (apiDataEnabled) {
+      try {
+        await api.delete(`/api/notifications/${encodeURIComponent(id)}`);
+      } catch {
+        /* still update local mirror */
+      }
+    } else if (supabaseDataEnabled && supabase) {
+      void supabase.from('notifications').delete().eq('id', id).eq('user_id', userId);
+    }
+    try {
+      return localAuthStore.removeNotification(userId, id);
+    } catch {
+      return [];
+    }
   },
 
-  clearRead(userId) {
-    return localAuthStore.clearReadNotifications(userId);
+  async clearRead(userId) {
+    if (apiDataEnabled) {
+      try {
+        await api.post('/api/notifications/clear-read', {});
+      } catch {
+        /* still update local mirror */
+      }
+    } else if (supabaseDataEnabled && supabase) {
+      void supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .eq('is_read', true);
+    }
+    try {
+      return localAuthStore.clearReadNotifications(userId);
+    } catch {
+      return [];
+    }
   },
 
   async requestPushPermission(userId) {

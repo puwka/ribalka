@@ -37,7 +37,7 @@ export default function News() {
       <div className="news__container">
         <div className="news__head">
           <div>
-            <h2 className="section-title">Новости и статьи</h2>
+            <h2 className="section-title">Новости</h2>
             <p className="section-subtitle">
               Актуальные новости, полезные советы и интересные истории
             </p>
@@ -55,9 +55,6 @@ export default function News() {
               <article key={news.id} className="news-card news-card--compact">
                 <div className="news-card__image">
                   {news.image ? <img src={news.image} alt={news.title} /> : null}
-                  {news.category && (
-                    <div className="news-card__category">{news.category}</div>
-                  )}
                 </div>
                 <div className="news-card__content">
                   <div className="news-card__meta">

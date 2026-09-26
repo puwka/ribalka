@@ -93,6 +93,15 @@ export function sanitizeRichHtml(html) {
           [...child.attributes].forEach((attr) => child.removeAttribute(attr.name));
         }
         walk(child);
+      } else if (child.nodeType === 3 && /\r?\n/.test(child.textContent || '')) {
+        // Pasted plain text often lands as one <p> with literal \n — browsers collapse them.
+        const parts = String(child.textContent).replace(/\r\n/g, '\n').split('\n');
+        const frag = doc.createDocumentFragment();
+        parts.forEach((part, i) => {
+          if (part) frag.appendChild(doc.createTextNode(part));
+          if (i < parts.length - 1) frag.appendChild(doc.createElement('br'));
+        });
+        child.replaceWith(frag);
       } else if (child.nodeType === 8) {
         child.remove();
       }

@@ -14,7 +14,6 @@ export default function NewsCard({ news, onClick }) {
     <article className="news-card" onClick={() => onClick(news)}>
       <div className="news-card__image">
         <img src={news.image} alt={news.title} />
-        <div className="news-card__category">{news.category}</div>
       </div>
       <div className="news-card__content">
         <div className="news-card__meta">
