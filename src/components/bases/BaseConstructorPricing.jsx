@@ -95,7 +95,8 @@ export default function BaseConstructorPricing({
                   <span>
                     ТОП на сутки <em>+{formatRub(dailyPrice)} / сут</em>
                     <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
-                      На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                      {topSlots?.type === 'paid_fishing' ? 'В разделе рыбалка' : 'На главной'}{' '}
+                      {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
                       {topSlots?.alreadyTop ? ' · у вас уже есть ТОП — сутки добавятся к сроку' : ''}
                     </small>
                   </span>

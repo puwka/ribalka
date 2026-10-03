@@ -56,8 +56,13 @@ const DIRECTORY_DEFAULTS = {
 };
 
 const ORDER_TTL_HOURS = 24;
-/** How many paid bases can be in homepage TOP at once */
+/** How many listings of one type (paid / paid_fishing) can be in TOP at once */
 export const HOME_TOP_SLOTS = 4;
+
+/** TOP pools are separate: paid bases ≠ paid fishing */
+export function normalizeTopPoolType(type) {
+  return type === 'paid_fishing' ? 'paid_fishing' : 'paid';
+}
 
 async function ensureTopColumns(client = pool) {
   await client.query(`
@@ -78,13 +83,14 @@ export function baseHasActiveTop(base) {
   return new Date(base.top_until).getTime() > Date.now();
 }
 
-export async function countActiveTopSlots({ excludeBaseId = null } = {}) {
+export async function countActiveTopSlots({ excludeBaseId = null, type = 'paid' } = {}) {
   await ensureTopColumns();
-  const params = [];
+  const poolType = normalizeTopPoolType(type);
+  const params = [poolType];
   let sql = `
     select count(*)::int as cnt
     from public.bases
-    where ${COMMERCIAL_TYPES_SQL}
+    where type::text = $1
       and status = 'approved'
       and is_top = true
       and (paid_until is null or paid_until > now())
@@ -98,13 +104,14 @@ export async function countActiveTopSlots({ excludeBaseId = null } = {}) {
   return Number(rows[0]?.cnt) || 0;
 }
 
-async function countDisplaceableDailyTops({ excludeBaseId = null } = {}) {
+async function countDisplaceableDailyTops({ excludeBaseId = null, type = 'paid' } = {}) {
   await ensureTopColumns();
-  const params = [];
+  const poolType = normalizeTopPoolType(type);
+  const params = [poolType];
   let sql = `
     select count(*)::int as cnt
     from public.bases
-    where ${COMMERCIAL_TYPES_SQL}
+    where type::text = $1
       and status = 'approved'
       and is_top = true
       and coalesce(top_kind, '') = 'daily'
@@ -119,8 +126,9 @@ async function countDisplaceableDailyTops({ excludeBaseId = null } = {}) {
   return Number(rows[0]?.cnt) || 0;
 }
 
-/** Clear earliest-expiring daily TOP to free a homepage slot. */
-async function displaceEarliestDailyTop(client, excludeBaseId) {
+/** Clear earliest-expiring daily TOP to free a slot in the same type pool. */
+async function displaceEarliestDailyTop(client, excludeBaseId, type = 'paid') {
+  const poolType = normalizeTopPoolType(type);
   const { rows } = await client.query(
     `update public.bases set
        is_top = false,
@@ -129,7 +137,7 @@ async function displaceEarliestDailyTop(client, excludeBaseId) {
        updated_at = now()
      where id = (
        select id from public.bases
-       where ${COMMERCIAL_TYPES_SQL}
+       where type::text = $2
          and status = 'approved'
          and is_top = true
          and coalesce(top_kind, '') = 'daily'
@@ -140,28 +148,31 @@ async function displaceEarliestDailyTop(client, excludeBaseId) {
        limit 1
      )
      returning id`,
-    [excludeBaseId || null]
+    [excludeBaseId || null, poolType]
   );
   return rows[0]?.id || null;
 }
 
-export async function getTopAvailability({ baseId = null } = {}) {
+export async function getTopAvailability({ baseId = null, type = null } = {}) {
   await ensureTopColumns();
   let base = null;
   if (baseId) {
     const { rows } = await pool.query(`select * from public.bases where id = $1 limit 1`, [baseId]);
     base = rows[0] || null;
   }
+  const poolType = normalizeTopPoolType(base?.type || type || 'paid');
   const alreadyTop = baseHasActiveTop(base);
   const used = await countActiveTopSlots({
     excludeBaseId: alreadyTop && baseId ? baseId : null,
+    type: poolType,
   });
   const free = Math.max(0, HOME_TOP_SLOTS - (alreadyTop ? used + 1 : used));
   const available = alreadyTop || used < HOME_TOP_SLOTS;
   const displaceableDaily = await countDisplaceableDailyTops({
     excludeBaseId: baseId || null,
+    type: poolType,
   });
-  // Daily can take a free slot, extend own TOP, or replace another daily TOP
+  // Daily can take a free slot, extend own TOP, or replace another daily TOP (same type)
   const dailyAvailable = alreadyTop || used < HOME_TOP_SLOTS || displaceableDaily > 0;
   return {
     max: HOME_TOP_SLOTS,
@@ -171,13 +182,17 @@ export async function getTopAvailability({ baseId = null } = {}) {
     dailyAvailable,
     alreadyTop,
     displaceableDaily,
+    type: poolType,
   };
 }
 
 async function assertTopSlotAvailable(base, wantTop) {
   if (!wantTop) return;
   if (baseHasActiveTop(base)) return;
-  const used = await countActiveTopSlots({ excludeBaseId: base?.id || null });
+  const used = await countActiveTopSlots({
+    excludeBaseId: base?.id || null,
+    type: base?.type,
+  });
   if (used >= HOME_TOP_SLOTS) {
     const err = new Error(
       'К сожалению, все места в топе заняты, попробуйте позже.'
@@ -190,9 +205,15 @@ async function assertTopSlotAvailable(base, wantTop) {
 
 async function assertDailyTopAvailable(base) {
   if (baseHasActiveTop(base)) return;
-  const used = await countActiveTopSlots({ excludeBaseId: base?.id || null });
+  const used = await countActiveTopSlots({
+    excludeBaseId: base?.id || null,
+    type: base?.type,
+  });
   if (used < HOME_TOP_SLOTS) return;
-  const displaceable = await countDisplaceableDailyTops({ excludeBaseId: base?.id || null });
+  const displaceable = await countDisplaceableDailyTops({
+    excludeBaseId: base?.id || null,
+    type: base?.type,
+  });
   if (displaceable > 0) return;
   const err = new Error(
     `Все ${HOME_TOP_SLOTS} места в ТОП заняты помесячными размещениями. Суточный ТОП станет доступен, когда освободится слот.`
@@ -1313,20 +1334,21 @@ async function applyPaidSideEffects(client, order) {
     );
     const cur = curRows[0];
     const already = baseHasActiveTop(cur);
+    const poolType = normalizeTopPoolType(cur?.type);
     if (!already) {
       const { rows: cntRows } = await client.query(
         `select count(*)::int as cnt
          from public.bases
-         where ${COMMERCIAL_TYPES_SQL}
+         where type::text = $2
            and status = 'approved'
            and is_top = true
            and (paid_until is null or paid_until > now())
            and (top_until is null or top_until > now())
            and id <> $1`,
-        [order.base_id]
+        [order.base_id, poolType]
       );
       if ((Number(cntRows[0]?.cnt) || 0) >= HOME_TOP_SLOTS) {
-        await displaceEarliestDailyTop(client, order.base_id);
+        await displaceEarliestDailyTop(client, order.base_id, poolType);
       }
     }
     await client.query(
@@ -1440,20 +1462,21 @@ async function applyPaidSideEffects(client, order) {
       [order.base_id]
     );
     const cur = curRows[0];
+    const poolType = normalizeTopPoolType(cur?.type);
     if (!baseHasActiveTop(cur)) {
       const { rows: cntRows } = await client.query(
         `select count(*)::int as cnt
          from public.bases
-         where ${COMMERCIAL_TYPES_SQL}
+         where type::text = $2
            and status = 'approved'
            and is_top = true
            and (paid_until is null or paid_until > now())
            and (top_until is null or top_until > now())
            and id <> $1`,
-        [order.base_id]
+        [order.base_id, poolType]
       );
       if ((Number(cntRows[0]?.cnt) || 0) >= HOME_TOP_SLOTS) {
-        await displaceEarliestDailyTop(client, order.base_id);
+        await displaceEarliestDailyTop(client, order.base_id, poolType);
       }
     }
     await client.query(

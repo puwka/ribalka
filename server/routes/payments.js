@@ -38,7 +38,10 @@ router.get('/listing-checkout-preview', requireAuth, async (req, res, next) => {
       extraVideos: Number(req.query.extraVideos) || 0,
     };
     const quote = listingOrders.quoteListingCheckout(settings, options);
-    const topSlots = await listingOrders.getTopAvailability({ baseId });
+    const topSlots = await listingOrders.getTopAvailability({
+      baseId,
+      type: rows[0].type,
+    });
     const frozen = Boolean(activeOrder?.provider_payment_id);
     res.json({
       settings,
@@ -69,6 +72,7 @@ router.get('/listing-top-slots', requireAuth, async (req, res, next) => {
     const settings = await listingOrders.getListingPriceSettings({ type });
     const topSlots = await listingOrders.getTopAvailability({
       baseId: req.query.baseId || null,
+      type,
     });
     res.json({
       ...topSlots,
@@ -306,7 +310,10 @@ router.get('/listing-upgrade-preview', requireAuth, async (req, res, next) => {
       extraPhotos: Number(req.query.extraPhotos) || 0,
       extraVideos: Number(req.query.extraVideos) || 0,
     });
-    const topSlots = await listingOrders.getTopAvailability({ baseId });
+    const topSlots = await listingOrders.getTopAvailability({
+      baseId,
+      type: rows[0].type,
+    });
     res.json({
       settings,
       quote,

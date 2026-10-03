@@ -84,7 +84,7 @@ export const listingPaymentService = {
     return api.get(`/api/payments/listing-upgrade-preview?${qs}`);
   },
 
-  async getTopSlots(baseId) {
+  async getTopSlots(baseId, type = 'paid') {
     if (!apiDataEnabled) {
       return {
         max: 4,
@@ -94,10 +94,14 @@ export const listingPaymentService = {
         dailyAvailable: true,
         alreadyTop: false,
         addonTopDaily: 300,
+        type: type === 'paid_fishing' ? 'paid_fishing' : 'paid',
       };
     }
-    const qs = baseId ? `?baseId=${encodeURIComponent(baseId)}` : '';
-    return api.get(`/api/payments/listing-top-slots${qs}`);
+    const qs = new URLSearchParams();
+    if (baseId) qs.set('baseId', String(baseId));
+    if (type && type !== 'paid') qs.set('type', String(type));
+    const q = qs.toString();
+    return api.get(`/api/payments/listing-top-slots${q ? `?${q}` : ''}`);
   },
 
   async checkoutTopDaily(baseId, options = {}) {

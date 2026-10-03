@@ -651,21 +651,23 @@ function OwnerBases() {
 function OwnerBaseCreate() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [listingType, setListingType] = useState('paid');
   const [tariff, setTariff] = useState(() => normalizeConstructor({}));
   const [options, setOptions] = useState(DEFAULT_BASE_OPTIONS);
   const [topSlots, setTopSlots] = useState(null);
 
   useEffect(() => {
     if (!apiDataEnabled) return;
+    const type = listingType === 'paid_fishing' ? 'paid_fishing' : 'paid';
     listingPaymentService
-      .getPublicListingPrice()
+      .getPublicListingPrice(type)
       .then((p) => setTariff(normalizeConstructor(p)))
       .catch(() => {});
     listingPaymentService
-      .getTopSlots()
+      .getTopSlots(null, type)
       .then(setTopSlots)
       .catch(() => {});
-  }, []);
+  }, [listingType]);
 
   const quote = calcConstructorTotal(tariff, options);
   const payLabel = apiDataEnabled
@@ -691,6 +693,7 @@ function OwnerBaseCreate() {
       <BaseListingForm
         submitLabel="Сохранить черновик"
         sendLabel={payLabel}
+        onTypeChange={(t) => setListingType(t === 'paid_fishing' ? 'paid_fishing' : 'paid')}
         mediaQuota={{
           includedPhotos: tariff.includedPhotos || 1,
           includedVideos: tariff.includedVideos || 1,
@@ -765,12 +768,17 @@ function OwnerBaseEdit() {
   }, [user, baseId]);
 
   useEffect(() => {
-    if (!apiDataEnabled) return;
+    if (!apiDataEnabled || !record) return;
+    const type = record.type === 'paid_fishing' ? 'paid_fishing' : 'paid';
     listingPaymentService
-      .getPublicListingPrice()
+      .getPublicListingPrice(type)
       .then((p) => setTariff(normalizeConstructor(p)))
       .catch(() => {});
-  }, []);
+    listingPaymentService
+      .getTopSlots(baseId, type)
+      .then(setTopSlots)
+      .catch(() => {});
+  }, [record?.type, baseId]);
 
   if (loading) return <div className="cabinet-panel">Загрузка…</div>;
   if (error && !record) {

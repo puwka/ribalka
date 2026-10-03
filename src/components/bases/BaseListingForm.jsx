@@ -30,6 +30,8 @@ export default function BaseListingForm({
   /** Hide bottom action buttons (e.g. submit lives outside the form) */
   hideActions = false,
   formId,
+  /** Called when listing type changes (paid / paid_fishing / free) */
+  onTypeChange,
 }) {
   const [form, setForm] = useState(() => {
     const initial = initialForm || basesService.emptyForm();
@@ -43,7 +45,11 @@ export default function BaseListingForm({
   const [saving, setSaving] = useState(false);
   const [videoDraft, setVideoDraft] = useState('');
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const set = (key) => (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [key]: value }));
+    if (key === 'type' && typeof onTypeChange === 'function') onTypeChange(value);
+  };
   const setBool = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.checked }));
 
   const enforceQuota = Boolean(mediaQuota);

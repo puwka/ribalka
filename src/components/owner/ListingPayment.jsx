@@ -258,7 +258,8 @@ export function OwnerListingCheckoutPage() {
               <span>
                 ТОП на сутки <em>+{formatMoney(dailyPrice, 'RUB')} / сут</em>
                 <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
-                  На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                  {topSlots?.type === 'paid_fishing' ? 'В разделе рыбалка' : 'На главной'}{' '}
+                  {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
                   {topSlots?.alreadyTop ? ' · сутки добавятся к текущему ТОП' : ''}
                 </small>
               </span>
@@ -409,7 +410,8 @@ export function OwnerListingCheckoutPage() {
               <span>
                 ТОП на сутки <em>+{formatMoney(dailyPrice, 'RUB')} / сут</em>
                 <small style={{ display: 'block', opacity: 0.75, marginTop: 2 }}>
-                  На главной {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
+                  {topSlots?.type === 'paid_fishing' ? 'В разделе рыбалка' : 'На главной'}{' '}
+                  {topSlots ? `${topSlots.used}/${topSlots.max}` : '0/4'} мест
                   {topSlots?.alreadyTop ? ' · сутки добавятся к текущему ТОП' : ''}
                 </small>
               </span>
@@ -596,8 +598,9 @@ export function OwnerListingCheckoutPage() {
       </div>
 
       <p className="listing-pay__note">
-        На главной — {topSlots?.max || 4} места в ТОП. Сутки ТОП можно взять в тарифе или докупить
-        отдельно в любой момент (кнопка «ТОП» в кабинете). Если все места заняты — опция недоступна.
+        {topSlots?.type === 'paid_fishing' ? 'В разделе платная рыбалка' : 'На главной'} —{' '}
+        {topSlots?.max || 4} места в ТОП (отдельно от {topSlots?.type === 'paid_fishing' ? 'баз' : 'платной рыбалки'}
+        ). Сутки ТОП можно взять в тарифе или докупить отдельно. Если все места заняты — опция недоступна.
         Доп. фото — за {formatRub(ctor.addonPhoto)} каждое (режим доплаты). После оплаты заявка
         уйдёт на модерацию (кроме уже одобренных баз при доплате/ТОП).
       </p>
