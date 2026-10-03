@@ -26,8 +26,10 @@ export async function getContest(id, client = pool) {
 }
 
 /**
- * Ranking for report contests: top reports by likes+votes in period → author.
- * One place per user (best report wins).
+ * Ranking for report contests: all approved reports on the site (old and new).
+ * Score = likes + votes during the contest window (so fresh votes on old reports count).
+ * Falls back to all-time engagement if nobody voted in the window yet.
+ * One place per user (their best report).
  */
 export async function rankReportsContest(startsAt, endsAt, limit = 4, client = pool) {
   const { rows } = await client.query(
@@ -36,20 +38,43 @@ export async function rankReportsContest(startsAt, endsAt, limit = 4, client = p
          r.id as report_id,
          r.user_id,
          r.place_name as report_place,
+         coalesce((
+           select count(*)::int from public.report_likes l
+           where l.report_id = r.id
+             and l.created_at >= $1::timestamptz
+             and l.created_at < $2::timestamptz
+         ), 0)
+           + coalesce((
+           select count(*)::int from public.report_votes v
+           where v.report_id = r.id
+             and v.created_at >= $1::timestamptz
+             and v.created_at < $2::timestamptz
+         ), 0) as period_score,
          coalesce((select count(*)::int from public.report_likes l where l.report_id = r.id), 0)
            + coalesce((select count(*)::int from public.report_votes v where v.report_id = r.id), 0)
-           + coalesce(r.rating_score, 0)
-           as score
+           + coalesce(r.rating_score, 0) as all_time_score
        from public.fishing_reports r
        where r.status = 'approved'
          and r.user_id is not null
-         and r.created_at >= $1::timestamptz
-         and r.created_at < $2::timestamptz
+     ),
+     ranked as (
+       select
+         report_id,
+         user_id,
+         report_place,
+         case
+           when exists (
+             select 1 from scored s2 where s2.period_score > 0
+           ) then period_score
+           else all_time_score
+         end as score
+       from scored
      ),
      best as (
        select distinct on (user_id)
          report_id, user_id, report_place, score
-       from scored
+       from ranked
+       where score > 0
        order by user_id, score desc, report_id
      )
      select b.*, p.display_name, p.avatar_path

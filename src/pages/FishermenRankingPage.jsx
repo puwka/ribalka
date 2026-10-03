@@ -222,7 +222,7 @@ export default function FishermenRankingPage() {
                   <p>
                     {selected.description ||
                       (selected.type === 'reports'
-                        ? 'Публикуйте отчёты об отдыхе — места зависят от голосов.'
+                        ? 'Участвуют все одобренные отчёты на сайте — и старые, и новые. Места зависят от голосов.'
                         : 'Пишите отзывы и комментарии — места зависят от активности.')}
                   </p>
                   <p className="ranking-page__dates">
@@ -254,7 +254,7 @@ export default function FishermenRankingPage() {
             contestType={selected?.type}
             emptyText={
               selected?.status === 'active'
-                ? 'Пока никто не в таблице — опубликуйте отчёт или оставьте отзыв.'
+                ? 'Пока нет голосов — откройте отчёты на сайте и поддержите понравившиеся.'
                 : 'Победители ещё не зафиксированы.'
             }
           />
