@@ -15,7 +15,7 @@ export async function getContest(id, client = pool) {
   if (!rows[0]) return null;
   const prizes = await listContestPrizes(id, client);
   const awards = await client.query(
-    `select a.*, p.display_name
+    `select a.*, p.display_name, p.avatar_path
      from public.contest_awards a
      left join public.profiles p on p.user_id = a.user_id
      where a.contest_id = $1
@@ -52,7 +52,7 @@ export async function rankReportsContest(startsAt, endsAt, limit = 4, client = p
        from scored
        order by user_id, score desc, report_id
      )
-     select b.*, p.display_name
+     select b.*, p.display_name, p.avatar_path
      from best b
      left join public.profiles p on p.user_id = b.user_id
      order by b.score desc, b.report_id
@@ -99,7 +99,7 @@ export async function rankMonthlyActivity(startsAt, endsAt, limit = 20, client =
        full outer join com c on c.user_id = r.user_id
        full outer join base_rev b on b.user_id = coalesce(r.user_id, c.user_id)
      )
-     select m.*, p.display_name
+     select m.*, p.display_name, p.avatar_path
      from merged m
      left join public.profiles p on p.user_id = m.user_id
      where m.score > 0

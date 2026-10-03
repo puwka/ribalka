@@ -78,7 +78,10 @@ router.get('/', async (_req, res, next) => {
        limit 40`
     );
     const withPrizes = await Promise.all(
-      rows.map(async (c) => ({ ...c, prizes: await listContestPrizes(c.id) }))
+      rows.map(async (c) => {
+        const full = await getContest(c.id);
+        return full;
+      })
     );
     res.json(withPrizes);
   } catch (err) {
@@ -368,12 +371,17 @@ router.get('/:id/standings', async (req, res, next) => {
   try {
     const contest = await getContest(req.params.id);
     if (!contest) return res.status(404).json({ error: 'Not found' });
-    const maxPlace = Math.max(4, ...(contest.prizes || []).map((p) => Number(p.place)), 4);
+    const prizePlaces = Math.max(
+      4,
+      ...(contest.prizes || []).map((p) => Number(p.place)),
+      4
+    );
+    const limit = Math.min(50, Math.max(prizePlaces, Number(req.query.limit) || 30));
     let standings = [];
     if (contest.type === 'reports') {
-      standings = await rankReportsContest(contest.starts_at, contest.ends_at, maxPlace);
+      standings = await rankReportsContest(contest.starts_at, contest.ends_at, limit);
     } else {
-      standings = await rankMonthlyActivity(contest.starts_at, contest.ends_at, maxPlace);
+      standings = await rankMonthlyActivity(contest.starts_at, contest.ends_at, limit);
     }
     res.json({ contest, standings });
   } catch (err) {

@@ -33,7 +33,7 @@ const DRAWER_PRIMARY = [
 
 /** Остальные пункты — всегда в бургере */
 const DRAWER_MORE = [
-  { href: '/ranking', label: 'Рейтинг рыбаков' },
+  { href: '/ranking', label: 'Конкурсы' },
   { href: '/lunar', label: 'Лунный календарь' },
   { href: '/news/all', label: 'Новости' },
   { href: '/about', label: 'О нас' },

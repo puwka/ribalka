@@ -129,6 +129,7 @@ function App() {
                       <Route path="/reports/all" element={<ReportsAllPage />} />
                       <Route path="/reports/:id" element={<ReportDetailPage />} />
                       <Route path="/ranking" element={<FishermenRankingPage />} />
+                      <Route path="/ranking/:contestId" element={<FishermenRankingPage />} />
                       <Route path="/forum" element={<ForumPage />} />
                       <Route path="/forum/:id" element={<Navigate to="/forum" replace />} />
                       <Route path="/egorych" element={<Navigate to="/forum" replace />} />
