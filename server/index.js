@@ -19,6 +19,7 @@ import forumRoutes from './routes/forum.js';
 import reviewsRoutes from './routes/reviews.js';
 import notificationsRoutes from './routes/notifications.js';
 import adsRoutes from './routes/ads.js';
+import contestsRoutes from './routes/contests.js';
 import { isMailConfigured, adminNotifyEmail, publicSiteUrl, fromAddressForLog } from './services/mail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -61,6 +62,7 @@ app.use('/api/forum', forumRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/ads', adsRoutes);
+app.use('/api/contests', contestsRoutes);
 app.use('/uploads', express.static(uploadDir));
 
 app.use((err, _req, res, _next) => {

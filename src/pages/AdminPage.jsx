@@ -20,6 +20,7 @@ import AdminReviewsSection from '../components/admin/sections/AdminReviewsSectio
 import { AdminPlansSection, AdminPaymentsSection } from '../components/admin/sections/AdminMonetizationSections';
 import AdminAdsSection from '../components/admin/sections/AdminAdsSection';
 import AdminDonationsSection from '../components/admin/sections/AdminDonationsSection';
+import AdminContestsSection from '../components/admin/sections/AdminContestsSection';
 import AdminSeoSection from '../components/admin/sections/AdminSeoSection';
 import AdminSettingsSection from '../components/admin/sections/AdminSettingsSection';
 import AdminDistrictsSection from '../components/admin/sections/AdminDistrictsSection';
@@ -50,6 +51,7 @@ export default function AdminPage() {
           <Route path="reviews" element={<AdminReviewsSection />} />
           <Route path="plans" element={<AdminPlansSection />} />
           <Route path="payments" element={<AdminPaymentsSection />} />
+          <Route path="contests" element={<AdminContestsSection />} />
           <Route path="donations" element={<AdminDonationsSection />} />
           <Route path="ads" element={<AdminAdsSection />} />
           <Route path="seo" element={<AdminSeoSection />} />

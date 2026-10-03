@@ -28,12 +28,16 @@ async function loadUserBundle(userId) {
   );
 
   return {
-    user,
+    user: {
+      ...user,
+      balance_rub: Number(user.balance_rub) || 0,
+    },
     profile: profileRes.rows[0] || null,
     roles,
     isAdmin: roles.includes('admin'),
     isOwner: roles.includes('owner') || roles.includes('admin'),
     notifications: notifRes.rows,
+    balance_rub: Number(user.balance_rub) || 0,
   };
 }
 

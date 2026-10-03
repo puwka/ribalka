@@ -8,13 +8,14 @@ import { reportSocialService } from '../services/reportSocialService';
 import { reviewsService } from '../services/reviewsService';
 import NotificationsPanel from '../components/notifications/NotificationsPanel';
 import FavoritesPage from './FavoritesPage';
+import CabinetBalancePanel from './CabinetBalancePanel';
 import OwnerAdvertisingPanel from '../components/owner/OwnerAdvertising';
 import { ImageUploadField } from '../components/media/ImageUpload';
 import { uploadService } from '../services/uploadService';
 import '../components/auth/AuthShared.css';
 
 function useUserNav() {
-  const { notifications, isOwner, isAdmin } = useAuth();
+  const { notifications, isOwner, isAdmin, balanceRub } = useAuth();
   const unread = notifications.filter((n) => !n.is_read).length;
 
   return useMemo(() => {
@@ -27,6 +28,7 @@ function useUserNav() {
           { to: '/cabinet/favorites', label: 'Избранное' },
           { to: '/cabinet/reports', label: 'Отчёты' },
           { to: '/cabinet/reviews', label: 'Мои отзывы' },
+          { to: '/cabinet/balance', label: 'Баланс' },
           { to: '/cabinet/advertising', label: 'Реклама' },
         ],
       },
@@ -50,11 +52,11 @@ function useUserNav() {
     }
 
     return groups;
-  }, [unread, isOwner, isAdmin]);
+  }, [unread, isOwner, isAdmin, balanceRub]);
 }
 
 function Overview() {
-  const { profile, notifications, user } = useAuth();
+  const { profile, notifications, user, balanceRub } = useAuth();
   const [progress, setProgress] = useState(null);
   const [reports, setReports] = useState([]);
   const unread = notifications.filter((n) => !n.is_read).length;
@@ -94,6 +96,13 @@ function Overview() {
         <div className="cabinet-metric">
           <div className="cabinet-metric__label">Отчёты</div>
           <div className="cabinet-metric__value">{progress?.stats?.reports_count ?? recentReports.length}</div>
+        </div>
+        <div className="cabinet-metric">
+          <div className="cabinet-metric__label">Баланс</div>
+          <div className="cabinet-metric__value">
+            {(balanceRub || 0).toLocaleString('ru-RU')}
+          </div>
+          <div className="cabinet-metric__hint">₽ · <Link to="/cabinet/balance">вывод</Link></div>
         </div>
         <div className="cabinet-metric">
           <div className="cabinet-metric__label">Уведомления</div>
@@ -847,6 +856,7 @@ export default function UserCabinetPage() {
           <Route path="reviews" element={<MyReviewsPanel />} />
           <Route path="achievements" element={<AchievementsPanel />} />
           <Route path="notifications" element={<NotificationsPanel />} />
+          <Route path="balance" element={<CabinetBalancePanel />} />
           <Route path="advertising" element={<OwnerAdvertisingPanel />} />
           <Route path="*" element={<Navigate to="/cabinet" replace />} />
         </Route>

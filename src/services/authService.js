@@ -19,6 +19,7 @@ function mapBundle(data) {
     achievements: [],
     notifications: data.notifications || [],
     favorites: [],
+    balance_rub: Number(data.balance_rub ?? data.user?.balance_rub) || 0,
     token: data.token,
   };
 }

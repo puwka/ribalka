@@ -27,6 +27,7 @@ const TariffsPage = lazy(() => import('./pages/TariffsPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const ReportsAllPage = lazy(() => import('./pages/ReportsAllPage'));
 const ReportDetailPage = lazy(() => import('./pages/ReportDetailPage'));
+const FishermenRankingPage = lazy(() => import('./pages/FishermenRankingPage'));
 const ForumPage = lazy(() => import('./pages/EgorychPage'));
 const AuthorProfilePage = lazy(() => import('./pages/AuthorProfilePage'));
 const LunarCalendarPage = lazy(() => import('./pages/LunarCalendarPage'));
@@ -127,6 +128,7 @@ function App() {
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/reports/all" element={<ReportsAllPage />} />
                       <Route path="/reports/:id" element={<ReportDetailPage />} />
+                      <Route path="/ranking" element={<FishermenRankingPage />} />
                       <Route path="/forum" element={<ForumPage />} />
                       <Route path="/forum/:id" element={<Navigate to="/forum" replace />} />
                       <Route path="/egorych" element={<Navigate to="/forum" replace />} />

@@ -109,6 +109,7 @@ export function AuthProvider({ children }) {
       isAdmin: Boolean(bundle?.isAdmin),
       isOwner: Boolean(bundle?.isOwner),
       ratingPoints: bundle?.ratingPoints ?? 0,
+      balanceRub: Number(bundle?.balance_rub ?? bundle?.user?.balance_rub) || 0,
       notifications: bundle?.notifications ?? [],
       favorites: bundle?.favorites ?? [],
       hasRole,
