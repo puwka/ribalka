@@ -19,6 +19,13 @@
       }
       h1 { font-size: 1.6rem; margin-bottom: 8px; }
       p { opacity: 0.85; max-width: 28rem; margin: 0 auto 18px; }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        font-family: system-ui, sans-serif;
+      }
       a {
         display: inline-block;
         padding: 12px 18px;
@@ -27,7 +34,13 @@
         color: #fff;
         text-decoration: none;
         font-weight: 700;
-        font-family: system-ui, sans-serif;
+      }
+      a.sos {
+        background: #b91c1c;
+      }
+      a.ghost {
+        background: transparent;
+        border: 1px solid rgba(226, 232, 240, 0.45);
       }
     </style>
   </head>
@@ -35,10 +48,15 @@
     <div>
       <h1>Нет сети</h1>
       <p>
-        Страница пока недоступна офлайн. Откройте ранее посещённые разделы
-        или подключитесь к интернету и обновите.
+        Можно открыть ранее посещённые разделы и карту из кэша.
+        Вызов спасателей работает без интернета.
       </p>
-      <a href="/">На главную</a>
+      <div class="actions">
+        <a class="sos" href="tel:112">Позвонить 112</a>
+        <a class="sos" href="tel:112">SOS</a>
+        <a href="/map">Карта</a>
+        <a class="ghost" href="/">На главную</a>
+      </div>
     </div>
   </body>
 </html>

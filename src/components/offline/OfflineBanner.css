@@ -1,0 +1,28 @@
+.offline-banner {
+  position: sticky;
+  top: var(--header-height, 64px);
+  z-index: 35;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.55rem 1rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  text-align: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.offline-banner strong {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.offline-banner a {
+  color: #fca5a5;
+  font-weight: 700;
+  text-decoration: underline;
+}

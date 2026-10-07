@@ -1,13 +1,23 @@
+import { useEffect, useState } from 'react';
 import { useSmartNavigation } from '../../hooks/useSmartNavigation';
 import { useCmsSettings, useCmsFooter } from '../../hooks/useCms';
 import PermDateTime from '../PermDateTime/PermDateTime';
 import Logo from '../Logo/Logo';
+import {
+  getState as getPwaState,
+  openPwaInstallPrompt,
+  promptPwaInstall,
+  subscribePwaInstall,
+} from '../../lib/pwaInstall';
 import './Footer.css';
 
 export default function Footer() {
   const { handleClick } = useSmartNavigation();
   const { data: settings } = useCmsSettings();
   const { data: footer } = useCmsFooter();
+  const [pwa, setPwa] = useState(getPwaState);
+
+  useEffect(() => subscribePwaInstall(setPwa), []);
 
   const brandText = footer?.brandText || settings?.tagline || '';
   const siteName = settings?.siteName || 'Рыбалка в Прикамье';
@@ -119,6 +129,20 @@ export default function Footer() {
             <li><a href="/forum" onClick={(e) => onFooterClick(e, '/forum')}>Егорыч</a></li>
             <li><a href="#news" onClick={(e) => onFooterClick(e, '#news')}>Новости</a></li>
             <li><a href="/about" onClick={(e) => onFooterClick(e, '/about')}>О нас</a></li>
+            {!pwa.installed && (
+              <li>
+                <button
+                  type="button"
+                  className="footer__install-btn"
+                  onClick={async () => {
+                    if (pwa.canPrompt) await promptPwaInstall();
+                    else openPwaInstallPrompt();
+                  }}
+                >
+                  Установить приложение
+                </button>
+              </li>
+            )}
           </ul>
         </div>
 

@@ -5,6 +5,12 @@ import { useAuth } from '../auth/AuthContext';
 import SearchBar from '../SearchBar/SearchBar';
 import NotificationCenter from '../notifications/NotificationCenter';
 import Logo from '../Logo/Logo';
+import {
+  getState as getPwaState,
+  openPwaInstallPrompt,
+  promptPwaInstall,
+  subscribePwaInstall,
+} from '../../lib/pwaInstall';
 import './Header.css';
 
 /** Быстрые ссылки в шапке (desktop) */
@@ -54,8 +60,11 @@ function IconStar() {
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [pwa, setPwa] = useState(getPwaState);
   const { handleClick } = useSmartNavigation();
   const { isAuthenticated, loading, profile, isOwner, isAdmin, logout } = useAuth();
+
+  useEffect(() => subscribePwaInstall(setPwa), []);
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? 'hidden' : '';
@@ -70,6 +79,17 @@ export default function Header() {
     closeMenu();
     handleClick(e, target);
   };
+
+  const onInstallClick = async () => {
+    closeMenu();
+    if (pwa.canPrompt) {
+      await promptPwaInstall();
+      return;
+    }
+    openPwaInstallPrompt();
+  };
+
+  const showInstall = !pwa.installed;
 
   return (
     <header className="site-header">
@@ -179,6 +199,16 @@ export default function Header() {
             {item.label}
           </Link>
         ))}
+
+        {showInstall && (
+          <button
+            type="button"
+            className="site-header__drawer-item site-header__drawer-install"
+            onClick={onInstallClick}
+          >
+            {pwa.canPrompt ? 'Установить приложение' : 'Как установить приложение'}
+          </button>
+        )}
 
         <div className="site-header__drawer-auth">
           {loading ? null : isAuthenticated ? (

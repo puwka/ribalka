@@ -14,6 +14,7 @@ import { localAuthStore } from '../lib/localAuthStore';
 import { normalizeVideoList } from '../lib/videoEmbed';
 import { parseCoordNumber, resolveLatLng } from '../lib/coords';
 import { sortPromoFirst } from '../lib/waterUtils';
+import { loadOfflineBases, saveOfflineBases } from '../lib/offlineCatalog';
 
 export const BASE_STATUSES = Object.freeze({
   DRAFT: 'draft',
@@ -427,13 +428,28 @@ export const basesService = {
 
     let list;
     if (isRemoteDb()) {
-      const qs = new URLSearchParams();
-      if (filters.type) qs.set('type', String(filters.type));
-      if (filters.limit) qs.set('limit', String(filters.limit));
-      const q = qs.toString();
-      const rows = await api.get(`/api/bases${q ? `?${q}` : ''}`);
-      const remote = (rows ?? []).map(enrichRemote);
-      list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
+      try {
+        const qs = new URLSearchParams();
+        if (filters.type) qs.set('type', String(filters.type));
+        if (filters.limit) qs.set('limit', String(filters.limit));
+        const q = qs.toString();
+        const rows = await api.get(`/api/bases${q ? `?${q}` : ''}`);
+        const remote = (rows ?? []).map(enrichRemote);
+        list = await catalogAdminService.mergeIntoPublicList(mergePublicList(catalog, remote));
+      } catch {
+        const cached = loadOfflineBases();
+        if (cached?.length) {
+          list = filters.type
+            ? cached.filter((item) => item.type === filters.type)
+            : cached;
+          const limitFail = Number(filters.limit);
+          if (Number.isFinite(limitFail) && limitFail > 0) {
+            return list.slice(0, limitFail);
+          }
+          return list;
+        }
+        list = await catalogAdminService.mergeIntoPublicList(catalog);
+      }
     } else {
       const rows = await basesLocalDb.listApproved(filters.type);
       const ownerItems = rows
@@ -459,7 +475,10 @@ export const basesService = {
     list = sortPromoFirst(list);
     const limit = Number(filters.limit);
     if (Number.isFinite(limit) && limit > 0) {
-      return list.slice(0, limit);
+      list = list.slice(0, limit);
+    }
+    if (!filters.type && !filters.limit) {
+      saveOfflineBases(list);
     }
     return list;
   },

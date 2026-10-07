@@ -1,0 +1,28 @@
+.offline-leaflet {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+}
+
+.offline-leaflet__canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.offline-leaflet__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 500;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 600;
+  pointer-events: none;
+}

@@ -180,6 +180,12 @@
   height: 100%;
 }
 
+.map-frame .offline-leaflet,
+.map-frame .offline-leaflet__canvas {
+  height: 100%;
+  min-height: 100%;
+}
+
 /* Legend */
 .map-legend {
   position: absolute;

@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react';
+import {
+  consumePendingOpen,
+  getState,
+  isStandalone,
+  promptPwaInstall,
+  subscribePwaInstall,
+} from '../../lib/pwaInstall';
 import './PwaInstallPrompt.css';
 
-const DISMISS_KEY = 'pwa_install_dismissed_until';
-const LAST_SHOWN_KEY = 'pwa_install_last_shown';
-const DISMISS_MS = 90 * 24 * 60 * 60 * 1000;
-const RESHOW_MS = 14 * 24 * 60 * 60 * 1000;
-const SHOW_DELAY_MS = 5000;
+const SNOOZE_KEY = 'pwa_install_snooze_until';
+const HIDE_KEY = 'pwa_install_hide_until';
+/** «Позже» — коротко, чтобы можно было увидеть снова */
+const SNOOZE_MS = 2 * 24 * 60 * 60 * 1000;
+/** Крестик / «Не сейчас» — ненадолго */
+const HIDE_MS = 7 * 24 * 60 * 60 * 1000;
+const SHOW_DELAY_MS = 3500;
 
 function readNum(key) {
   try {
@@ -24,17 +33,9 @@ function writeNum(key, value) {
   }
 }
 
-function shouldOffer() {
-  if (Date.now() < readNum(DISMISS_KEY)) return false;
-  const last = readNum(LAST_SHOWN_KEY);
-  return !last || Date.now() - last >= RESHOW_MS;
-}
-
-function isStandalone() {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true
-  );
+function isSuppressed() {
+  const now = Date.now();
+  return now < readNum(SNOOZE_KEY) || now < readNum(HIDE_KEY);
 }
 
 function cookiesAccepted() {
@@ -64,68 +65,74 @@ function AppGlyph() {
 }
 
 export default function PwaInstallPrompt() {
-  const [deferred, setDeferred] = useState(null);
+  const [pwa, setPwa] = useState(getState);
   const [visible, setVisible] = useState(false);
-  const [iosHint, setIosHint] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
   const [readyForPrompt, setReadyForPrompt] = useState(cookiesAccepted());
+
+  useEffect(() => subscribePwaInstall(setPwa), []);
 
   useEffect(() => {
     const onCookie = () => setReadyForPrompt(true);
+    const onOpen = () => {
+      if (isStandalone()) return;
+      setForceOpen(true);
+      setVisible(true);
+    };
     window.addEventListener('cookie-accepted', onCookie);
-    return () => window.removeEventListener('cookie-accepted', onCookie);
+    window.addEventListener('pwa-open-install', onOpen);
+    if (consumePendingOpen()) onOpen();
+    return () => {
+      window.removeEventListener('cookie-accepted', onCookie);
+      window.removeEventListener('pwa-open-install', onOpen);
+    };
   }, []);
 
   useEffect(() => {
-    if (!readyForPrompt || isStandalone() || !shouldOffer()) return;
+    if (!readyForPrompt || isStandalone() || forceOpen) return undefined;
+    if (isSuppressed()) return undefined;
 
-    let timer = 0;
-    let offered = false;
-    const ua = window.navigator.userAgent || '';
-    const isIos = /iphone|ipad|ipod/i.test(ua);
-    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
-    if (isIos && isSafari) setIosHint(true);
+    // Show when we can install, or iOS hint (no BIP on Safari)
+    const canShow = () => pwa.canPrompt || pwa.iosHint;
+    if (!canShow()) return undefined;
 
-    const reveal = () => {
-      if (offered || isStandalone() || !shouldOffer()) return;
-      offered = true;
-      writeNum(LAST_SHOWN_KEY, Date.now());
+    const timer = window.setTimeout(() => {
+      if (isStandalone() || isSuppressed()) return;
+      if (!getState().canPrompt && !getState().iosHint) return;
       setVisible(true);
-    };
+    }, SHOW_DELAY_MS);
 
-    const onBip = (e) => {
-      e.preventDefault();
-      setDeferred(e);
-    };
+    return () => window.clearTimeout(timer);
+  }, [readyForPrompt, pwa.canPrompt, pwa.iosHint, forceOpen]);
 
-    window.addEventListener('beforeinstallprompt', onBip);
-    timer = window.setTimeout(reveal, SHOW_DELAY_MS);
+  if (!visible || pwa.installed) return null;
 
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('beforeinstallprompt', onBip);
-    };
-  }, [readyForPrompt]);
-
-  if (!visible) return null;
-
-  const dismiss = () => {
-    writeNum(DISMISS_KEY, Date.now() + DISMISS_MS);
+  const snooze = () => {
+    writeNum(SNOOZE_KEY, Date.now() + SNOOZE_MS);
+    setForceOpen(false);
     setVisible(false);
-    setDeferred(null);
+  };
+
+  const hideAwhile = () => {
+    writeNum(HIDE_KEY, Date.now() + HIDE_MS);
+    setForceOpen(false);
+    setVisible(false);
   };
 
   const install = async () => {
-    if (!deferred) return;
-    deferred.prompt();
-    await deferred.userChoice;
-    setDeferred(null);
-    dismiss();
+    if (pwa.canPrompt) {
+      await promptPwaInstall();
+      setForceOpen(false);
+      setVisible(false);
+      return;
+    }
+    // iOS / no BIP yet — keep hint visible; user follows Share → Home Screen
   };
 
   return (
     <section className="pwa-prompt" role="dialog" aria-labelledby="pwa-prompt-title">
       <div className="pwa-prompt__card">
-        <button type="button" className="pwa-prompt__close" aria-label="Закрыть" onClick={dismiss}>
+        <button type="button" className="pwa-prompt__close" aria-label="Закрыть" onClick={hideAwhile}>
           ×
         </button>
 
@@ -142,32 +149,34 @@ export default function PwaInstallPrompt() {
         </div>
 
         <p className="pwa-prompt__desc">
-          {iosHint
-            ? 'На iPhone: кнопка «Поделиться» → «На экран «Домой»» — и каталог водоёмов как приложение.'
-            : 'Установите приложение: карта, базы и отчёты без лишних вкладок, удобный доступ с экрана телефона.'}
+          {pwa.iosHint
+            ? 'На iPhone: кнопка «Поделиться» → «На экран «Домой»» — каталог и карта как приложение, в том числе офлайн.'
+            : pwa.canPrompt
+              ? 'Установите приложение: карта, базы, отчёты и офлайн-доступ с иконки на телефоне.'
+              : 'Добавьте сайт на домашний экран через меню браузера (⋮ или «Установить приложение»), либо откройте этот пункт позже из меню сайта.'}
         </p>
 
         <ul className="pwa-prompt__perks">
           <li>Быстрый вход с иконки</li>
           <li>Удобнее на телефоне</li>
-          <li>Работает как приложение</li>
+          <li>Работает офлайн после визита</li>
         </ul>
 
         <div className="pwa-prompt__actions">
-          {deferred ? (
+          {pwa.canPrompt ? (
             <button type="button" className="pwa-prompt__install" onClick={install}>
               Установить приложение
             </button>
-          ) : iosHint ? (
-            <button type="button" className="pwa-prompt__install" onClick={dismiss}>
+          ) : pwa.iosHint ? (
+            <button type="button" className="pwa-prompt__install" onClick={snooze}>
               Понятно
             </button>
           ) : (
-            <button type="button" className="pwa-prompt__install" onClick={dismiss}>
+            <button type="button" className="pwa-prompt__install" onClick={snooze}>
               Хорошо
             </button>
           )}
-          <button type="button" className="pwa-prompt__later" onClick={dismiss}>
+          <button type="button" className="pwa-prompt__later" onClick={snooze}>
             Позже
           </button>
         </div>
@@ -175,3 +184,4 @@ export default function PwaInstallPrompt() {
     </section>
   );
 }
+

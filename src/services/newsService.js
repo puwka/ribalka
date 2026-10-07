@@ -2,6 +2,7 @@ import { api, apiDataEnabled, resolveMediaUrl } from '../lib/apiClient';
 import { mapNewsToUi } from '../lib/mappers';
 import { newsAdminService } from './newsAdminService';
 import { cmsDb } from '../lib/cmsDb';
+import { loadOfflineNews, saveOfflineNews } from '../lib/offlineCatalog';
 
 function toUi(row) {
   if (!row) return null;
@@ -20,16 +21,31 @@ export const newsService = {
 
   async list() {
     if (this.isEnabled()) {
-      const rows = await api.get('/api/news');
-      return (rows ?? []).map(toUi);
+      try {
+        const rows = await api.get('/api/news');
+        const mapped = (rows ?? []).map(toUi);
+        saveOfflineNews(mapped);
+        return mapped;
+      } catch {
+        const cached = loadOfflineNews();
+        if (cached?.length) return cached;
+        throw new Error('Новости недоступны офлайн');
+      }
     }
     return newsAdminService.listPublic();
   },
 
   async getById(id) {
     if (this.isEnabled()) {
-      const row = await api.get(`/api/news/${encodeURIComponent(id)}`);
-      return toUi(row);
+      try {
+        const row = await api.get(`/api/news/${encodeURIComponent(id)}`);
+        return toUi(row);
+      } catch {
+        const cached = loadOfflineNews() || [];
+        const found = cached.find((n) => String(n.id) === String(id));
+        if (found) return found;
+        throw new Error('Статья недоступна офлайн');
+      }
     }
     return newsAdminService.getById(id);
   },

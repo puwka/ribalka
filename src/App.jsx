@@ -8,6 +8,7 @@ import DocumentTitle from './components/seo/DocumentTitle';
 import YandexMetrikaHit from './components/seo/YandexMetrikaHit';
 import ScrollToTop from './components/ScrollToTop';
 import { ToastProvider } from './components/ui/ToastContext';
+import PwaInstallPrompt from './components/pwa/PwaInstallPrompt';
 import './components/auth/AuthShared.css';
 import './App.css';
 
@@ -42,8 +43,9 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const LegalModals = lazy(() => import('./components/LegalModals/LegalModals'));
-const PwaInstallPrompt = lazy(() => import('./components/pwa/PwaInstallPrompt'));
 const SupportFloat = lazy(() => import('./components/home/SupportFloat'));
+const SosFloat = lazy(() => import('./components/emergency/SosFloat'));
+const OfflineBanner = lazy(() => import('./components/offline/OfflineBanner'));
 
 function RedirectBaseToWater() {
   const { id } = useParams();
@@ -63,11 +65,15 @@ function SiteLayout({ children }) {
   return (
     <>
       <Header />
+      <Suspense fallback={null}>
+        <OfflineBanner />
+      </Suspense>
       <main>
         <Suspense fallback={<PageFallback />}>{children}</Suspense>
       </main>
       <Footer />
       <Suspense fallback={null}>
+        <SosFloat />
         <SupportFloat />
       </Suspense>
     </>
@@ -84,9 +90,9 @@ function App() {
             <DocumentTitle />
             <YandexMetrikaHit />
             <CookieBanner />
+            <PwaInstallPrompt />
             <Suspense fallback={null}>
               <LegalModals />
-              <PwaInstallPrompt />
             </Suspense>
 
             <Routes>

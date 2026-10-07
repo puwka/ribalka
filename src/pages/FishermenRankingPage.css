@@ -1,7 +1,7 @@
 .ranking-page {
   max-width: 860px;
   margin: 0 auto;
-  padding: 2rem 1.25rem 4rem;
+  padding: calc(var(--header-height) + var(--safe-top) + 1.5rem) 1.25rem 4rem;
 }
 
 .ranking-page__eyebrow {

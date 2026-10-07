@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { basesService } from '../services/basesService';
 import { catalogStats } from '../lib/catalogSeed';
 import { toYandexCoords } from '../lib/coords';
 import { WATER_TYPE, mapMarkerOptionsForType } from '../lib/waterUtils';
+import { loadOfflineBases, saveOfflineBases } from '../lib/offlineCatalog';
 import './MapPage.css';
+
+const OfflineLeafletMap = lazy(() => import('../components/map/OfflineLeafletMap'));
 
 const FILTER_OPTIONS = [
   { id: 'all', label: 'Все', icon: '🗺️' },
@@ -39,11 +42,16 @@ export default function MapPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
+  const [online, setOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const ymapsRef = useRef(null);
+
+  const useOfflineMap = !online || mapError;
 
   const stats = useMemo(() => {
     const paid = places.filter((p) => p.type === WATER_TYPE.PAID).length;
@@ -55,21 +63,39 @@ export default function MapPage() {
   }, [places]);
 
   useEffect(() => {
+    const goOffline = () => setOnline(false);
+    const goOnline = () => setOnline(true);
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    return () => {
+      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', goOnline);
+    };
+  }, []);
+
+  useEffect(() => {
     let alive = true;
     setLoading(true);
     basesService
       .listPublic()
       .then((rows) => {
         if (!alive) return;
+        const mapped = (rows || []).map((base) => ({
+          ...base,
+          icon: placeIcon(base.type),
+        }));
+        setPlaces(mapped);
+        saveOfflineBases(mapped);
+      })
+      .catch(() => {
+        if (!alive) return;
+        const cached = loadOfflineBases();
         setPlaces(
-          (rows || []).map((base) => ({
+          (cached || []).map((base) => ({
             ...base,
             icon: placeIcon(base.type),
           }))
         );
-      })
-      .catch(() => {
-        if (alive) setPlaces([]);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -85,6 +111,8 @@ export default function MapPage() {
   }, [places, filter]);
 
   useEffect(() => {
+    if (useOfflineMap) return undefined;
+
     if (window.ymaps) {
       ymapsRef.current = window.ymaps;
       setMapLoaded(true);
@@ -112,7 +140,7 @@ export default function MapPage() {
     return () => {
       if (script.parentNode) script.parentNode.removeChild(script);
     };
-  }, []);
+  }, [useOfflineMap]);
 
   const escapeHtml = (value) =>
     String(value ?? '')
@@ -152,7 +180,7 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || mapError) return undefined;
+    if (useOfflineMap || !mapLoaded || !mapRef.current || mapError) return undefined;
 
     const ymaps = ymapsRef.current;
     if (mapInstanceRef.current) {
@@ -254,7 +282,7 @@ export default function MapPage() {
         mapInstanceRef.current = null;
       }
     };
-  }, [mapLoaded, filteredPlaces, mapError, buildBalloon]);
+  }, [mapLoaded, filteredPlaces, mapError, buildBalloon, useOfflineMap]);
 
   const closeSidebar = () => setSelectedItem(null);
 
@@ -342,27 +370,34 @@ export default function MapPage() {
             </div>
           )}
 
-          {mapError && (
-            <div className="map-fallback">
-              <span className="map-fallback__icon">📍</span>
-              <p className="map-fallback__title">Карта недоступна</p>
-              <p className="map-fallback__hint">
-                Укажите <code>VITE_YANDEX_MAPS_API_KEY</code> в файле <code>.env</code>
-              </p>
-              {filteredPlaces.length > 0 && (
-                <ul className="map-fallback__list">
-                  {filteredPlaces.map((p) => (
-                    <li key={p.id}>
-                      <Link to={`/waters/${p.id}`}>{p.name}</Link>
-                      <span>{p.address}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {useOfflineMap && (
+            <Suspense
+              fallback={
+                <div className="map-loading">
+                  <div className="map-loading__spinner" />
+                  <p>Офлайн-карта…</p>
+                </div>
+              }
+            >
+              <div className="map-legend">
+                <span className="map-legend__item">
+                  <i className="map-legend__dot map-legend__dot--paid" />
+                  Базы
+                </span>
+                <span className="map-legend__item">
+                  <i className="map-legend__dot map-legend__dot--fishing" />
+                  Платная рыбалка
+                </span>
+                <span className="map-legend__item">
+                  <i className="map-legend__dot map-legend__dot--free" />
+                  Бесплатные
+                </span>
+              </div>
+              <OfflineLeafletMap places={filteredPlaces} onSelect={setSelectedItem} />
+            </Suspense>
           )}
 
-          {!mapError && (
+          {!useOfflineMap && (
             <>
               <div className="map-legend">
                 <span className="map-legend__item">

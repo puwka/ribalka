@@ -9,6 +9,7 @@ import { notificationService } from './notificationService';
 import { engagementDb } from '../lib/engagementDb';
 import { api, apiDataEnabled } from '../lib/apiClient';
 import { parseReportWeightKg, reportWeightKg } from '../lib/reportWeight';
+import { loadOfflineReports, saveOfflineReports } from '../lib/offlineCatalog';
 
 const REPORT_SELECT = `
   *,
@@ -218,18 +219,33 @@ export const reportSocialService = {
 
   async list({ status = 'approved', sortBy = 'date', viewerKey = null, includeAll = false } = {}) {
     if (isApiReports()) {
-      const qs = includeAll || status === 'all' ? 'all' : status;
-      const rows = await api.get(`/api/reports?status=${encodeURIComponent(qs)}`);
-      let mapped = (rows || []).map((r) => publicReport(r, viewerKey));
-      if (!includeAll && status !== 'all') {
-        mapped = mapped.filter((r) => r.status === status);
+      try {
+        const qs = includeAll || status === 'all' ? 'all' : status;
+        const rows = await api.get(`/api/reports?status=${encodeURIComponent(qs)}`);
+        let mapped = (rows || []).map((r) => publicReport(r, viewerKey));
+        if (!includeAll && status !== 'all') {
+          mapped = mapped.filter((r) => r.status === status);
+        }
+        if (sortBy === 'rating') {
+          mapped.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        } else {
+          mapped.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        }
+        if (status === 'approved' || includeAll) {
+          saveOfflineReports(mapped);
+        }
+        return mapped;
+      } catch {
+        const cached = loadOfflineReports();
+        if (cached?.length) {
+          let mapped = cached;
+          if (!includeAll && status !== 'all') {
+            mapped = mapped.filter((r) => r.status === status);
+          }
+          return mapped;
+        }
+        throw new ApiError('Отчёты недоступны офлайн');
       }
-      if (sortBy === 'rating') {
-        mapped.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      } else {
-        mapped.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-      }
-      return mapped;
     }
 
     const localRows = await socialDb.listReports();

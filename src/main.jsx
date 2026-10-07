@@ -2,6 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
+import { initPwaInstallCapture } from './lib/pwaInstall';
+
+/** Catch install prompt before lazy UI mounts — BIP fires only once per session. */
+initPwaInstallCapture();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

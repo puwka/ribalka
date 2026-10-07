@@ -11,7 +11,8 @@ export default defineConfig({
       manifest: {
         name: 'Рыбалка в Прикамье',
         short_name: 'Рыбалка',
-        description: 'Базы, отчёты, форум и лунный календарь рыболова Пермского края',
+        description:
+          'Базы, отчёты, карта и лунный календарь рыболова Пермского края. Работает офлайн после первого визита; экстренный вызов 112.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
@@ -48,18 +49,65 @@ export default defineConfig({
         // Don't leave stale HTML/shell in runtime cache
         runtimeCaching: [
           {
-            urlPattern: ({ url }) =>
-              url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/'),
+            // Mutations never from cache
+            urlPattern: ({ url, request }) =>
+              url.pathname.startsWith('/api/') && request.method !== 'GET',
             handler: 'NetworkOnly',
+          },
+          {
+            // Public GET API: show last good response on slow / offline nets
+            urlPattern: ({ url, request }) => {
+              if (request.method !== 'GET' || !url.pathname.startsWith('/api/')) return false;
+              const p = url.pathname;
+              if (
+                p.includes('/admin') ||
+                p.includes('/mine') ||
+                p.includes('/moderation') ||
+                p.includes('/wallet') ||
+                p.includes('/auth')
+              ) {
+                return false;
+              }
+              return true;
+            },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-read-cache-v1',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ url, request }) =>
+              request.method === 'GET' && url.pathname.startsWith('/uploads/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'uploads-cache-v1',
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 14 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // OSM tiles for offline map (after first online visit)
+            urlPattern: ({ url }) =>
+              url.hostname.endsWith('tile.openstreetmap.org') ||
+              url.hostname.endsWith('openstreetmap.org'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-tiles-v1',
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
           },
           {
             // Always prefer network for SPA shell so deploys show up
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'pages-cache-v2',
-              networkTimeoutSeconds: 2,
-              expiration: { maxEntries: 8, maxAgeSeconds: 60 },
+              cacheName: 'pages-cache-v3',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -68,7 +116,7 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'images-cache',
-              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
           {
@@ -82,7 +130,7 @@ export default defineConfig({
           // Hashed JS/CSS are precached — do not SWR-cache them under a shared name
           // (that kept old bundles alive after deploy)
         ],
-        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       // SW in dev caches CSS/JS and hides HMR header fixes — enable only for PWA testing
       devOptions: {
@@ -103,6 +151,7 @@ export default defineConfig({
             return 'vendor-react';
           }
           if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('leaflet')) return 'vendor-leaflet';
         },
       },
     },
