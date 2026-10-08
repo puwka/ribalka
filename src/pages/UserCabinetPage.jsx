@@ -46,7 +46,7 @@ function useUserNav() {
         title: 'Управление',
         items: [
           ...(isOwner ? [{ to: '/owner', label: 'Кабинет владельца' }] : []),
-          ...(isAdmin ? [{ to: '/admin', label: 'Админка' }] : []),
+          ...(isAdmin ? [{ to: '/liderus', label: 'Админка' }] : []),
         ],
       });
     }

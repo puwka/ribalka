@@ -206,24 +206,6 @@
   color: var(--color-accent);
 }
 
-.site-header__drawer-install {
-  width: 100%;
-  margin-top: var(--space-3);
-  border: 1px solid var(--color-accent, #2563eb);
-  border-radius: 12px;
-  background: rgba(37, 99, 235, 0.08);
-  color: var(--color-accent, #2563eb);
-  font: inherit;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-  border-bottom: 1px solid var(--color-accent, #2563eb);
-}
-
-.site-header__drawer-install:hover {
-  background: rgba(37, 99, 235, 0.14);
-}
-
 .site-header__drawer-label {
   margin: var(--space-4) 0 var(--space-2);
   font-size: var(--text-xs);

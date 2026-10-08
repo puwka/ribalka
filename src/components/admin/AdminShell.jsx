@@ -1,91 +1,89 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { ADMIN_BASE, adminPath } from '../../lib/adminPath';
 import './AdminShell.css';
 
 const NAV_GROUPS = [
   {
     title: 'Обзор',
     items: [
-      { to: '/admin', label: 'Dashboard', end: true },
-      { to: '/admin/analytics', label: 'Статистика' },
-      { to: '/admin/moderation', label: 'Модерация' },
-      { to: '/admin/audit', label: 'История' },
+      { to: adminPath(), label: 'Dashboard', end: true },
+      { to: adminPath('analytics'), label: 'Статистика' },
+      { to: adminPath('moderation'), label: 'Модерация' },
+      { to: adminPath('audit'), label: 'История' },
     ],
   },
   {
     title: 'Контент',
     items: [
-      { to: '/admin/content/home', label: 'Главная' },
-      { to: '/admin/content/paid-waters', label: 'Платные базы' },
-      { to: '/admin/content/paid-fishing', label: 'Платная рыбалка' },
-      { to: '/admin/content/free-waters', label: 'Бесплатные водоёмы' },
-      { to: '/admin/content/directory', label: 'Справочник' },
-      { to: '/admin/news', label: 'Новости' },
-      { to: '/admin/waters', label: 'Водоёмы' },
-      { to: '/admin/bases', label: 'Базы' },
-      { to: '/admin/reports', label: 'Отчёты' },
-      { to: '/admin/egorych', label: 'Егорыч' },
-      { to: '/admin/media', label: 'Медиа' },
+      { to: adminPath('content/home'), label: 'Главная' },
+      { to: adminPath('content/paid-waters'), label: 'Платные базы' },
+      { to: adminPath('content/paid-fishing'), label: 'Платная рыбалка' },
+      { to: adminPath('content/free-waters'), label: 'Бесплатные водоёмы' },
+      { to: adminPath('content/directory'), label: 'Справочник' },
+      { to: adminPath('news'), label: 'Новости' },
+      { to: adminPath('waters'), label: 'Водоёмы' },
+      { to: adminPath('bases'), label: 'Базы' },
+      { to: adminPath('reports'), label: 'Отчёты' },
+      { to: adminPath('egorych'), label: 'Егорыч' },
+      { to: adminPath('media'), label: 'Медиа' },
     ],
   },
   {
     title: 'Пользователи',
     items: [
-      { to: '/admin/users', label: 'Пользователи' },
-      { to: '/admin/reviews', label: 'Отзывы' },
+      { to: adminPath('users'), label: 'Пользователи' },
+      { to: adminPath('reviews'), label: 'Отзывы' },
     ],
   },
   {
     title: 'Коммерция',
     items: [
-      { to: '/admin/plans', label: 'Тарифы' },
-      { to: '/admin/payments', label: 'Платежи' },
-      { to: '/admin/contests', label: 'Конкурсы' },
-      { to: '/admin/donations', label: 'Поддержка' },
-      { to: '/admin/ads', label: 'Реклама' },
+      { to: adminPath('plans'), label: 'Тарифы' },
+      { to: adminPath('payments'), label: 'Платежи' },
+      { to: adminPath('contests'), label: 'Конкурсы' },
+      { to: adminPath('donations'), label: 'Поддержка' },
+      { to: adminPath('ads'), label: 'Реклама' },
     ],
   },
   {
     title: 'Система',
     items: [
-      { to: '/admin/seo', label: 'SEO' },
-      { to: '/admin/settings', label: 'Настройки' },
-      { to: '/admin/districts', label: 'Районы' },
+      { to: adminPath('seo'), label: 'SEO' },
+      { to: adminPath('settings'), label: 'Настройки' },
+      { to: adminPath('districts'), label: 'Районы' },
     ],
   },
 ];
 
-function breadcrumbLabel(pathname) {
-  const map = {
-    '/admin': 'Dashboard',
-    '/admin/analytics': 'Статистика',
-    '/admin/moderation': 'Модерация',
-    '/admin/audit': 'История',
-    '/admin/content/home': 'Главная',
-    '/admin/content/paid-waters': 'Платные базы',
-    '/admin/content/paid-fishing': 'Платная рыбалка',
-    '/admin/content/free-waters': 'Бесплатные водоёмы',
-    '/admin/content/directory': 'Справочник',
-    '/admin/news': 'Новости',
-    '/admin/waters': 'Водоёмы',
-    '/admin/bases': 'Базы',
-    '/admin/reports': 'Отчёты',
-    '/admin/egorych': 'Егорыч',
-    '/admin/forum': 'Егорыч',
-    '/admin/media': 'Медиа',
-    '/admin/users': 'Пользователи',
-    '/admin/reviews': 'Отзывы',
-    '/admin/plans': 'Тарифы',
-    '/admin/payments': 'Платежи',
-    '/admin/contests': 'Конкурсы',
-    '/admin/donations': 'Поддержка',
-    '/admin/ads': 'Реклама',
-    '/admin/seo': 'SEO',
-    '/admin/settings': 'Настройки',
-    '/admin/districts': 'Районы',
-  };
-  return map[pathname] || 'Админка';
-}
+const BREADCRUMB = {
+  [adminPath()]: 'Dashboard',
+  [adminPath('analytics')]: 'Статистика',
+  [adminPath('moderation')]: 'Модерация',
+  [adminPath('audit')]: 'История',
+  [adminPath('content/home')]: 'Главная',
+  [adminPath('content/paid-waters')]: 'Платные базы',
+  [adminPath('content/paid-fishing')]: 'Платная рыбалка',
+  [adminPath('content/free-waters')]: 'Бесплатные водоёмы',
+  [adminPath('content/directory')]: 'Справочник',
+  [adminPath('news')]: 'Новости',
+  [adminPath('waters')]: 'Водоёмы',
+  [adminPath('bases')]: 'Базы',
+  [adminPath('reports')]: 'Отчёты',
+  [adminPath('egorych')]: 'Егорыч',
+  [adminPath('forum')]: 'Егорыч',
+  [adminPath('media')]: 'Медиа',
+  [adminPath('users')]: 'Пользователи',
+  [adminPath('reviews')]: 'Отзывы',
+  [adminPath('plans')]: 'Тарифы',
+  [adminPath('payments')]: 'Платежи',
+  [adminPath('contests')]: 'Конкурсы',
+  [adminPath('donations')]: 'Поддержка',
+  [adminPath('ads')]: 'Реклама',
+  [adminPath('seo')]: 'SEO',
+  [adminPath('settings')]: 'Настройки',
+  [adminPath('districts')]: 'Районы',
+};
 
 export default function AdminShell() {
   const { profile, user, logout } = useAuth();
@@ -103,12 +101,12 @@ export default function AdminShell() {
       <header className="admin-topbar">
         <div className="admin-topbar__inner">
           <div className="admin-topbar__left">
-            <Link to="/admin" className="admin-topbar__brand">
+            <Link to={ADMIN_BASE} className="admin-topbar__brand">
               Админка
             </Link>
             <span className="admin-topbar__crumb">/</span>
             <span className="admin-topbar__crumb admin-topbar__crumb--current">
-              {breadcrumbLabel(location.pathname)}
+              {BREADCRUMB[location.pathname] || 'Админка'}
             </span>
           </div>
           <div className="admin-topbar__right">
@@ -150,7 +148,7 @@ export default function AdminShell() {
           <label className="admin-sidebar__mobile-select">
             <span className="visually-hidden">Раздел</span>
             <select
-              value={current?.to || '/admin'}
+              value={current?.to || ADMIN_BASE}
               onChange={(e) => navigate(e.target.value)}
             >
               {NAV_GROUPS.map((group) => (

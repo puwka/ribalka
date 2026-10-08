@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /liderus
+Disallow: /liderus/
+Disallow: /admin
+Disallow: /admin/
 
 Sitemap: https://fishing-ural.ru/sitemap.xml

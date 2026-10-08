@@ -188,7 +188,7 @@ router.patch('/topics/:id', requireAuth, async (req, res, next) => {
           kindLabel: 'Тема форума на модерации',
           title,
           detail: body.slice(0, 200),
-          adminPath: '/admin/forum',
+          adminPath: '/liderus/forum',
         });
       } catch (err) {
         console.error('[forum] notify mail (topic update)', err.message);
@@ -250,7 +250,7 @@ router.post('/topics', requireAuth, async (req, res, next) => {
         kindLabel: 'Тема форума на модерации',
         title,
         detail: body.slice(0, 200),
-        adminPath: '/admin/forum',
+        adminPath: '/liderus/forum',
       });
     } catch (err) {
       console.error('[forum] notify mail (topic create)', err.message);
@@ -390,7 +390,7 @@ router.post('/topics/:id/messages', requireAuth, async (req, res, next) => {
         kindLabel: 'Сообщение форума на модерации',
         title: topics[0].title || 'Тема',
         detail: body.slice(0, 200),
-        adminPath: '/admin/forum',
+        adminPath: '/liderus/forum',
       });
     } catch (err) {
       console.error('[forum] notify mail (message)', err.message);

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthContext';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
@@ -52,6 +52,13 @@ function RedirectBaseToWater() {
   return <Navigate to={`/waters/${id}`} replace />;
 }
 
+function RedirectAdminToLiderus() {
+  const location = useLocation();
+  const rest = location.pathname.replace(/^\/admin\/?/, '');
+  const to = rest ? `/liderus/${rest}${location.search}` : `/liderus${location.search}`;
+  return <Navigate to={to} replace />;
+}
+
 function PageFallback() {
   return (
     <div className="auth-loading" role="status" style={{ minHeight: '40vh' }}>
@@ -97,13 +104,15 @@ function App() {
 
             <Routes>
               <Route
-                path="/admin/*"
+                path="/liderus/*"
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <AdminPage />
                   </Suspense>
                 }
               />
+              <Route path="/admin/*" element={<RedirectAdminToLiderus />} />
+              <Route path="/admin" element={<RedirectAdminToLiderus />} />
 
               <Route
                 path="*"

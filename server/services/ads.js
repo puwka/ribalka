@@ -391,7 +391,7 @@ export async function updateSidebarAd(userId, adId, patch = {}) {
         kindLabel: 'Рекламный баннер на модерации',
         title: updated.title,
         detail: `${where}, ${side}, ${updated.days || 1} сут. · после правок`,
-        adminPath: '/admin/ads',
+        adminPath: '/liderus/ads',
       });
       notifyUserAdModeration({
         userId: updated.owner_id,
@@ -605,7 +605,7 @@ export async function markAdPaid(adId, { skipYoo = false } = {}) {
         kindLabel: 'Рекламный баннер на модерации',
         title: ad.title,
         detail: `${where}, ${side}, ${days} сут. · оплачен`,
-        adminPath: '/admin/ads',
+        adminPath: '/liderus/ads',
       });
       notifyUserPlacement({
         userId: ad.owner_id,

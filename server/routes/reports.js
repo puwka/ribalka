@@ -423,7 +423,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       kindLabel: 'Новый отчёт',
       title: place || author,
       detail: description.slice(0, 200),
-      adminPath: '/admin/reports',
+      adminPath: '/liderus/reports',
     });
 
     res.status(201).json(await buildReport(row));
@@ -700,7 +700,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       kindLabel: 'Новый комментарий к отчёту',
       title: author,
       detail: text.slice(0, 280),
-      adminPath: '/admin/reports',
+      adminPath: '/liderus/reports',
     });
     notifyReportAuthorNewComment({
       reportAuthorId: row.user_id,

@@ -858,7 +858,7 @@ async function publishDirectoryItem(client, order) {
         kindLabel: 'Новый магазин / услуга / гид',
         title: row.name || 'Карточка справочника',
         detail: `Категория: ${row.category || order.category || '—'}`,
-        adminPath: '/admin/content/directory',
+        adminPath: '/liderus/content/directory',
       });
     }
     if (!isUpgrade) {

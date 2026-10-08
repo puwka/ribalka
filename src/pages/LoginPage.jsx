@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/auth/AuthContext';
 import { GuestOnly } from '../components/auth/RequireAuth';
+import { ADMIN_BASE, isAdminUiPath } from '../lib/adminPath';
 import '../components/auth/AuthShared.css';
 
 function LoginForm() {
@@ -21,9 +22,15 @@ function LoginForm() {
     setError('');
     try {
       const bundle = await login(email, password);
-      if (bundle?.isAdmin) navigate('/admin', { replace: true });
+      if (bundle?.isAdmin) navigate(ADMIN_BASE, { replace: true });
       else if (bundle?.isOwner) navigate('/owner', { replace: true });
-      else navigate(from.startsWith('/owner') || from.startsWith('/admin') ? '/cabinet' : from, { replace: true });
+      else
+        navigate(
+          from.startsWith('/owner') || from.startsWith('/admin') || isAdminUiPath(from)
+            ? '/cabinet'
+            : from,
+          { replace: true }
+        );
     } catch (err) {
       setError(err.message || 'Не удалось войти');
     } finally {

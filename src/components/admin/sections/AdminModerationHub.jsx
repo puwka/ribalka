@@ -29,7 +29,7 @@ export default function AdminModerationHub() {
             author: b.owner_id,
             status: b.status,
             at: b.submitted_at || b.updated_at,
-            link: `/admin/bases?id=${encodeURIComponent(b.id)}`,
+            link: `/liderus/bases?id=${encodeURIComponent(b.id)}`,
             priority: 1,
           })),
           ...reports.map((r) => ({
@@ -39,7 +39,7 @@ export default function AdminModerationHub() {
             author: r.author,
             status: r.status,
             at: r.createdAt || r.created_at || r.date,
-            link: `/admin/reports?open=${encodeURIComponent(r.id)}`,
+            link: `/liderus/reports?open=${encodeURIComponent(r.id)}`,
             priority: 2,
           })),
           ...forum.map((f) => ({
@@ -49,7 +49,7 @@ export default function AdminModerationHub() {
             author: f.authorName,
             status: f.status,
             at: f.createdAt || f.created_at,
-            link: `/admin/forum?filter=pending`,
+            link: `/liderus/forum?filter=pending`,
             priority: 3,
           })),
         ];

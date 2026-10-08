@@ -1523,7 +1523,7 @@ async function applyPaidSideEffects(client, order) {
         kindLabel: 'Новая база на модерации',
         title: baseName,
         detail: `Заказ ${order.id.slice(0, 8)} оплачен`,
-        adminPath: '/admin/bases',
+        adminPath: '/liderus/bases',
       });
     }
     notifyUserPlacement({

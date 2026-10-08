@@ -48,7 +48,7 @@ export function GuestOnly({ children }) {
   // Do not block login/register behind session spinner (helps on slow mobile)
   if (loading) return children;
   if (isAuthenticated) {
-    if (isAdmin) return <Navigate to="/admin" replace />;
+    if (isAdmin) return <Navigate to="/liderus" replace />;
     if (isOwner) return <Navigate to="/owner" replace />;
     return <Navigate to="/cabinet" replace />;
   }

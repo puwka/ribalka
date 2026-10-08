@@ -108,7 +108,7 @@ router.post('/', async (req, res, next) => {
       kindLabel: 'Новый отзыв',
       title: body.target_name || body.base_name || targetId,
       detail: `${authorName} · ${rating}/5 · ${text.slice(0, 200)}`,
-      adminPath: '/admin/reviews',
+      adminPath: '/liderus/reviews',
     });
 
     const { rows: owners } = await pool.query(
@@ -213,7 +213,7 @@ router.patch('/:id/mine', requireAuth, async (req, res, next) => {
         kindLabel: 'Отзыв изменён — снова на модерации',
         title: updated.target_name || updated.target_id,
         detail: `${authorName} · ${rating}/5 · ${text.slice(0, 200)}`,
-        adminPath: '/admin/reviews',
+        adminPath: '/liderus/reviews',
       });
     } catch (err) {
       console.error('[reviews] notify mail', err.message);

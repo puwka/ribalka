@@ -168,7 +168,7 @@ export const adminDashboardService = {
           title: b.name,
           meta: `Статус: ${b.status}`,
           at: b.submitted_at || b.updated_at || b.created_at,
-          link: '/admin/bases',
+          link: '/liderus/bases',
         });
       }
 
@@ -179,7 +179,7 @@ export const adminDashboardService = {
           title: r.place || 'Отчёт',
           meta: `${r.author} · ${r.status}`,
           at: r.created_at || r.date,
-          link: '/admin/reports',
+          link: '/liderus/reports',
         });
       }
 
@@ -190,7 +190,7 @@ export const adminDashboardService = {
           title: u.email,
           meta: `Роль: ${u.primary_role || 'user'}`,
           at: u.created_at,
-          link: '/admin/users',
+          link: '/liderus/users',
         });
       }
 
@@ -201,7 +201,7 @@ export const adminDashboardService = {
           title: `${p.amount} ₽`,
           meta: `${p.status} · ${p.provider || '—'}`,
           at: p.created_at || p.paid_at,
-          link: '/admin/payments',
+          link: '/liderus/payments',
         });
       }
     } catch {
@@ -217,7 +217,7 @@ export const adminDashboardService = {
           title: a.summary,
           meta: a.admin_name || a.admin_id,
           at: a.created_at,
-          link: '/admin/audit',
+          link: '/liderus/audit',
         });
       }
     } catch {

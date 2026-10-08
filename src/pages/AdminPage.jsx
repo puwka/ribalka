@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireRole } from '../components/auth/RequireAuth';
 import AdminShell from '../components/admin/AdminShell';
+import { ADMIN_BASE, adminPath } from '../lib/adminPath';
 import '../components/admin/AdminShell.css';
 
 import AdminDashboard from '../components/admin/sections/AdminDashboard';
@@ -45,7 +46,7 @@ export default function AdminPage() {
           <Route path="bases" element={<AdminBasesSection />} />
           <Route path="reports" element={<AdminReportsSection />} />
           <Route path="egorych" element={<AdminEgorychSection />} />
-          <Route path="forum" element={<Navigate to="/admin/egorych" replace />} />
+          <Route path="forum" element={<Navigate to={adminPath('egorych')} replace />} />
           <Route path="media" element={<AdminMediaSection />} />
           <Route path="users" element={<AdminUsersSection />} />
           <Route path="reviews" element={<AdminReviewsSection />} />
@@ -57,7 +58,7 @@ export default function AdminPage() {
           <Route path="seo" element={<AdminSeoSection />} />
           <Route path="settings" element={<AdminSettingsSection />} />
           <Route path="districts" element={<AdminDistrictsSection />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
+          <Route path="*" element={<Navigate to={ADMIN_BASE} replace />} />
         </Route>
       </Routes>
     </RequireRole>

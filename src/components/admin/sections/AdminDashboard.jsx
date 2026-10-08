@@ -101,21 +101,21 @@ export default function AdminDashboard() {
                 <div className="admin-feed__title">Заявки на базы</div>
                 <div className="admin-feed__meta">{stats?.pendingBases ?? 0} ожидают</div>
               </div>
-              <Link to="/admin/bases" className="admin-btn admin-btn--sm">Открыть</Link>
+              <Link to="/liderus/bases" className="admin-btn admin-btn--sm">Открыть</Link>
             </div>
             <div className="admin-feed__item">
               <div>
                 <div className="admin-feed__title">Отчёты</div>
                 <div className="admin-feed__meta">{stats?.pendingReports ?? 0} ожидают</div>
               </div>
-              <Link to="/admin/reports" className="admin-btn admin-btn--sm">Открыть</Link>
+              <Link to="/liderus/reports" className="admin-btn admin-btn--sm">Открыть</Link>
             </div>
             <div className="admin-feed__item">
               <div>
                 <div className="admin-feed__title">Егорыч</div>
                 <div className="admin-feed__meta">AI-помощник (чат)</div>
               </div>
-              <Link to="/admin/egorych" className="admin-btn admin-btn--sm">
+              <Link to="/liderus/egorych" className="admin-btn admin-btn--sm">
                 Открыть
               </Link>
             </div>
@@ -124,14 +124,14 @@ export default function AdminDashboard() {
                 <div className="admin-feed__title">Статистика</div>
                 <div className="admin-feed__meta">Базы и справочник</div>
               </div>
-              <Link to="/admin/analytics" className="admin-btn admin-btn--sm">Открыть</Link>
+              <Link to="/liderus/analytics" className="admin-btn admin-btn--sm">Открыть</Link>
             </div>
             <div className="admin-feed__item">
               <div>
                 <div className="admin-feed__title">Районы</div>
                 <div className="admin-feed__meta">Фильтр каталога</div>
               </div>
-              <Link to="/admin/districts" className="admin-btn admin-btn--sm">Открыть</Link>
+              <Link to="/liderus/districts" className="admin-btn admin-btn--sm">Открыть</Link>
             </div>
           </div>
         </section>
