@@ -327,10 +327,6 @@
   .site-header__drawer-item--primary {
     display: none;
   }
-
-  .site-header__burger {
-    display: none;
-  }
 }
 
 /* Between tablet and desktop: show compact nav if space allows */
