@@ -171,36 +171,12 @@ export default function WatersHomeSection() {
 
   return (
     <section className="waters-home" id="waters">
-      {/* Soft overlapping wave — filled with the same landscape, no hard clip */}
-      <div className="waters-home__wave" aria-hidden="true">
-        <svg viewBox="0 0 1440 160" preserveAspectRatio="none">
-          <defs>
-            <pattern
-              id="waters-wave-pattern"
-              patternUnits="userSpaceOnUse"
-              width="1440"
-              height="900"
-            >
-              <image href={BG} x="0" y="0" width="1440" height="900" preserveAspectRatio="xMidYMid slice" />
-            </pattern>
-            <filter id="waters-wave-blur" x="-4%" y="-50%" width="108%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
-            </filter>
-          </defs>
-          {/* blurred soft edge behind the crest */}
-          <path
-            d="M0,72 C240,132 400,18 560,72 C720,126 880,22 1040,74 C1200,126 1320,36 1440,64 L1440,160 L0,160 Z"
-            fill="url(#waters-wave-pattern)"
-            filter="url(#waters-wave-blur)"
-            opacity="0.65"
-          />
-          {/* crisp but gentle main wave */}
-          <path
-            d="M0,70 C240,128 400,22 560,70 C720,118 880,26 1040,72 C1200,118 1320,40 1440,62 L1440,160 L0,160 Z"
-            fill="url(#waters-wave-pattern)"
-          />
-        </svg>
-      </div>
+      {/* Soft blurred crest (same photo) — feathers the join */}
+      <div
+        className="waters-home__soft"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(${BG})` }}
+      />
 
       <div className="waters-home__bg" aria-hidden="true">
         <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
