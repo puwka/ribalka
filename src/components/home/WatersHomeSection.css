@@ -1,34 +1,22 @@
 .waters-home {
-  --wh-cut: clamp(72px, 12vw, 120px);
+  --wh-cut: clamp(88px, 15vw, 150px);
   position: relative;
   z-index: 2;
   isolation: isolate;
-  margin-top: calc(var(--wh-cut) * -1.35);
-  padding: calc(var(--wh-cut) + 1.75rem) 0 4.5rem;
+  margin-top: calc(var(--wh-cut) * -1.2);
+  padding: calc(var(--wh-cut) + 1.35rem) 0 4.5rem;
   overflow: hidden;
   color: #0f172a;
-  /* Mountain ridge cut: hero peeks through the peaks */
-  clip-path: polygon(
-    0% 9%,
-    5% 5%,
-    10% 11%,
-    16% 3%,
-    22% 10%,
-    28% 4%,
-    36% 12%,
-    44% 2%,
-    51% 10%,
-    59% 3%,
-    67% 11%,
-    74% 4%,
-    82% 12%,
-    90% 5%,
-    96% 9%,
-    100% 6%,
-    100% 100%,
-    0% 100%
-  );
-  filter: drop-shadow(0 -10px 18px rgba(8, 18, 32, 0.35));
+  clip-path: url(#waters-wave-clip);
+  filter: drop-shadow(0 -10px 18px rgba(8, 18, 32, 0.3));
+}
+
+.waters-home__defs {
+  position: fixed;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .waters-home__bg {
