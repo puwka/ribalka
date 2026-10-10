@@ -1,47 +1,22 @@
 .waters-home {
-  --wh-cut: clamp(110px, 18vw, 180px);
-  /*
-    One full-height mask: smooth wave on top, solid below.
-    Coordinates are 0..1 so it scales with the section.
-  */
-  --wh-full-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1' preserveAspectRatio='none'%3E%3Cpath fill='%23fff' d='M0 0.09C0.1 0.15 0.18 0.03 0.28 0.09C0.38 0.15 0.46 0.03 0.56 0.09C0.66 0.15 0.74 0.03 0.84 0.09C0.92 0.13 0.97 0.05 1 0.08V1H0Z'/%3E%3C/svg%3E");
+  --wh-cut: clamp(88px, 15vw, 150px);
   position: relative;
   z-index: 2;
   isolation: isolate;
-  margin-top: calc(var(--wh-cut) * -0.95);
-  padding: calc(var(--wh-cut) * 0.5 + 1.5rem) 0 4.5rem;
+  margin-top: calc(var(--wh-cut) * -1.2);
+  padding: calc(var(--wh-cut) + 1.35rem) 0 4.5rem;
   overflow: hidden;
   color: #0f172a;
-  -webkit-mask-image: var(--wh-full-mask);
-  mask-image: var(--wh-full-mask);
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
+  clip-path: url(#waters-wave-clip);
+  filter: drop-shadow(0 -10px 18px rgba(8, 18, 32, 0.3));
 }
 
-/* Soft photo blur along the crest for a feathered join */
-.waters-home__soft {
-  position: absolute;
-  top: 0;
-  left: -3%;
-  width: 106%;
-  height: calc(var(--wh-cut) * 1.05);
-  z-index: 2;
+.waters-home__defs {
+  position: fixed;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   pointer-events: none;
-  background-size: cover;
-  background-position: center 28%;
-  -webkit-mask-image: var(--wh-full-mask);
-  mask-image: var(--wh-full-mask);
-  -webkit-mask-size: 100% 600%;
-  mask-size: 100% 600%;
-  -webkit-mask-position: top;
-  mask-position: top;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  filter: blur(16px);
-  opacity: 0.7;
-  transform: translateY(-12%);
 }
 
 .waters-home__bg {
@@ -65,8 +40,8 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(15, 35, 55, 0.12) 0%,
-    rgba(15, 35, 55, 0.05) 30%,
+    rgba(15, 35, 55, 0.18) 0%,
+    rgba(15, 35, 55, 0.06) 28%,
     rgba(15, 35, 55, 0.12) 62%,
     rgba(245, 247, 250, 0.96) 100%
   );
@@ -478,8 +453,8 @@
 
 @media (max-width: 560px) {
   .waters-home {
-    margin-top: calc(var(--wh-cut) * -0.8);
-    padding: calc(var(--wh-cut) * 0.4 + 1.2rem) 0 3.5rem;
+    margin-top: calc(var(--wh-cut) * -1.2);
+    padding: calc(var(--wh-cut) + 1.25rem) 0 3.5rem;
   }
 
   .waters-home__grid {

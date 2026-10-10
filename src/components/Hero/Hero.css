@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--header-height) + var(--safe-top) + 1.25rem) 1.25rem 3.25rem;
+  padding: calc(var(--header-height) + var(--safe-top) + 1.25rem) 1.25rem 5.5rem;
   overflow: hidden;
   background: #1a2a3a;
 }

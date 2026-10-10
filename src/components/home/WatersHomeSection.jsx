@@ -170,14 +170,16 @@ export default function WatersHomeSection() {
   const cards = sortPromoFirst(paid || []).slice(0, 4);
 
   return (
-    <section className="waters-home" id="waters">
-      {/* Soft blurred crest (same photo) — feathers the join */}
-      <div
-        className="waters-home__soft"
-        aria-hidden="true"
-        style={{ backgroundImage: `url(${BG})` }}
-      />
+    <>
+      <svg className="waters-home__defs" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+          <clipPath id="waters-wave-clip" clipPathUnits="objectBoundingBox">
+            <path d="M0,0.16 C0.08,0.04 0.14,0.24 0.22,0.1 C0.3,0 0.36,0.22 0.44,0.1 C0.52,0 0.58,0.22 0.66,0.1 C0.74,0 0.8,0.22 0.88,0.1 C0.94,0.04 0.98,0.18 1,0.12 L1,1 L0,1 Z" />
+          </clipPath>
+        </defs>
+      </svg>
 
+      <section className="waters-home" id="waters">
       <div className="waters-home__bg" aria-hidden="true">
         <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
         <div className="waters-home__bg-shade" />
@@ -234,5 +236,6 @@ export default function WatersHomeSection() {
 
       <div className="waters-home__fade" aria-hidden="true" />
     </section>
+    </>
   );
 }
