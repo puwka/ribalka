@@ -170,16 +170,38 @@ export default function WatersHomeSection() {
   const cards = sortPromoFirst(paid || []).slice(0, 4);
 
   return (
-    <>
-      <svg className="waters-home__defs" width="0" height="0" aria-hidden="true" focusable="false">
-        <defs>
-          <clipPath id="waters-wave-clip" clipPathUnits="objectBoundingBox">
-            <path d="M0,0.16 C0.08,0.04 0.14,0.24 0.22,0.1 C0.3,0 0.36,0.22 0.44,0.1 C0.52,0 0.58,0.22 0.66,0.1 C0.74,0 0.8,0.22 0.88,0.1 C0.94,0.04 0.98,0.18 1,0.12 L1,1 L0,1 Z" />
-          </clipPath>
-        </defs>
-      </svg>
+    <section className="waters-home" id="waters">
+      {/* Soft overlapping wave — filled with the same landscape, no hard clip */}
+      <div className="waters-home__wave" aria-hidden="true">
+        <svg viewBox="0 0 1440 160" preserveAspectRatio="none">
+          <defs>
+            <pattern
+              id="waters-wave-pattern"
+              patternUnits="userSpaceOnUse"
+              width="1440"
+              height="900"
+            >
+              <image href={BG} x="0" y="0" width="1440" height="900" preserveAspectRatio="xMidYMid slice" />
+            </pattern>
+            <filter id="waters-wave-blur" x="-4%" y="-50%" width="108%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
+            </filter>
+          </defs>
+          {/* blurred soft edge behind the crest */}
+          <path
+            d="M0,72 C240,132 400,18 560,72 C720,126 880,22 1040,74 C1200,126 1320,36 1440,64 L1440,160 L0,160 Z"
+            fill="url(#waters-wave-pattern)"
+            filter="url(#waters-wave-blur)"
+            opacity="0.65"
+          />
+          {/* crisp but gentle main wave */}
+          <path
+            d="M0,70 C240,128 400,22 560,70 C720,118 880,26 1040,72 C1200,118 1320,40 1440,62 L1440,160 L0,160 Z"
+            fill="url(#waters-wave-pattern)"
+          />
+        </svg>
+      </div>
 
-      <section className="waters-home" id="waters">
       <div className="waters-home__bg" aria-hidden="true">
         <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
         <div className="waters-home__bg-shade" />
@@ -236,6 +258,5 @@ export default function WatersHomeSection() {
 
       <div className="waters-home__fade" aria-hidden="true" />
     </section>
-    </>
   );
 }
