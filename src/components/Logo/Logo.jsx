@@ -3,6 +3,7 @@ import './Logo.css';
 
 /**
  * Replaceable brand mark. Swap internals later without touching Header/Footer.
+ * variant: default | compact | on-dark | round (mark only, circular)
  */
 export default function Logo({
   to = '/',
@@ -11,32 +12,48 @@ export default function Logo({
   className = '',
 }) {
   const classes = ['brand-logo', `brand-logo--${variant}`, className].filter(Boolean).join(' ');
+  const isRound = variant === 'round';
 
   const inner = (
     <>
       <span className="brand-logo__mark" aria-hidden>
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <rect width="28" height="28" rx="8" className="brand-logo__mark-bg" />
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          {isRound ? (
+            <circle cx="18" cy="18" r="18" className="brand-logo__mark-bg" />
+          ) : (
+            <rect width="36" height="36" rx="10" className="brand-logo__mark-bg" />
+          )}
           <path
-            d="M6.5 16.5c2.2-1.6 4.1-.9 5.8.2 1.9 1.2 3.6 1.8 5.7.1 1.3-1 2.4-1.4 3.5-1.3"
+            d="M8 20.5c2.8-2 5.2-1.1 7.3.3 2.4 1.5 4.5 2.2 7.1.1 1.6-1.2 3-1.7 4.4-1.6"
             className="brand-logo__mark-wave"
-            strokeWidth="1.8"
+            strokeWidth="2"
             strokeLinecap="round"
             fill="none"
           />
           <path
-            d="M7 20c2-.9 3.6-.4 5.2.4 1.7.9 3.3 1.4 5.2.1 1.2-.8 2.3-1.2 3.6-1.1"
+            d="M9 25c2.5-1.1 4.5-.5 6.5.5 2.1 1.1 4.1 1.7 6.5.1 1.5-1 2.9-1.5 4.5-1.4"
             className="brand-logo__mark-wave brand-logo__mark-wave--soft"
-            strokeWidth="1.4"
+            strokeWidth="1.6"
             strokeLinecap="round"
             fill="none"
           />
+          {isRound && (
+            <path
+              d="M10 14.5c1.8-2.2 4-3.4 6.5-3.4 2.2 0 4 .8 5.5 2.2"
+              className="brand-logo__mark-wave brand-logo__mark-wave--soft"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              fill="none"
+            />
+          )}
         </svg>
       </span>
-      <span className="brand-logo__text">
-        <span className="brand-logo__name">Рыбалка</span>
-        <span className="brand-logo__sub">в Прикамье</span>
-      </span>
+      {!isRound && (
+        <span className="brand-logo__text">
+          <span className="brand-logo__name">Рыбалка</span>
+          <span className="brand-logo__sub">в Прикамье</span>
+        </span>
+      )}
     </>
   );
 

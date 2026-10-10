@@ -7,31 +7,29 @@ import NotificationCenter from '../notifications/NotificationCenter';
 import Logo from '../Logo/Logo';
 import './Header.css';
 
-/** Быстрые ссылки в шапке (desktop) */
+/** Навигация как на макете */
 const DESKTOP_NAV = [
   { to: '/paid-waters', label: 'Платные базы' },
   { to: '/paid-fishing', label: 'Платная рыбалка' },
-  { to: '/free-waters', label: 'Бесплатные' },
+  { to: '/free-waters', label: 'Где порыбачить' },
   { to: '/map', label: 'Карта' },
   { to: '/reports', label: 'Отчёты' },
   { to: '/forum', label: 'Егорыч' },
   { to: '/directory', label: 'Справочник' },
-  { to: '/tariffs', label: 'Тарифы' },
+  { to: '/tariffs', label: 'Тарифы размещения' },
 ];
 
-/** Основные разделы — в бургере на мобиле (на desktop уже в шапке) */
 const DRAWER_PRIMARY = [
   { href: '/paid-waters', label: 'Платные базы' },
   { href: '/paid-fishing', label: 'Платная рыбалка' },
-  { href: '/free-waters', label: 'Бесплатные водоёмы' },
+  { href: '/free-waters', label: 'Где порыбачить' },
   { href: '/map', label: 'Карта' },
   { href: '/reports', label: 'Отчёты' },
   { href: '/forum', label: 'Егорыч' },
   { href: '/directory', label: 'Справочник' },
-  { href: '/tariffs', label: 'Тарифы' },
+  { href: '/tariffs', label: 'Тарифы размещения' },
 ];
 
-/** Остальные пункты — всегда в бургере */
 const DRAWER_MORE = [
   { href: '/ranking', label: 'Конкурсы' },
   { href: '/lunar', label: 'Лунный календарь' },
@@ -72,61 +70,68 @@ export default function Header() {
   };
 
   return (
-    <header className="site-header">
-      <div className="site-header__bar section-inner section-inner--wide">
-        <Logo to="/" onClick={(e) => onNavClick(e, '/')} className="site-header__logo" />
+    <header className="site-header site-header--pill">
+      <div className="site-header__shell">
+        <div className="site-header__bar">
+          <Logo
+            to="/"
+            variant="round"
+            onClick={(e) => onNavClick(e, '/')}
+            className="site-header__logo"
+          />
 
-        <nav className="site-header__nav" aria-label="Основная навигация">
-          {DESKTOP_NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `site-header__link${isActive ? ' is-active' : ''}`
-              }
+          <nav className="site-header__nav" aria-label="Основная навигация">
+            {DESKTOP_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `site-header__link${isActive ? ' is-active' : ''}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="site-header__actions">
+            <SearchBar />
+            {isAuthenticated && <NotificationCenter />}
+
+            {!loading && isAuthenticated && (
+              <Link
+                to="/cabinet/favorites"
+                className="site-header__icon-btn"
+                title="Избранное"
+                aria-label="Избранное"
+              >
+                <IconStar />
+              </Link>
+            )}
+
+            {!loading && isAuthenticated ? (
+              <Link to="/cabinet" className="site-header__user" title="Кабинет">
+                {profile?.display_name?.slice(0, 16) || 'Кабинет'}
+              </Link>
+            ) : !loading ? (
+              <Link to="/login" className="site-header__login">
+                Войти
+              </Link>
+            ) : null}
+
+            <button
+              type="button"
+              className={`site-header__burger ${isMenuOpen ? 'is-open' : ''}`}
+              onClick={() => setIsMenuOpen((v) => !v)}
+              aria-label={isMenuOpen ? 'Закрыть меню' : 'Ещё разделы'}
+              aria-expanded={isMenuOpen}
+              aria-controls="site-header-menu"
             >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="site-header__actions">
-          <SearchBar />
-          {isAuthenticated && <NotificationCenter />}
-
-          {!loading && isAuthenticated && (
-            <Link
-              to="/cabinet/favorites"
-              className="site-header__icon-btn"
-              title="Избранное"
-              aria-label="Избранное"
-            >
-              <IconStar />
-            </Link>
-          )}
-
-          {!loading && isAuthenticated ? (
-            <Link to="/cabinet" className="site-header__user" title="Кабинет">
-              {profile?.display_name?.slice(0, 16) || 'Кабинет'}
-            </Link>
-          ) : !loading ? (
-            <Link to="/login" className="btn btn--primary btn--sm site-header__login">
-              Войти
-            </Link>
-          ) : null}
-
-          <button
-            type="button"
-            className={`site-header__burger ${isMenuOpen ? 'is-open' : ''}`}
-            onClick={() => setIsMenuOpen((v) => !v)}
-            aria-label={isMenuOpen ? 'Закрыть меню' : 'Ещё разделы'}
-            aria-expanded={isMenuOpen}
-            aria-controls="site-header-menu"
-          >
-            <span />
-            <span />
-            <span />
-          </button>
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
       </div>
 

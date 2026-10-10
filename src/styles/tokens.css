@@ -68,7 +68,7 @@
   --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.1);
 
-  --header-height: 68px;
+  --header-height: 80px;
   --page-max: 1200px;
   --page-max-wide: 1400px;
   --touch-min: 44px;
@@ -360,7 +360,7 @@
 
 @media (max-width: 768px) {
   :root {
-    --header-height: 60px;
+    --header-height: 72px;
   }
 
   .page-section {

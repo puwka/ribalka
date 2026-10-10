@@ -71,6 +71,16 @@
   font-size: 1rem;
 }
 
+.brand-logo--round {
+  gap: 0;
+}
+
+.brand-logo--round .brand-logo__mark svg {
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
 @media (max-width: 380px) {
   .brand-logo__sub {
     display: none;
