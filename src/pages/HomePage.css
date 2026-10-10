@@ -1,3 +1,9 @@
+/* One continuous scenic stack: hero → mountain-cut bases */
+.home-epic {
+  position: relative;
+  background: #1a2a3a;
+}
+
 .home-cta {
   padding: var(--space-16) 0;
   border-top: 1px solid var(--color-border);

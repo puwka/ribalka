@@ -171,26 +171,6 @@ export default function WatersHomeSection() {
 
   return (
     <section className="waters-home" id="waters">
-      {/* Fog / ridge bridge from hero into this landscape */}
-      <div className="waters-home__bridge" aria-hidden="true">
-        <div className="waters-home__mist waters-home__mist--a" />
-        <div className="waters-home__mist waters-home__mist--b" />
-        <div className="waters-home__mist waters-home__mist--c" />
-        <svg className="waters-home__ridge" viewBox="0 0 1440 120" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="whRidgeFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#c8d9e8" stopOpacity="0.55" />
-              <stop offset="45%" stopColor="#9eb8cf" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#7f9fb8" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,70 C180,20 360,110 540,55 C720,0 900,95 1080,40 C1260,-5 1380,60 1440,35 L1440,120 L0,120 Z"
-            fill="url(#whRidgeFill)"
-          />
-        </svg>
-      </div>
-
       <div className="waters-home__bg" aria-hidden="true">
         <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
         <div className="waters-home__bg-shade" />

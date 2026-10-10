@@ -1,81 +1,48 @@
 .waters-home {
+  --wh-cut: clamp(72px, 12vw, 120px);
   position: relative;
+  z-index: 2;
   isolation: isolate;
-  margin-top: -5.5rem;
-  padding: 5.5rem 0 4.5rem;
+  margin-top: calc(var(--wh-cut) * -1.35);
+  padding: calc(var(--wh-cut) + 1.75rem) 0 4.5rem;
   overflow: hidden;
   color: #0f172a;
-}
-
-/* Multi-layer mist + soft ridge between hero and bases */
-.waters-home__bridge {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: clamp(140px, 22vw, 220px);
-  z-index: 3;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.waters-home__mist {
-  position: absolute;
-  left: -10%;
-  right: -10%;
-  border-radius: 50%;
-  filter: blur(28px);
-  opacity: 0.85;
-  animation: wh-mist-drift 14s ease-in-out infinite alternate;
-}
-
-.waters-home__mist--a {
-  top: -20%;
-  height: 70%;
-  background: radial-gradient(ellipse at 50% 50%, rgba(255, 220, 180, 0.55), transparent 70%);
-  animation-duration: 16s;
-}
-
-.waters-home__mist--b {
-  top: 10%;
-  height: 65%;
-  background: radial-gradient(ellipse at 40% 40%, rgba(210, 225, 235, 0.7), transparent 68%);
-  animation-duration: 12s;
-  animation-delay: -3s;
-}
-
-.waters-home__mist--c {
-  top: 25%;
-  height: 80%;
-  background: radial-gradient(ellipse at 60% 30%, rgba(180, 205, 225, 0.65), transparent 72%);
-  animation-duration: 18s;
-  animation-delay: -6s;
-}
-
-.waters-home__ridge {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 55%;
-  display: block;
+  /* Mountain ridge cut: hero peeks through the peaks */
+  clip-path: polygon(
+    0% 9%,
+    5% 5%,
+    10% 11%,
+    16% 3%,
+    22% 10%,
+    28% 4%,
+    36% 12%,
+    44% 2%,
+    51% 10%,
+    59% 3%,
+    67% 11%,
+    74% 4%,
+    82% 12%,
+    90% 5%,
+    96% 9%,
+    100% 6%,
+    100% 100%,
+    0% 100%
+  );
+  filter: drop-shadow(0 -10px 18px rgba(8, 18, 32, 0.35));
 }
 
 .waters-home__bg {
   position: absolute;
   inset: 0;
   z-index: 0;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
 }
 
 .waters-home__bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 45%;
-  transform: scale(1.04);
+  object-position: center 42%;
+  transform: scale(1.05);
   animation: wh-bg-pan 32s ease-in-out infinite alternate;
   will-change: transform;
 }
@@ -83,15 +50,13 @@
 .waters-home__bg-shade {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(190, 210, 225, 0.45) 0%,
-      rgba(12, 28, 48, 0.08) 22%,
-      rgba(12, 28, 48, 0.14) 65%,
-      rgba(245, 247, 250, 0.94) 100%
-    ),
-    radial-gradient(ellipse 80% 50% at 50% 18%, rgba(255, 255, 255, 0.18), transparent 60%);
+  background: linear-gradient(
+    180deg,
+    rgba(15, 35, 55, 0.18) 0%,
+    rgba(15, 35, 55, 0.06) 28%,
+    rgba(15, 35, 55, 0.12) 62%,
+    rgba(245, 247, 250, 0.96) 100%
+  );
   pointer-events: none;
 }
 
@@ -452,15 +417,6 @@
   }
 }
 
-@keyframes wh-mist-drift {
-  from {
-    transform: translate3d(-2%, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(3%, 4%, 0) scale(1.06);
-  }
-}
-
 @keyframes wh-rise {
   from {
     opacity: 0;
@@ -480,7 +436,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .waters-home__bg img,
-  .waters-home__mist,
   .wh-card,
   .waters-home__head {
     animation: none !important;
@@ -510,8 +465,8 @@
 
 @media (max-width: 560px) {
   .waters-home {
-    margin-top: -3.5rem;
-    padding: 4rem 0 3.5rem;
+    margin-top: calc(var(--wh-cut) * -1.2);
+    padding: calc(var(--wh-cut) + 1.25rem) 0 3.5rem;
   }
 
   .waters-home__grid {

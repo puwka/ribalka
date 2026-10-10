@@ -1,32 +1,14 @@
 .hero {
   position: relative;
+  z-index: 1;
   isolation: isolate;
   min-height: clamp(520px, 78vh, 820px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--header-height) + var(--safe-top) + 1.25rem) 1.25rem 4.5rem;
+  padding: calc(var(--header-height) + var(--safe-top) + 1.25rem) 1.25rem 5.5rem;
   overflow: hidden;
   background: #1a2a3a;
-}
-
-/* Warm mist falling into the next section */
-.hero::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: clamp(90px, 14vw, 150px);
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 196, 120, 0.1) 35%,
-    rgba(200, 195, 185, 0.28) 62%,
-    rgba(165, 190, 210, 0.5) 100%
-  );
 }
 
 .hero__bg {
@@ -57,7 +39,7 @@
 
 .hero__content {
   position: relative;
-  z-index: 3;
+  z-index: 1;
   width: min(100%, 860px);
   margin: 0 auto;
   text-align: center;

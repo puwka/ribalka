@@ -19,9 +19,10 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <Hero />
-
-      {showWaters && <WatersHomeSection />}
+      <div className="home-epic">
+        <Hero />
+        {showWaters && <WatersHomeSection />}
+      </div>
 
       {showNews && <News />}
 
