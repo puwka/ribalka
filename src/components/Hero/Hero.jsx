@@ -1,64 +1,41 @@
 import { Link } from 'react-router-dom';
 import './Hero.css';
 
-const DEFAULT_HERO_TITLE = 'Активный отдых и рыбалка в Пермском крае';
-const DEFAULT_HERO_LEAD =
-  'Платные базы с комфортом и дикие водоёмы с невероятной природой. Найдите своё место для незабываемого отдыха на природе в сердце Урала.';
+const HERO_IMG = '/img/hero/hero-main.jpg';
 
-const LEGACY_HERO_TITLES = new Set([
-  'Водоёмы и места для рыбалки в Пермском крае',
-]);
-
-/** Hero content comes from parent (HomePage) so CMS home page is fetched once. */
-export default function Hero({ cms }) {
-  const hero = cms?.hero || {};
-
-  const rawTitle = hero.title || '';
-  const title =
-    !rawTitle || LEGACY_HERO_TITLES.has(rawTitle) ? DEFAULT_HERO_TITLE : rawTitle;
-
-  const rawLead = (hero.description || hero.descriptionFallback || '').trim();
-  const description =
-    !rawLead ||
-    rawLead.startsWith('В каталоге') ||
-    rawLead.startsWith('Найдите платный водоём')
-      ? DEFAULT_HERO_LEAD
-      : rawLead;
-
-  const image = hero.image || '/img/hero/header-img.jpeg';
-
-  const primaryLabel = hero.ctaPrimary?.label || 'Платные водоёмы';
-  const primaryUrl = hero.ctaPrimary?.url || '/paid-waters';
-  const secondaryLabel = hero.ctaSecondary?.label || 'Бесплатные места';
-  const secondaryUrl = hero.ctaSecondary?.url || '/free-waters';
-
+/**
+ * Full-bleed hero matching the design mockup 1:1.
+ * Artwork includes title, feature chips and painted CTAs;
+ * real links sit as hotspots over the two buttons.
+ */
+export default function Hero() {
   return (
-    <section className="hero" id="home">
-      <div className="hero__inner section-inner section-inner--wide">
-        <div className="hero__main">
-          <h1 className="hero__title">{title}</h1>
-          <p className="hero__lead">{description}</p>
+    <section className="hero" id="home" aria-label="Активный отдых и рыбалка в Пермском крае">
+      <div className="hero__frame">
+        <img
+          className="hero__art"
+          src={HERO_IMG}
+          alt=""
+          width={1776}
+          height={896}
+          fetchPriority="high"
+          decoding="async"
+        />
 
-          <div className="hero__actions">
-            <Link to={primaryUrl} className="btn btn--primary">
-              {primaryLabel}
-            </Link>
-            <Link to={secondaryUrl} className="btn btn--secondary">
-              {secondaryLabel}
-            </Link>
-          </div>
-        </div>
+        <h1 className="visually-hidden">Активный отдых и рыбалка в Пермском крае</h1>
 
-        <figure className="hero__figure">
-          <img
-            src={image}
-            alt="Природа Пермского края"
-            width={640}
-            height={480}
-            fetchPriority="high"
-            decoding="async"
+        <div className="hero__hits">
+          <Link
+            to="/paid-waters"
+            className="hero__hit hero__hit--bases"
+            aria-label="Базы отдыха"
           />
-        </figure>
+          <Link
+            to="/free-waters"
+            className="hero__hit hero__hit--fish"
+            aria-label="Где порыбачить"
+          />
+        </div>
       </div>
     </section>
   );

@@ -19,7 +19,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
-      <Hero cms={cms} />
+      <Hero />
 
       {showWaters && <WatersHomeSection />}
 
