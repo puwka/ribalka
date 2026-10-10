@@ -5,9 +5,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--header-height) + var(--safe-top) + 1.25rem) 1.25rem 2.5rem;
+  padding: calc(var(--header-height) + var(--safe-top) + 1.25rem) 1.25rem 3.5rem;
   overflow: hidden;
   background: #1a2a3a;
+  /* soften into waters section below */
+  mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
 }
 
 .hero__bg {
