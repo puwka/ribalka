@@ -1,42 +1,73 @@
 .waters-home {
   position: relative;
   isolation: isolate;
-  margin-top: -2.5rem;
-  padding: 3.5rem 0 4.5rem;
+  margin-top: -5.5rem;
+  padding: 5.5rem 0 4.5rem;
   overflow: hidden;
   color: #0f172a;
 }
 
-.waters-home__seam {
+/* Multi-layer mist + soft ridge between hero and bases */
+.waters-home__bridge {
   position: absolute;
-  top: -1px;
+  top: 0;
   left: 0;
   right: 0;
-  height: 72px;
+  height: clamp(140px, 22vw, 220px);
   z-index: 3;
-  color: transparent;
   pointer-events: none;
-  /* blend from hero navy into this section via gradient mask on the wave */
-  background: linear-gradient(
-    180deg,
-    rgba(26, 42, 58, 0.55) 0%,
-    rgba(26, 42, 58, 0.15) 45%,
-    transparent 100%
-  );
+  overflow: hidden;
 }
 
-.waters-home__seam svg {
-  display: block;
+.waters-home__mist {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: 0.85;
+  animation: wh-mist-drift 14s ease-in-out infinite alternate;
+}
+
+.waters-home__mist--a {
+  top: -20%;
+  height: 70%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 220, 180, 0.55), transparent 70%);
+  animation-duration: 16s;
+}
+
+.waters-home__mist--b {
+  top: 10%;
+  height: 65%;
+  background: radial-gradient(ellipse at 40% 40%, rgba(210, 225, 235, 0.7), transparent 68%);
+  animation-duration: 12s;
+  animation-delay: -3s;
+}
+
+.waters-home__mist--c {
+  top: 25%;
+  height: 80%;
+  background: radial-gradient(ellipse at 60% 30%, rgba(180, 205, 225, 0.65), transparent 72%);
+  animation-duration: 18s;
+  animation-delay: -6s;
+}
+
+.waters-home__ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
-  height: 100%;
-  color: rgba(255, 255, 255, 0.2);
-  filter: drop-shadow(0 -6px 16px rgba(15, 30, 50, 0.25));
+  height: 55%;
+  display: block;
 }
 
 .waters-home__bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 100%);
 }
 
 .waters-home__bg img {
@@ -53,8 +84,14 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(12, 28, 48, 0.35) 0%, rgba(12, 28, 48, 0.12) 28%, rgba(12, 28, 48, 0.2) 70%, rgba(245, 247, 250, 0.92) 100%),
-    radial-gradient(ellipse 80% 50% at 50% 20%, rgba(255, 255, 255, 0.12), transparent 60%);
+    linear-gradient(
+      180deg,
+      rgba(190, 210, 225, 0.45) 0%,
+      rgba(12, 28, 48, 0.08) 22%,
+      rgba(12, 28, 48, 0.14) 65%,
+      rgba(245, 247, 250, 0.94) 100%
+    ),
+    radial-gradient(ellipse 80% 50% at 50% 18%, rgba(255, 255, 255, 0.18), transparent 60%);
   pointer-events: none;
 }
 
@@ -415,6 +452,15 @@
   }
 }
 
+@keyframes wh-mist-drift {
+  from {
+    transform: translate3d(-2%, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 4%, 0) scale(1.06);
+  }
+}
+
 @keyframes wh-rise {
   from {
     opacity: 0;
@@ -434,6 +480,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .waters-home__bg img,
+  .waters-home__mist,
   .wh-card,
   .waters-home__head {
     animation: none !important;
@@ -463,8 +510,8 @@
 
 @media (max-width: 560px) {
   .waters-home {
-    margin-top: -1.5rem;
-    padding: 2.5rem 0 3.5rem;
+    margin-top: -3.5rem;
+    padding: 4rem 0 3.5rem;
   }
 
   .waters-home__grid {
