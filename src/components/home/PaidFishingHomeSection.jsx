@@ -151,57 +151,54 @@ export default function PaidFishingHomeSection() {
   const cards = sortPromoFirst(data || []).slice(0, 4);
 
   return (
-    <>
-      <svg className="pf-home__defs" width="0" height="0" aria-hidden="true" focusable="false">
-        <defs>
-          <clipPath id="pf-wave-clip" clipPathUnits="objectBoundingBox">
-            <path d="M0,0.16 C0.08,0.04 0.14,0.24 0.22,0.1 C0.3,0 0.36,0.22 0.44,0.1 C0.52,0 0.58,0.22 0.66,0.1 C0.74,0 0.8,0.22 0.88,0.1 C0.94,0.04 0.98,0.18 1,0.12 L1,1 L0,1 Z" />
-          </clipPath>
-        </defs>
-      </svg>
+    <section className="pf-home" id="paid-fishing-home">
+      {/* Fixed-height white wave — no clip-path (avoids #1a2a3a bleed from .home-epic) */}
+      <div className="pf-home__wave" aria-hidden="true">
+        <svg viewBox="0 0 1440 90" preserveAspectRatio="none">
+          <path d="M0 90V52C120 82 240 18 360 44C480 70 600 12 720 40C840 68 960 16 1080 42C1200 68 1320 22 1440 48V90Z" />
+        </svg>
+      </div>
 
-      <section className="pf-home" id="paid-fishing-home">
-        <div className="pf-home__bg" aria-hidden="true">
-          <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
-          <div className="pf-home__bg-shade" />
+      <div className="pf-home__bg" aria-hidden="true">
+        <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
+        <div className="pf-home__bg-shade" />
+      </div>
+
+      <div className="pf-home__inner section-inner section-inner--wide">
+        <header className="pf-home__head">
+          <h2 className="pf-home__title">
+            Платная рыбалка
+            <span className="pf-home__fish" aria-hidden="true">
+              <svg viewBox="0 0 48 28">
+                <path
+                  d="M4 14c6-7 14-8 22-4 5 2.5 9 2.5 14 1-3 6-8 10-16 10C14 21 8 18 4 14z"
+                  fill="none"
+                  stroke="#1e3a8a"
+                  strokeWidth="2.2"
+                  strokeLinejoin="round"
+                />
+                <circle cx="14" cy="12.5" r="1.6" fill="#1e3a8a" />
+                <path d="M38 11l6-4v10l-6-4z" fill="#1e3a8a" />
+              </svg>
+            </span>
+          </h2>
+          <p className="pf-home__lead">Лучшие рыболовные базы Пермского края</p>
+        </header>
+
+        <div className="pf-home__grid">
+          {loading
+            ? Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} />)
+            : cards.map((item, i) => <FishingCard key={item.id} item={item} index={i} />)}
         </div>
 
-        <div className="pf-home__inner section-inner section-inner--wide">
-          <header className="pf-home__head">
-            <h2 className="pf-home__title">
-              Платная рыбалка
-              <span className="pf-home__fish" aria-hidden="true">
-                <svg viewBox="0 0 48 28">
-                  <path
-                    d="M4 14c6-7 14-8 22-4 5 2.5 9 2.5 14 1-3 6-8 10-16 10C14 21 8 18 4 14z"
-                    fill="none"
-                    stroke="#1e3a8a"
-                    strokeWidth="2.2"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="14" cy="12.5" r="1.6" fill="#1e3a8a" />
-                  <path d="M38 11l6-4v10l-6-4z" fill="#1e3a8a" />
-                </svg>
-              </span>
-            </h2>
-            <p className="pf-home__lead">Лучшие рыболовные базы Пермского края</p>
-          </header>
-
-          <div className="pf-home__grid">
-            {loading
-              ? Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} />)
-              : cards.map((item, i) => <FishingCard key={item.id} item={item} index={i} />)}
-          </div>
-
-          <div className="pf-home__more">
-            <Link to="/paid-fishing" className="pf-home__more-link">
-              Все объекты платной рыбалки
-            </Link>
-          </div>
+        <div className="pf-home__more">
+          <Link to="/paid-fishing" className="pf-home__more-link">
+            Все объекты платной рыбалки
+          </Link>
         </div>
+      </div>
 
-        <div className="pf-home__fade" aria-hidden="true" />
-      </section>
-    </>
+      <div className="pf-home__fade" aria-hidden="true" />
+    </section>
   );
 }
