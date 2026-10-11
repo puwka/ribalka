@@ -34,7 +34,6 @@ export default function DonateForm({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [comment, setComment] = useState('');
-  const [payMethod, setPayMethod] = useState('card');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -66,7 +65,6 @@ export default function DonateForm({
         email: email.trim() || undefined,
         name: name.trim() || undefined,
         comment: comment.trim() || undefined,
-        payMethod,
         returnPath,
       });
       if (data?.confirmationUrl) {
@@ -277,40 +275,15 @@ export default function DonateForm({
         ) : null}
       </div>
 
-      <div className="donate-form__block" role="group" aria-label="Способ оплаты">
+      <div className="donate-form__block" aria-label="Способ оплаты">
         <span className="donate-form__label">Способ оплаты</span>
-        <div className="donate-form__methods">
-          <button
-            type="button"
-            className={
-              payMethod === 'card'
-                ? 'donate-form__method donate-form__method--active'
-                : 'donate-form__method'
-            }
-            onClick={() => setPayMethod('card')}
-          >
-            <strong>Банковская карта</strong>
-            <span className="donate-form__brands" aria-hidden="true">
-              <span>VISA</span>
-              <span>MC</span>
-              <span>МИР</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={
-              payMethod === 'wallet'
-                ? 'donate-form__method donate-form__method--active'
-                : 'donate-form__method'
-            }
-            onClick={() => setPayMethod('wallet')}
-          >
-            <strong>Электронный кошелёк</strong>
-            <span className="donate-form__brands" aria-hidden="true">
-              <span>ЮMoney</span>
-              <span>QIWI</span>
-            </span>
-          </button>
+        <div className="donate-form__method donate-form__method--active donate-form__method--solo">
+          <strong>Банковская карта</strong>
+          <span className="donate-form__brands" aria-hidden="true">
+            <span>VISA</span>
+            <span>MC</span>
+            <span>МИР</span>
+          </span>
         </div>
       </div>
 

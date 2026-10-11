@@ -117,11 +117,10 @@ function FundIcon({ tone }) {
  * Homepage “Поддержите проект” — scenic mock layout.
  */
 export default function SupportProjectSection({ config = {} }) {
-  const title =
-    config.title || 'Поддержать проект — вместе сохраним красоту Перми';
+  const title = config.title || 'Поддержите проект';
   const description =
     config.description ||
-    'Ваш вклад помогает развивать активный отдых и беречь природу Пермского края: карту, каталог мест, контент рыбаков и стабильную работу сайта.';
+    'Сайт развивается на энтузиазме. Любая сумма помогает держать сервер, карту и каталог водоёмов.';
 
   return (
     <section className="support-home" id="support-project" aria-labelledby="support-project-title">
