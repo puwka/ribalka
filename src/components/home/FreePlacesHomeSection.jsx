@@ -71,26 +71,13 @@ const ICONS = {
       <circle cx="12" cy="10" r="2.4" fill="currentColor" />
     </svg>
   ),
-  warn: (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M12 3l10 18H2L12 3z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path d="M12 10v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="18" r="1" fill="currentColor" />
-    </svg>
-  ),
 };
 
 const BAR_ITEMS = [
-  { icon: 'pin', title: 'Бесплатные места', sub: 'без оплаты за вход' },
-  { icon: 'warn', title: 'Удобные подъезды', sub: 'к берегу и стоянка' },
-  { icon: 'camera', title: 'Реальные фото и видео', sub: 'от рыбаков края' },
-  { icon: 'pin', title: 'Точная геолокация', sub: 'на карте и в навигаторе' },
+  { icon: 'pin', title: 'Бесплатные места' },
+  { icon: 'tent', title: 'Удобные подъезды' },
+  { icon: 'camera', title: 'Реальные фото и видео' },
+  { icon: 'pin', title: 'Точная геолокация' },
 ];
 
 function locationLine(item) {
@@ -303,10 +290,6 @@ export default function FreePlacesHomeSection() {
       </div>
 
       <div className="pl-home__bar" aria-label="Преимущества бесплатных мест">
-        <div className="pl-home__bar-photo" aria-hidden="true">
-          <img src={BG} alt="" width={1920} height={400} decoding="async" />
-        </div>
-        <div className="pl-home__bar-veil" aria-hidden="true" />
         <div className="pl-home__bar-inner section-inner section-inner--wide">
           <ul className="pl-home__bar-list">
             {BAR_ITEMS.map((item) => (
@@ -314,15 +297,12 @@ export default function FreePlacesHomeSection() {
                 <span className="pl-home__bar-ico" aria-hidden="true">
                   {ICONS[item.icon]}
                 </span>
-                <span>
-                  <strong>{item.title}</strong>
-                  <small>{item.sub}</small>
-                </span>
+                <strong>{item.title}</strong>
               </li>
             ))}
           </ul>
           <p className="pl-home__bar-slogan">
-            Пермский край — рыбалка и отдых, который вдохновляет{' '}
+            Пермский край — рыбалка и отдых, который вдохновляет.
             <span aria-hidden="true">♡</span>
           </p>
         </div>
