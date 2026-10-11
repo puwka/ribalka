@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
+import FreePlacesHomeSection from '../components/home/FreePlacesHomeSection';
 import WatersHomeSection from '../components/home/WatersHomeSection';
 import PaidFishingHomeSection from '../components/home/PaidFishingHomeSection';
 import SupportProjectSection from '../components/home/SupportProjectSection';
@@ -12,6 +13,7 @@ export default function HomePage() {
   const { data: cms } = useCmsPage(CMS_PAGES.HOME);
   const blocks = cms?.blocks || {};
 
+  const showFreePlaces = blocks.freePlacesSection?.enabled !== false;
   const showWaters = blocks.watersSection?.enabled !== false;
   const showNews = blocks.newsSection?.enabled !== false;
   const showSupport = blocks.support?.enabled !== false;
@@ -22,6 +24,7 @@ export default function HomePage() {
     <div className="home-page">
       <div className="home-epic">
         <Hero />
+        {showFreePlaces && <FreePlacesHomeSection />}
         {showWaters && <WatersHomeSection />}
         {showWaters && <PaidFishingHomeSection />}
       </div>
