@@ -152,13 +152,6 @@ export default function PaidFishingHomeSection() {
 
   return (
     <section className="pf-home" id="paid-fishing-home">
-      {/* Fixed-height white wave — no clip-path (avoids #1a2a3a bleed from .home-epic) */}
-      <div className="pf-home__wave" aria-hidden="true">
-        <svg viewBox="0 0 1440 90" preserveAspectRatio="none">
-          <path d="M0 90V52C120 82 240 18 360 44C480 70 600 12 720 40C840 68 960 16 1080 42C1200 68 1320 22 1440 48V90Z" />
-        </svg>
-      </div>
-
       <div className="pf-home__bg" aria-hidden="true">
         <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
         <div className="pf-home__bg-shade" />
