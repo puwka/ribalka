@@ -1,5 +1,12 @@
 /* One continuous scenic stack: hero → bases → … → support → footer */
+.home-page {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 .home-epic {
   position: relative;
   background: #1a2a3a;
+  overflow-x: clip;
+  max-width: 100%;
 }

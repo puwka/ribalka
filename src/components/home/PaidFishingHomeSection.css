@@ -396,16 +396,19 @@
 
 @media (max-width: 560px) {
   .pf-home {
-    margin-top: calc(var(--pf-cut) * -1.2);
-    padding: calc(var(--pf-cut) + 1.1rem) 0 calc(var(--pf-cut) * 1.1 + 2.5rem);
+    --pf-cut: clamp(64px, 16vw, 110px);
+    margin-top: calc(var(--pf-cut) * -1.15);
+    padding: calc(var(--pf-cut) + 1.1rem) 0 calc(var(--pf-cut) * 1.2 + 2.25rem);
   }
 
   .pf-home__grid {
     grid-template-columns: 1fr;
+    gap: 0.85rem;
   }
 
   .pf-home__more-link {
     width: 100%;
     justify-content: center;
+    min-height: 48px;
   }
 }

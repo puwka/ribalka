@@ -5,12 +5,13 @@ const HERO_BG = '/img/hero/hero-bg.jpg';
 
 const FEATURES = [
   {
-    to: '/map',
-    label: 'реки',
+    to: '/forum',
+    label: 'егорыч',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
         <path
-          d="M3 8c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2M3 14c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 5-2"
+          d="M5 19c1.4-3.2 3.8-4.8 7-4.8S17.6 15.8 19 19"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
@@ -20,25 +21,34 @@ const FEATURES = [
     ),
   },
   {
-    to: '/free-waters',
-    label: 'озёра',
+    to: '/map',
+    label: 'карта',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
-          d="M4 16c2-4 5-7 8-7s6 3 8 7"
+          d="M9 4l6 2 6-2v16l-6 2-6-2-6 2V6l6-2z"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        <path
-          d="M8 10l1.2-3.5L11 10M13.5 9.5l1-2.8L15.8 9.5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
           strokeLinejoin="round"
         />
+        <path d="M9 4v16M15 6v16" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+    ),
+  },
+  {
+    to: '/directory',
+    label: 'справочник',
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M4 5.5A2.5 2.5 0 016.5 3H20v16H6.5A2.5 2.5 0 004 16.5v-11z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path d="M8 7h8M8 11h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -55,21 +65,6 @@ const FEATURES = [
           strokeLinejoin="round"
         />
         <path d="M10 19v-5h4v5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      </svg>
-    ),
-  },
-  {
-    to: '/about',
-    label: 'живописная природа',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M3 18l6.5-10 3.5 5 2.5-3.5L21 18H3z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
       </svg>
     ),
   },
@@ -130,7 +125,6 @@ export default function Hero() {
         <ul className="hero__features">
           {FEATURES.map((item, i) => (
             <li key={item.label} style={{ '--i': i }}>
-              {i > 0 && <span className="hero__features-sep" aria-hidden="true" />}
               <Link to={item.to} className="hero__feature">
                 <span className="hero__feature-icon">{item.icon}</span>
                 <span>{item.label}</span>

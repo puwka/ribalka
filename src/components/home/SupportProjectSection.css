@@ -61,7 +61,7 @@
 
 .support-home__panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.95fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
   gap: clamp(1rem, 2.5vw, 1.75rem);
   padding: clamp(1.1rem, 2.2vw, 1.6rem);
   border-radius: 28px;
@@ -260,6 +260,7 @@
 
 @media (max-width: 560px) {
   .support-home {
+    --sp-cut: clamp(64px, 16vw, 110px);
     margin-top: calc(var(--sp-cut) * -1);
     padding: calc(var(--sp-cut) + 1.15rem) 0 calc(var(--sp-cut) * 1.2 + 2.25rem);
   }
@@ -269,7 +270,37 @@
   }
 
   .support-home__panel {
-    padding: 1rem;
-    border-radius: 22px;
+    padding: 0.9rem;
+    border-radius: 20px;
+    gap: 1rem;
+  }
+
+  .support-home__title-mark {
+    font-size: clamp(1.75rem, 8vw, 2.35rem);
+    padding: 0.38em 0.85em 0.42em 0.72em;
+  }
+
+  .support-home__lead {
+    font-size: 0.92rem;
+    max-width: none;
+  }
+
+  .support-home__trust {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .support-home__trust li {
+    font-size: 0.78rem;
+  }
+
+  .support-home__fund {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .support-home__form {
+    padding: 0.85rem;
+    border-radius: 18px;
   }
 }

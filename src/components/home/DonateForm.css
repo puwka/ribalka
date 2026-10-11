@@ -326,3 +326,37 @@
   color: #94a3b8;
 }
 
+@media (max-width: 560px) {
+  .donate-form--scenic .donate-form__amounts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .donate-form--scenic .donate-form__chip {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    font-size: 0.86rem;
+    padding: 0 0.6rem;
+  }
+
+  .donate-form__chip--other {
+    grid-column: 1 / -1;
+  }
+
+  .donate-form__custom {
+    width: 100%;
+  }
+
+  .donate-form__cta {
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+
+  .donate-form__foot {
+    gap: 0.4rem 0.75rem;
+    font-size: 0.68rem;
+  }
+}
+
