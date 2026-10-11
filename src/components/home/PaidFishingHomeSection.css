@@ -1,14 +1,14 @@
 .pf-home {
-  --pf-cut: clamp(96px, 16vw, 160px);
+  --pf-cut: clamp(88px, 14vw, 140px);
   position: relative;
   z-index: 3;
   isolation: isolate;
-  margin-top: calc(var(--pf-cut) * -0.85);
-  padding: calc(var(--pf-cut) + 1.5rem) 0 4.5rem;
+  margin-top: calc(var(--pf-cut) * -1.15);
+  padding: calc(var(--pf-cut) + 1.35rem) 0 4.5rem;
   overflow: hidden;
   color: #0f172a;
-  clip-path: url(#fishing-fir-clip);
-  filter: drop-shadow(0 -8px 16px rgba(10, 40, 24, 0.28));
+  clip-path: url(#fishing-wave-clip);
+  filter: drop-shadow(0 -10px 20px rgba(8, 28, 42, 0.28));
 }
 
 .pf-home__defs {
@@ -17,31 +17,6 @@
   height: 0;
   overflow: hidden;
   pointer-events: none;
-}
-
-/* Row of fir trees sitting on the seam */
-.pf-home__fir {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--pf-cut);
-  z-index: 4;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.pf-home__fir svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.pf-home__fir-tree {
-  animation: pf-fir-sway 5.5s ease-in-out infinite alternate;
-  animation-delay: var(--d, 0s);
-  transform-origin: center bottom;
-  transform-box: fill-box;
 }
 
 .pf-home__bg {
@@ -65,9 +40,9 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(20, 50, 35, 0.22) 0%,
-    rgba(15, 40, 55, 0.08) 30%,
-    rgba(15, 40, 55, 0.14) 65%,
+    rgba(15, 40, 55, 0.12) 0%,
+    rgba(15, 40, 55, 0.05) 28%,
+    rgba(15, 40, 55, 0.12) 65%,
     rgba(245, 247, 250, 0.96) 100%
   );
   pointer-events: none;
@@ -390,15 +365,6 @@
   }
 }
 
-@keyframes pf-fir-sway {
-  from {
-    transform: rotate(-1.5deg);
-  }
-  to {
-    transform: rotate(1.5deg);
-  }
-}
-
 @keyframes pf-shimmer {
   to {
     background-position: -200% 0;
@@ -407,7 +373,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pf-home__bg img,
-  .pf-home__fir-tree,
   .pf-home__fish,
   .pf-card,
   .pf-home__head {
@@ -427,7 +392,7 @@
 
 @media (max-width: 560px) {
   .pf-home {
-    margin-top: calc(var(--pf-cut) * -0.7);
+    margin-top: calc(var(--pf-cut) * -1.05);
     padding: calc(var(--pf-cut) + 1.1rem) 0 3.5rem;
   }
 

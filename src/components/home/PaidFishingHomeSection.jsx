@@ -146,45 +146,6 @@ function CardSkeleton() {
   );
 }
 
-/** Decorative fir-tree silhouettes between sections */
-function FirTreesDivider() {
-  const trees = Array.from({ length: 18 }, (_, i) => {
-    const x = (i / 17) * 100;
-    const h = 38 + ((i * 17) % 28);
-    const w = 10 + (i % 3) * 3;
-    return { x, h, w, delay: (i % 6) * 0.12 };
-  });
-
-  return (
-    <div className="pf-home__fir" aria-hidden="true">
-      <svg viewBox="0 0 100 70" preserveAspectRatio="none">
-        {trees.map((t, i) => {
-          const tip = 70 - t.h;
-          const mid = 70 - t.h * 0.55;
-          const low = 70 - t.h * 0.28;
-          return (
-            <g key={i} className="pf-home__fir-tree" style={{ '--d': `${t.delay}s` }}>
-              <path
-                d={`M${t.x} ${tip} L${t.x + t.w * 0.38} ${mid} L${t.x - t.w * 0.38} ${mid} Z`}
-                fill={i % 2 === 0 ? '#1a4d2e' : '#14532d'}
-              />
-              <path
-                d={`M${t.x} ${mid - 2} L${t.x + t.w * 0.48} ${low} L${t.x - t.w * 0.48} ${low} Z`}
-                fill={i % 2 === 0 ? '#166534' : '#15803d'}
-              />
-              <path
-                d={`M${t.x} ${low - 2} L${t.x + t.w * 0.55} 70 L${t.x - t.w * 0.55} 70 Z`}
-                fill={i % 2 === 0 ? '#14532d' : '#166534'}
-              />
-              <rect x={t.x - 0.8} y={66} width={1.6} height={4} fill="#3f2a14" />
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
 export default function PaidFishingHomeSection() {
   const { data, loading } = usePaidFishing({ limit: 8 });
   const cards = sortPromoFirst(data || []).slice(0, 4);
@@ -193,16 +154,14 @@ export default function PaidFishingHomeSection() {
     <>
       <svg className="pf-home__defs" width="0" height="0" aria-hidden="true" focusable="false">
         <defs>
-          {/* Jagged fir-tree tops as clip edge */}
-          <clipPath id="fishing-fir-clip" clipPathUnits="objectBoundingBox">
-            <path d="M0,0.22 L0.03,0.22 L0.05,0.06 L0.07,0.22 L0.1,0.22 L0.125,0.04 L0.15,0.22 L0.18,0.22 L0.205,0.08 L0.23,0.22 L0.27,0.22 L0.295,0.03 L0.32,0.22 L0.36,0.22 L0.385,0.09 L0.41,0.22 L0.45,0.22 L0.48,0.02 L0.51,0.22 L0.55,0.22 L0.575,0.1 L0.6,0.22 L0.64,0.22 L0.67,0.05 L0.7,0.22 L0.74,0.22 L0.765,0.11 L0.79,0.22 L0.83,0.22 L0.86,0.04 L0.89,0.22 L0.93,0.22 L0.955,0.1 L0.98,0.22 L1,0.22 L1,1 L0,1 Z" />
+          {/* Smooth wave — same language as hero → bases join */}
+          <clipPath id="fishing-wave-clip" clipPathUnits="objectBoundingBox">
+            <path d="M0,0.14 C0.1,0.02 0.18,0.22 0.28,0.1 C0.38,0 0.46,0.2 0.56,0.1 C0.66,0 0.74,0.2 0.84,0.1 C0.92,0.04 0.97,0.16 1,0.12 L1,1 L0,1 Z" />
           </clipPath>
         </defs>
       </svg>
 
       <section className="pf-home" id="paid-fishing-home">
-        <FirTreesDivider />
-
         <div className="pf-home__bg" aria-hidden="true">
           <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
           <div className="pf-home__bg-shade" />
