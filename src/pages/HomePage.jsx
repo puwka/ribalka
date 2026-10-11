@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import WatersHomeSection from '../components/home/WatersHomeSection';
+import PaidFishingHomeSection from '../components/home/PaidFishingHomeSection';
 import SupportProjectSection from '../components/home/SupportProjectSection';
 import News from '../components/News/News';
 import { CMS_PAGES } from '../services/cmsService';
@@ -22,6 +23,7 @@ export default function HomePage() {
       <div className="home-epic">
         <Hero />
         {showWaters && <WatersHomeSection />}
+        {showWaters && <PaidFishingHomeSection />}
       </div>
 
       {showNews && <News />}

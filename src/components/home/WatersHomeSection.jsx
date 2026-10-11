@@ -225,16 +225,11 @@ export default function WatersHomeSection() {
           <Link to="/paid-waters" className="waters-home__more-link">
             Все базы отдыха
           </Link>
-          <Link to="/paid-fishing" className="waters-home__more-link">
-            Платная рыбалка
-          </Link>
           <Link to="/free-waters" className="waters-home__more-link">
             Где порыбачить
           </Link>
         </div>
       </div>
-
-      <div className="waters-home__fade" aria-hidden="true" />
     </section>
     </>
   );
