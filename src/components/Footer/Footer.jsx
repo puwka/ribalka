@@ -222,8 +222,6 @@ export default function Footer() {
         <div className="footer__bg-shade" />
       </div>
 
-      <div className="footer__wave" aria-hidden />
-
       <div className="footer__inner">
         <div className="footer__cards">
           {/* Brand */}
@@ -382,6 +380,8 @@ export default function Footer() {
             </span>
           </div>
         </div>
+
+        <div className="footer__glow" aria-hidden />
 
         <div className="footer__bar">
           <p className="footer__credit">
