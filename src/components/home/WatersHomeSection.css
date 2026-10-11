@@ -451,13 +451,16 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .waters-home {
-    --wh-cut: clamp(64px, 16vw, 110px);
-    margin-top: calc(var(--wh-cut) * -1.15);
+    --wh-cut: clamp(56px, 14vw, 96px);
+    /* Softer overlap so hero CTAs stay clear */
+    margin-top: calc(var(--wh-cut) * -0.85);
     padding: calc(var(--wh-cut) + 1.15rem) 0 calc(var(--wh-cut) * 1.35 + 2rem);
   }
+}
 
+@media (max-width: 560px) {
   .waters-home__grid {
     grid-template-columns: 1fr;
     gap: 0.85rem;

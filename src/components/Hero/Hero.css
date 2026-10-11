@@ -328,11 +328,12 @@
 
 @media (max-width: 640px) {
   .hero {
-    min-height: clamp(460px, 92dvh, 680px);
+    /* Extra bottom pad so waters wave doesn't cover CTA buttons */
+    min-height: clamp(520px, 92dvh, 720px);
     padding:
       calc(var(--header-height) + var(--safe-top) + 0.85rem)
       max(0.9rem, var(--safe-left))
-      calc(2.25rem + var(--safe-bottom))
+      calc(8.5rem + var(--safe-bottom))
       max(0.9rem, var(--safe-right));
     align-items: flex-end;
   }
