@@ -146,63 +146,110 @@ function CardSkeleton() {
   );
 }
 
+/** Classic 3-tier fir: tip → mid → base (y grows downward). */
+function fir(cx, tipY, baseY, halfW) {
+  const midY = tipY + (baseY - tipY) * 0.42;
+  const lowY = tipY + (baseY - tipY) * 0.72;
+  const w1 = halfW * 0.42;
+  const w2 = halfW * 0.72;
+  const w3 = halfW;
+  return (
+    `M${cx} ${tipY}` +
+    `L${cx + w1} ${midY}H${cx + w1 * 0.35}` +
+    `L${cx + w2} ${lowY}H${cx + w2 * 0.4}` +
+    `L${cx + w3} ${baseY}H${cx - w3}` +
+    `L${cx - w2 * 0.4} ${lowY}H${cx - w2}` +
+    `L${cx - w1 * 0.35} ${midY}H${cx - w1}Z`
+  );
+}
+
+/** Rounded deciduous crown + short trunk. */
+function deciduous(cx, topY, baseY, r) {
+  const crownY = topY + r * 0.85;
+  const trunkW = r * 0.18;
+  return (
+    `M${cx - trunkW} ${baseY}V${crownY + r * 0.35}` +
+    `C${cx - r * 1.15} ${crownY + r * 0.35} ${cx - r * 1.15} ${topY} ${cx} ${topY}` +
+    `C${cx + r * 1.15} ${topY} ${cx + r * 1.15} ${crownY + r * 0.35} ${cx + trunkW} ${crownY + r * 0.35}` +
+    `V${baseY}Z`
+  );
+}
+
+const FOREST_BASE = 118;
+const FOREST_TILE =
+  [
+    fir(22, 40, FOREST_BASE, 20),
+    fir(48, 18, FOREST_BASE, 28),
+    deciduous(82, 46, FOREST_BASE, 24),
+    fir(114, 28, FOREST_BASE, 22),
+    fir(142, 10, FOREST_BASE, 30),
+    fir(172, 36, FOREST_BASE, 18),
+    deciduous(202, 42, FOREST_BASE, 26),
+    fir(236, 16, FOREST_BASE, 28),
+    fir(266, 32, FOREST_BASE, 20),
+    fir(292, 22, FOREST_BASE, 24),
+  ].join('') + `M0 130V${FOREST_BASE}H320V130Z`;
+
+function ForestJoin() {
+  return (
+    <div className="pf-home__join" aria-hidden="true">
+      {Array.from({ length: 6 }, (_, i) => (
+        <svg key={i} viewBox="0 0 320 130" preserveAspectRatio="xMidYMax meet">
+          <path d={FOREST_TILE} />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
 export default function PaidFishingHomeSection() {
   const { data, loading } = usePaidFishing({ limit: 8 });
   const cards = sortPromoFirst(data || []).slice(0, 4);
 
   return (
-    <>
-      <svg className="pf-home__defs" width="0" height="0" aria-hidden="true" focusable="false">
-        <defs>
-          {/* Smooth wave — same language as hero → bases join */}
-          <clipPath id="fishing-wave-clip" clipPathUnits="objectBoundingBox">
-            <path d="M0,0.14 C0.1,0.02 0.18,0.22 0.28,0.1 C0.38,0 0.46,0.2 0.56,0.1 C0.66,0 0.74,0.2 0.84,0.1 C0.92,0.04 0.97,0.16 1,0.12 L1,1 L0,1 Z" />
-          </clipPath>
-        </defs>
-      </svg>
+    <section className="pf-home" id="paid-fishing-home">
+      <ForestJoin />
 
-      <section className="pf-home" id="paid-fishing-home">
-        <div className="pf-home__bg" aria-hidden="true">
-          <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
-          <div className="pf-home__bg-shade" />
+      <div className="pf-home__bg" aria-hidden="true">
+        <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
+        <div className="pf-home__bg-shade" />
+      </div>
+
+      <div className="pf-home__inner section-inner section-inner--wide">
+        <header className="pf-home__head">
+          <h2 className="pf-home__title">
+            Платная рыбалка
+            <span className="pf-home__fish" aria-hidden="true">
+              <svg viewBox="0 0 48 28">
+                <path
+                  d="M4 14c6-7 14-8 22-4 5 2.5 9 2.5 14 1-3 6-8 10-16 10C14 21 8 18 4 14z"
+                  fill="none"
+                  stroke="#1e3a8a"
+                  strokeWidth="2.2"
+                  strokeLinejoin="round"
+                />
+                <circle cx="14" cy="12.5" r="1.6" fill="#1e3a8a" />
+                <path d="M38 11l6-4v10l-6-4z" fill="#1e3a8a" />
+              </svg>
+            </span>
+          </h2>
+          <p className="pf-home__lead">Лучшие рыболовные базы Пермского края</p>
+        </header>
+
+        <div className="pf-home__grid">
+          {loading
+            ? Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} />)
+            : cards.map((item, i) => <FishingCard key={item.id} item={item} index={i} />)}
         </div>
 
-        <div className="pf-home__inner section-inner section-inner--wide">
-          <header className="pf-home__head">
-            <h2 className="pf-home__title">
-              Платная рыбалка
-              <span className="pf-home__fish" aria-hidden="true">
-                <svg viewBox="0 0 48 28">
-                  <path
-                    d="M4 14c6-7 14-8 22-4 5 2.5 9 2.5 14 1-3 6-8 10-16 10C14 21 8 18 4 14z"
-                    fill="none"
-                    stroke="#1e3a8a"
-                    strokeWidth="2.2"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="14" cy="12.5" r="1.6" fill="#1e3a8a" />
-                  <path d="M38 11l6-4v10l-6-4z" fill="#1e3a8a" />
-                </svg>
-              </span>
-            </h2>
-            <p className="pf-home__lead">Лучшие рыболовные базы Пермского края</p>
-          </header>
-
-          <div className="pf-home__grid">
-            {loading
-              ? Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} />)
-              : cards.map((item, i) => <FishingCard key={item.id} item={item} index={i} />)}
-          </div>
-
-          <div className="pf-home__more">
-            <Link to="/paid-fishing" className="pf-home__more-link">
-              Все объекты платной рыбалки
-            </Link>
-          </div>
+        <div className="pf-home__more">
+          <Link to="/paid-fishing" className="pf-home__more-link">
+            Все объекты платной рыбалки
+          </Link>
         </div>
+      </div>
 
-        <div className="pf-home__fade" aria-hidden="true" />
-      </section>
-    </>
+      <div className="pf-home__fade" aria-hidden="true" />
+    </section>
   );
 }

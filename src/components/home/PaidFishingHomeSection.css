@@ -1,28 +1,44 @@
 .pf-home {
-  --pf-cut: clamp(88px, 14vw, 140px);
+  --pf-cut: clamp(96px, 13vw, 140px);
   position: relative;
   z-index: 3;
   isolation: isolate;
-  margin-top: calc(var(--pf-cut) * -1.15);
-  padding: calc(var(--pf-cut) + 1.35rem) 0 4.5rem;
-  overflow: hidden;
+  margin-top: calc(var(--pf-cut) * -0.55);
+  padding: calc(var(--pf-cut) * 0.55 + 1.5rem) 0 4.5rem;
+  overflow: visible;
   color: #0f172a;
-  clip-path: url(#fishing-wave-clip);
-  filter: drop-shadow(0 -10px 20px rgba(8, 28, 42, 0.28));
 }
 
-.pf-home__defs {
-  position: fixed;
-  width: 0;
-  height: 0;
-  overflow: hidden;
+/* Forest silhouette between sections — firs + deciduous, not waves */
+.pf-home__join {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  height: var(--pf-cut);
+  transform: translateY(-72%);
   pointer-events: none;
+  overflow: hidden;
+  filter: drop-shadow(0 -4px 10px rgba(8, 18, 32, 0.18));
+}
+
+.pf-home__join svg {
+  display: block;
+  flex: 0 0 auto;
+  width: clamp(200px, 28vw, 280px);
+  height: 100%;
+  fill: #ffffff;
 }
 
 .pf-home__bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .pf-home__bg img {
@@ -40,8 +56,8 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(15, 40, 55, 0.12) 0%,
-    rgba(15, 40, 55, 0.05) 28%,
+    transparent 0%,
+    rgba(15, 40, 55, 0.06) 32%,
     rgba(15, 40, 55, 0.12) 65%,
     rgba(245, 247, 250, 0.96) 100%
   );
@@ -392,8 +408,8 @@
 
 @media (max-width: 560px) {
   .pf-home {
-    margin-top: calc(var(--pf-cut) * -1.05);
-    padding: calc(var(--pf-cut) + 1.1rem) 0 3.5rem;
+    margin-top: calc(var(--pf-cut) * -0.5);
+    padding: calc(var(--pf-cut) * 0.5 + 1.1rem) 0 3.5rem;
   }
 
   .pf-home__grid {
