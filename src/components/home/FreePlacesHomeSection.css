@@ -1,42 +1,41 @@
 .pl-home {
-  --pl-mist: clamp(100px, 16vw, 180px);
+  /* Same scenic stack as bases / paid fishing */
+  --pl-cut: clamp(88px, 15vw, 150px);
   position: relative;
   z-index: 4;
   isolation: isolate;
-  margin-top: calc(var(--pl-mist) * -0.85);
-  padding: calc(var(--pl-mist) * 0.55 + 1.5rem) 0 0;
+  margin-top: calc(var(--pl-cut) * -1.15);
+  padding: calc(var(--pl-cut) + 1.25rem) 0 0;
   overflow: hidden;
   color: #0f172a;
-  /* Soft fog dissolve into previous section — brush/cloud feel from the mock */
-  -webkit-mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.2) 12%,
-    rgba(0, 0, 0, 0.65) 28%,
-    #000 48%,
-    #000 100%
-  );
-  mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.2) 12%,
-    rgba(0, 0, 0, 0.65) 28%,
-    #000 48%,
-    #000 100%
-  );
+  background: #1a3a4a;
+  -webkit-mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M0 24V8.5C8 2 14 14 22 6C30 0 36 13 44 6C52 0 58 13 66 6C74 0 80 13 88 6C94 2 98 10 100 7.5V24Z'/%3E%3C/svg%3E"),
+    linear-gradient(#000 0 0);
+  -webkit-mask-size: 100% var(--pl-cut), 100% calc(100% - var(--pl-cut) * 0.72);
+  -webkit-mask-position: top, bottom;
+  -webkit-mask-repeat: no-repeat;
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M0 24V8.5C8 2 14 14 22 6C30 0 36 13 44 6C52 0 58 13 66 6C74 0 80 13 88 6C94 2 98 10 100 7.5V24Z'/%3E%3C/svg%3E"),
+    linear-gradient(#000 0 0);
+  mask-size: 100% var(--pl-cut), 100% calc(100% - var(--pl-cut) * 0.72);
+  mask-position: top, bottom;
+  mask-repeat: no-repeat;
+  filter: drop-shadow(0 -10px 18px rgba(8, 18, 32, 0.3));
 }
 
 .pl-home__bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  background: #2a5a6a url('/img/home/places-bg.jpg') center 42% / cover no-repeat;
 }
 
 .pl-home__bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 45%;
+  object-position: center 42%;
   transform: scale(1.05);
   animation: pl-bg-pan 34s ease-in-out infinite alternate;
   will-change: transform;
@@ -46,13 +45,13 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 55% 40% at 12% 18%, rgba(255, 255, 255, 0.72) 0%, transparent 70%),
+    radial-gradient(ellipse 58% 42% at 14% 16%, rgba(255, 255, 255, 0.78) 0%, transparent 68%),
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.35) 0%,
-      transparent 28%,
-      rgba(12, 32, 28, 0.08) 62%,
-      rgba(12, 32, 28, 0.45) 100%
+      rgba(255, 255, 255, 0.22) 0%,
+      transparent 30%,
+      rgba(12, 40, 36, 0.1) 68%,
+      rgba(12, 40, 36, 0.38) 100%
     );
   pointer-events: none;
 }
@@ -77,9 +76,10 @@
   display: inline-block;
   max-width: 36rem;
   padding: 0.85rem 1.35rem 1rem 1.1rem;
-  background:
-    radial-gradient(ellipse 90% 80% at 30% 40%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 55%, transparent 78%);
-  filter: drop-shadow(0 4px 14px rgba(15, 23, 42, 0.08));
+  /* Soft paint-stroke plate for the title, like the mock */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 200' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M18 54c48-28 120-40 198-36 62 3 128 8 188 2 28-3 52 6 70 22 14 12 18 30 8 46-8 14-26 22-48 28-40 10-92 14-148 18-70 5-138 8-198 2-28-3-52-14-62-32-10-18-4-36 8-50z'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  filter: drop-shadow(0 6px 16px rgba(15, 23, 42, 0.12));
 }
 
 .pl-home__title {
@@ -111,7 +111,7 @@
 
 .pl-home__doodle {
   position: absolute;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .pl-home__doodle svg {
@@ -121,17 +121,16 @@
 }
 
 .pl-home__doodle--fish {
-  right: 0.4rem;
-  top: 0.35rem;
+  right: 0.5rem;
+  top: 0.45rem;
   width: 42px;
   animation: pl-bob 3.2s ease-in-out infinite;
 }
 
 .pl-home__doodle--sun {
-  right: 2.6rem;
-  bottom: 0.35rem;
+  right: 2.8rem;
+  bottom: 0.45rem;
   width: 28px;
-  animation: pl-spin-soft 12s linear infinite;
 }
 
 .pl-home__inspire {
@@ -162,7 +161,7 @@
   border-radius: 20px;
   overflow: hidden;
   box-shadow:
-    0 14px 30px rgba(15, 23, 42, 0.14),
+    0 14px 30px rgba(15, 23, 42, 0.16),
     0 2px 6px rgba(15, 23, 42, 0.06);
   transition:
     transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
@@ -174,7 +173,7 @@
 .pl-card:hover {
   transform: translateY(-6px);
   box-shadow:
-    0 22px 38px rgba(15, 23, 42, 0.18),
+    0 22px 38px rgba(15, 23, 42, 0.2),
     0 4px 10px rgba(15, 23, 42, 0.08);
 }
 
@@ -359,6 +358,8 @@
 }
 
 .pl-home__more {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: center;
   margin-top: 1.5rem;
@@ -390,7 +391,7 @@
   z-index: 2;
   margin-top: 1.75rem;
   padding: 1.1rem 0 1.25rem;
-  background: rgba(18, 48, 40, 0.72);
+  background: rgba(18, 48, 40, 0.78);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: #fff;
@@ -505,15 +506,6 @@
   }
 }
 
-@keyframes pl-spin-soft {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @keyframes pl-shimmer {
   to {
     background-position: -200% 0;
@@ -523,7 +515,6 @@
 @media (prefers-reduced-motion: reduce) {
   .pl-home__bg img,
   .pl-home__doodle--fish,
-  .pl-home__doodle--sun,
   .pl-card,
   .pl-home__head {
     animation: none !important;
@@ -567,8 +558,8 @@
 
 @media (max-width: 560px) {
   .pl-home {
-    margin-top: calc(var(--pl-mist) * -0.7);
-    padding-top: calc(var(--pl-mist) * 0.45 + 1.2rem);
+    margin-top: calc(var(--pl-cut) * -1.1);
+    padding-top: calc(var(--pl-cut) + 1.1rem);
   }
 
   .pl-home__grid {

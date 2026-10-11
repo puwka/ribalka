@@ -8,8 +8,8 @@
   z-index: 3;
   isolation: isolate;
   margin-top: calc(var(--pf-cut) * -1.2);
-  /* Extra bottom pad so free-places mist join can sit under the CTA */
-  padding: calc(var(--pf-cut) + 1.35rem) 0 calc(var(--pf-cut) * 1.15 + 3rem);
+  /* Extra bottom pad so free-places wave cuts the photo under the CTA */
+  padding: calc(var(--pf-cut) + 1.35rem) 0 calc(var(--pf-cut) * 1.45 + 2.75rem);
   overflow: hidden;
   color: #0f172a;
   -webkit-mask-image:
