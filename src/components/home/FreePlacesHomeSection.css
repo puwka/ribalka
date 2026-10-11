@@ -5,7 +5,8 @@
   z-index: 4;
   isolation: isolate;
   margin-top: calc(var(--pl-cut) * -1.15);
-  padding: calc(var(--pl-cut) + 1.25rem) 0 0;
+  /* Bottom room so news wave cuts the photo under the green bar */
+  padding: calc(var(--pl-cut) + 1.25rem) 0 calc(var(--pl-cut) * 1.2 + 1.5rem);
   overflow: hidden;
   color: #0f172a;
   -webkit-mask-image:

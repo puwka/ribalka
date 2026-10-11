@@ -26,9 +26,8 @@ export default function HomePage() {
         {showWaters && <WatersHomeSection />}
         {showWaters && <PaidFishingHomeSection />}
         {showWaters && <FreePlacesHomeSection />}
+        {showNews && <News />}
       </div>
-
-      {showNews && <News />}
 
       {showSupport && <SupportProjectSection config={blocks.support || {}} />}
 
