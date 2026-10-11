@@ -73,13 +73,6 @@ const ICONS = {
   ),
 };
 
-const BAR_ITEMS = [
-  { icon: 'pin', title: 'Бесплатные места' },
-  { icon: 'tent', title: 'Удобные подъезды' },
-  { icon: 'camera', title: 'Реальные фото и видео' },
-  { icon: 'pin', title: 'Точная геолокация' },
-];
-
 function locationLine(item) {
   const parts = [item.locality, item.region].filter(Boolean);
   if (!parts.length) return 'Пермский край';
@@ -286,25 +279,6 @@ export default function FreePlacesHomeSection() {
           <Link to="/free-waters" className="pl-home__more-link">
             Все бесплатные места
           </Link>
-        </div>
-      </div>
-
-      <div className="pl-home__bar" aria-label="Преимущества бесплатных мест">
-        <div className="pl-home__bar-inner section-inner section-inner--wide">
-          <ul className="pl-home__bar-list">
-            {BAR_ITEMS.map((item) => (
-              <li key={item.title} className="pl-home__bar-item">
-                <span className="pl-home__bar-ico" aria-hidden="true">
-                  {ICONS[item.icon]}
-                </span>
-                <strong>{item.title}</strong>
-              </li>
-            ))}
-          </ul>
-          <p className="pl-home__bar-slogan">
-            Пермский край — рыбалка и отдых, который вдохновляет.
-            <span aria-hidden="true">♡</span>
-          </p>
         </div>
       </div>
     </section>

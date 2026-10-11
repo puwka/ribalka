@@ -27,9 +27,8 @@ export default function HomePage() {
         {showWaters && <PaidFishingHomeSection />}
         {showWaters && <FreePlacesHomeSection />}
         {showNews && <News />}
+        {showSupport && <SupportProjectSection config={blocks.support || {}} />}
       </div>
-
-      {showSupport && <SupportProjectSection config={blocks.support || {}} />}
 
       {showCta && (
         <section className="home-cta">

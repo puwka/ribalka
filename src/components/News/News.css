@@ -3,9 +3,9 @@
   position: relative;
   z-index: 5;
   isolation: isolate;
-  /* Overlap only the free-places green bar, not a flower strip under it */
-  margin-top: calc(var(--news-cut) * -0.55);
-  padding: calc(var(--news-cut) * 0.65 + 1.35rem) 0 3.5rem;
+  margin-top: calc(var(--news-cut) * -1.1);
+  /* Room under cards for support wave join */
+  padding: calc(var(--news-cut) + 1.35rem) 0 calc(var(--news-cut) * 1.15 + 2.5rem);
   overflow: hidden;
   color: #0f172a;
   -webkit-mask-image:
@@ -340,7 +340,7 @@
 @media (max-width: 560px) {
   .news {
     margin-top: calc(var(--news-cut) * -1.05);
-    padding: calc(var(--news-cut) + 1.1rem) 0 3rem;
+    padding: calc(var(--news-cut) + 1.1rem) 0 calc(var(--news-cut) * 1.1 + 2rem);
   }
 
   .news__grid {
