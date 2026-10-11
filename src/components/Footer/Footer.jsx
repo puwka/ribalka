@@ -10,7 +10,7 @@ import {
 } from '../../lib/pwaInstall';
 import './Footer.css';
 
-const BG = '/img/home/footer-bg.jpg';
+const BG = '/img/home/footer-bg.jpg?v=3';
 
 const MENU_LEFT = [
   { label: 'Главная', url: '/', icon: 'home' },
@@ -217,8 +217,8 @@ export default function Footer() {
 
   return (
     <footer className="footer" id="contacts">
-      <div className="footer__bg" aria-hidden>
-        <img src={BG} alt="" width={1920} height={1080} decoding="async" />
+      <div className="footer__bg" aria-hidden style={{ backgroundImage: `url(${BG})` }}>
+        <img src={BG} alt="" width={1920} height={1080} decoding="async" fetchPriority="low" />
         <div className="footer__bg-shade" />
       </div>
 

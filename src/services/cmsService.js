@@ -63,7 +63,7 @@ const DEFAULT_PAGES = {
         externalUrl: '',
       },
       cta: {
-        enabled: true,
+        enabled: false,
         title: 'Планируете рыбалку в Пермском крае?',
         description:
           'Соберите маршрут на карте, выберите водоём и сохраните понравившиеся места в избранное.',

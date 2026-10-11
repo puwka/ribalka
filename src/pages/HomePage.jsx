@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import WatersHomeSection from '../components/home/WatersHomeSection';
 import PaidFishingHomeSection from '../components/home/PaidFishingHomeSection';
@@ -16,8 +15,6 @@ export default function HomePage() {
   const showWaters = blocks.watersSection?.enabled !== false;
   const showNews = blocks.newsSection?.enabled !== false;
   const showSupport = blocks.support?.enabled !== false;
-  const showCta = blocks.cta?.enabled !== false;
-  const cta = blocks.cta || {};
 
   return (
     <div className="home-page">
@@ -29,35 +26,6 @@ export default function HomePage() {
         {showNews && <News />}
         {showSupport && <SupportProjectSection config={blocks.support || {}} />}
       </div>
-
-      {showCta && (
-        <section className="home-cta">
-          <div className="section-inner home-cta__inner">
-            <div className="home-cta__text">
-              <h2>{cta.title || 'Планируете рыбалку в Пермском крае?'}</h2>
-              <p>
-                {cta.description ||
-                  'Соберите маршрут на карте, выберите водоём и сохраните понравившиеся места в избранное.'}
-              </p>
-            </div>
-            <div className="home-cta__actions">
-              {(cta.actions || [
-                { label: 'Карта', url: '/map' },
-                { label: 'Платные', url: '/paid-waters' },
-                { label: 'Бесплатные', url: '/free-waters' },
-              ]).map((action, i) => (
-                <Link
-                  key={action.url}
-                  to={action.url}
-                  className={i === 0 ? 'btn btn--primary' : 'btn btn--secondary'}
-                >
-                  {action.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
