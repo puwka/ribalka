@@ -3,8 +3,9 @@
   position: relative;
   z-index: 5;
   isolation: isolate;
-  margin-top: calc(var(--news-cut) * -1.1);
-  padding: calc(var(--news-cut) + 1.35rem) 0 3.5rem;
+  /* Overlap only the free-places green bar, not a flower strip under it */
+  margin-top: calc(var(--news-cut) * -0.55);
+  padding: calc(var(--news-cut) * 0.65 + 1.35rem) 0 3.5rem;
   overflow: hidden;
   color: #0f172a;
   -webkit-mask-image:
