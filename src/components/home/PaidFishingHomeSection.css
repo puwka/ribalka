@@ -5,10 +5,11 @@
    */
   --pf-cut: clamp(88px, 15vw, 150px);
   position: relative;
-  z-index: 4;
+  z-index: 3;
   isolation: isolate;
   margin-top: calc(var(--pf-cut) * -1.2);
-  padding: calc(var(--pf-cut) + 1.35rem) 0 4.5rem;
+  /* Extra bottom pad so free-places mist join can sit under the CTA */
+  padding: calc(var(--pf-cut) + 1.35rem) 0 calc(var(--pf-cut) * 1.15 + 3rem);
   overflow: hidden;
   color: #0f172a;
   -webkit-mask-image:
@@ -49,8 +50,8 @@
     180deg,
     transparent 0%,
     rgba(15, 40, 55, 0.06) 32%,
-    rgba(15, 40, 55, 0.12) 65%,
-    rgba(245, 247, 250, 0.96) 100%
+    rgba(15, 40, 55, 0.1) 70%,
+    rgba(15, 40, 55, 0.16) 100%
   );
   pointer-events: none;
 }
@@ -305,9 +306,12 @@
 }
 
 .pf-home__more {
+  position: relative;
+  z-index: 5;
   display: flex;
   justify-content: center;
   margin-top: 1.6rem;
+  margin-bottom: 0.5rem;
 }
 
 .pf-home__more-link {
@@ -332,14 +336,7 @@
 }
 
 .pf-home__fade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 72px;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent, var(--color-bg, #f5f7fa));
+  display: none;
 }
 
 @keyframes pf-bg-pan {
@@ -400,7 +397,7 @@
 @media (max-width: 560px) {
   .pf-home {
     margin-top: calc(var(--pf-cut) * -1.2);
-    padding: calc(var(--pf-cut) + 1.1rem) 0 3.5rem;
+    padding: calc(var(--pf-cut) + 1.1rem) 0 calc(var(--pf-cut) * 1.1 + 2.5rem);
   }
 
   .pf-home__grid {
