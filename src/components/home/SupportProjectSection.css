@@ -4,7 +4,8 @@
   z-index: 6;
   isolation: isolate;
   margin-top: calc(var(--sp-cut) * -1.05);
-  padding: calc(var(--sp-cut) + 1.5rem) 0 3.5rem;
+  /* Extra bottom pad so footer wave cuts the photo, not a hard edge */
+  padding: calc(var(--sp-cut) + 1.5rem) 0 calc(var(--sp-cut) * 1.45 + 2.75rem);
   overflow: hidden;
   color: #0f172a;
   -webkit-mask-image:
@@ -260,7 +261,7 @@
 @media (max-width: 560px) {
   .support-home {
     margin-top: calc(var(--sp-cut) * -1);
-    padding: calc(var(--sp-cut) + 1.15rem) 0 3rem;
+    padding: calc(var(--sp-cut) + 1.15rem) 0 calc(var(--sp-cut) * 1.2 + 2.25rem);
   }
 
   .support-home__funds-grid {
