@@ -1,9 +1,10 @@
 .pf-home {
-  --pf-cut: clamp(88px, 15vw, 150px);
+  --pf-cut: clamp(72px, 12vw, 120px);
   position: relative;
   z-index: 3;
   isolation: isolate;
-  margin-top: calc(var(--pf-cut) * -1.2);
+  /* Mild overlap — leave room for waters CTAs above the wave */
+  margin-top: calc(var(--pf-cut) * -0.55);
   padding: calc(var(--pf-cut) + 1.35rem) 0 4.5rem;
   overflow: hidden;
   color: #0f172a;
@@ -392,7 +393,7 @@
 
 @media (max-width: 560px) {
   .pf-home {
-    margin-top: calc(var(--pf-cut) * -1.2);
+    margin-top: calc(var(--pf-cut) * -0.5);
     padding: calc(var(--pf-cut) + 1.1rem) 0 3.5rem;
   }
 

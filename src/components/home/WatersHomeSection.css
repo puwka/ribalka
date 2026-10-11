@@ -4,7 +4,8 @@
   z-index: 2;
   isolation: isolate;
   margin-top: calc(var(--wh-cut) * -1.2);
-  padding: calc(var(--wh-cut) + 1.35rem) 0 4.5rem;
+  /* Extra bottom space so CTAs stay above the next section's wave */
+  padding: calc(var(--wh-cut) + 1.35rem) 0 clamp(5.5rem, 10vw, 7.5rem);
   overflow: hidden;
   color: #0f172a;
   clip-path: url(#waters-wave-clip);
@@ -357,11 +358,16 @@
 }
 
 .waters-home__more {
+  position: relative;
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.75rem;
   margin-top: 1.75rem;
+  /* Clear the wave overlap from the next section */
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+  padding-bottom: 0.25rem;
 }
 
 .waters-home__more-link {
@@ -444,7 +450,7 @@
 @media (max-width: 560px) {
   .waters-home {
     margin-top: calc(var(--wh-cut) * -1.2);
-    padding: calc(var(--wh-cut) + 1.25rem) 0 3.5rem;
+    padding: calc(var(--wh-cut) + 1.25rem) 0 5.5rem;
   }
 
   .waters-home__grid {
