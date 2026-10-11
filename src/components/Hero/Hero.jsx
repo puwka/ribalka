@@ -6,7 +6,7 @@ const HERO_BG = '/img/hero/hero-bg.jpg';
 const FEATURES = [
   {
     to: '/forum',
-    label: 'егорыч',
+    label: 'Егорыч',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -22,7 +22,7 @@ const FEATURES = [
   },
   {
     to: '/map',
-    label: 'карта',
+    label: 'Карта',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -38,7 +38,7 @@ const FEATURES = [
   },
   {
     to: '/directory',
-    label: 'справочник',
+    label: 'Справочник',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -54,7 +54,7 @@ const FEATURES = [
   },
   {
     to: '/paid-waters',
-    label: 'базы отдыха',
+    label: 'Базы отдыха',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
