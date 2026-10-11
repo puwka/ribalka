@@ -74,18 +74,36 @@
 .pl-home__brush {
   position: relative;
   display: inline-block;
-  max-width: min(42rem, 100%);
-  padding: 1.6rem 2.4rem 1.75rem 1.85rem;
-  /* Larger paint-stroke plate behind the title */
-  background:
-    radial-gradient(ellipse 92% 88% at 38% 46%, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.92) 48%, rgba(255, 255, 255, 0.55) 72%, transparent 86%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 260' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M10 70c60-42 150-58 250-52 78 4 160 12 240 4 36-4 70 8 92 28 20 18 26 42 10 64-12 18-36 30-68 38-52 12-120 18-196 24-90 6-178 10-256 2-36-4-68-18-82-42-14-24-6-48 10-66z'/%3E%3C/svg%3E")
-      center / 108% 115% no-repeat;
-  filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.14));
+  max-width: min(40rem, 100%);
+  /* Keep stroke floating — never flush to section edges */
+  margin: 0.35rem 0 0.15rem 0.15rem;
+}
+
+.pl-home__brush-shape {
+  position: absolute;
+  left: -8%;
+  right: -10%;
+  top: -18%;
+  bottom: -22%;
+  width: 118%;
+  height: 140%;
+  z-index: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.1));
+}
+
+.pl-home__brush-content {
+  position: relative;
+  z-index: 1;
+  padding: 1.35rem 2.1rem 1.45rem 1.6rem;
 }
 
 .pl-home__title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.55rem;
   font-family: 'Caveat', cursive;
   font-weight: 700;
   font-size: clamp(2rem, 4.6vw, 3.1rem);
@@ -94,7 +112,7 @@
 }
 
 .pl-home__subtitle {
-  margin: 0.2rem 0 0;
+  margin: 0.25rem 0 0;
   font-family: 'Caveat', cursive;
   font-weight: 700;
   font-size: clamp(1.35rem, 2.6vw, 1.85rem);
@@ -103,8 +121,10 @@
 }
 
 .pl-home__lead {
-  margin: 0.45rem 0 0;
-  max-width: 34ch;
+  position: relative;
+  margin: 0.5rem 0 0;
+  max-width: 36ch;
+  padding-right: 2.2rem;
   font-size: 0.92rem;
   font-weight: 600;
   color: #334155;
@@ -112,7 +132,8 @@
 }
 
 .pl-home__doodle {
-  position: absolute;
+  display: inline-flex;
+  flex-shrink: 0;
   opacity: 0.95;
 }
 
@@ -123,16 +144,16 @@
 }
 
 .pl-home__doodle--fish {
-  right: 1.1rem;
-  top: 0.85rem;
-  width: 48px;
+  width: 40px;
+  margin-top: 0.15em;
   animation: pl-bob 3.2s ease-in-out infinite;
 }
 
 .pl-home__doodle--sun {
-  right: 3.4rem;
-  bottom: 0.85rem;
-  width: 32px;
+  position: absolute;
+  right: 0;
+  bottom: -0.15rem;
+  width: 28px;
 }
 
 .pl-home__inspire {
@@ -141,8 +162,8 @@
   font-family: 'Caveat', cursive;
   font-size: clamp(1.25rem, 2.2vw, 1.55rem);
   font-weight: 700;
-  color: #1e3a8a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  color: #c45c6a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
   white-space: nowrap;
 }
 
@@ -392,20 +413,43 @@
   position: relative;
   z-index: 2;
   margin-top: 1.75rem;
-  padding: 1.1rem 0 1.25rem;
-  background: rgba(18, 48, 40, 0.78);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  padding: 1.15rem 0 1.3rem;
+  overflow: hidden;
   color: #fff;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Meadow / wildflowers strip under the green veil — like the reference */
+.pl-home__bar-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.pl-home__bar-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 92%;
+  transform: scale(1.08);
+  filter: blur(1.2px);
+}
+
+.pl-home__bar-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(22, 56, 42, 0.72);
+  pointer-events: none;
 }
 
 .pl-home__bar-inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem 1.5rem;
+  gap: 1rem 1.75rem;
 }
 
 .pl-home__bar-list {
@@ -424,8 +468,8 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.35rem 1rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.2rem 1.05rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .pl-home__bar-item:first-child {
@@ -434,27 +478,30 @@
 
 .pl-home__bar-item:last-child {
   border-right: none;
+  padding-right: 0;
 }
 
 .pl-home__bar-item strong {
   display: block;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: 0.01em;
 }
 
 .pl-home__bar-item small {
   display: block;
-  margin-top: 0.12rem;
-  font-size: 0.72rem;
-  opacity: 0.82;
+  margin-top: 0.15rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  opacity: 0.88;
   line-height: 1.2;
 }
 
 .pl-home__bar-ico {
   display: inline-flex;
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.5rem;
+  height: 1.5rem;
   color: #fff;
   flex-shrink: 0;
 }
@@ -466,16 +513,17 @@
 
 .pl-home__bar-slogan {
   margin: 0;
-  max-width: 16rem;
+  max-width: 15.5rem;
   font-family: 'Caveat', cursive;
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-size: clamp(1.2rem, 2.1vw, 1.45rem);
   font-weight: 700;
   line-height: 1.2;
   text-align: right;
+  color: #fff;
 }
 
 .pl-home__bar-slogan span {
-  color: #fca5a5;
+  color: #fff;
 }
 
 @keyframes pl-bg-pan {

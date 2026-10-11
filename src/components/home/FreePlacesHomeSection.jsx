@@ -71,11 +71,24 @@ const ICONS = {
       <circle cx="12" cy="10" r="2.4" fill="currentColor" />
     </svg>
   ),
+  warn: (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path
+        d="M12 3l10 18H2L12 3z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path d="M12 10v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="18" r="1" fill="currentColor" />
+    </svg>
+  ),
 };
 
 const BAR_ITEMS = [
   { icon: 'pin', title: 'Бесплатные места', sub: 'без оплаты за вход' },
-  { icon: 'tent', title: 'Удобные подъезды', sub: 'к берегу и стоянке' },
+  { icon: 'warn', title: 'Удобные подъезды', sub: 'к берегу и стоянка' },
   { icon: 'camera', title: 'Реальные фото и видео', sub: 'от рыбаков края' },
   { icon: 'pin', title: 'Точная геолокация', sub: 'на карте и в навигаторе' },
 ];
@@ -204,34 +217,70 @@ export default function FreePlacesHomeSection() {
         <header className="pl-home__head">
           <div className="pl-home__intro">
             <div className="pl-home__brush">
-              <h2 className="pl-home__title">активный отдых и рыбалка</h2>
-              <p className="pl-home__subtitle">Лучшие места Пермского края</p>
-              <p className="pl-home__lead">
-                Чистые реки, живописные озёра и богатые рыбные угодья ждут вас!
-              </p>
-              <span className="pl-home__doodle pl-home__doodle--fish" aria-hidden="true">
-                <svg viewBox="0 0 40 22">
-                  <path
-                    d="M2 11c5-6 12-7 19-3 4 2 7 2 11 1-2 5-6 8-13 8C12 17 6 14 2 11z"
-                    fill="none"
-                    stroke="#1e3a8a"
-                    strokeWidth="1.8"
-                  />
-                  <circle cx="11" cy="10" r="1.2" fill="#1e3a8a" />
-                </svg>
-              </span>
-              <span className="pl-home__doodle pl-home__doodle--sun" aria-hidden="true">
-                <svg viewBox="0 0 28 28">
-                  <circle cx="14" cy="14" r="5" fill="none" stroke="#1e3a8a" strokeWidth="1.6" />
-                  <path
-                    d="M14 2v3M14 23v3M2 14h3M23 14h3M5 5l2 2M21 21l2 2M5 23l2-2M21 7l2-2"
-                    stroke="#1e3a8a"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                  <path d="M10 15c1.2 1.4 3.2 1.4 4.5 0" fill="none" stroke="#1e3a8a" strokeWidth="1.4" />
-                </svg>
-              </span>
+              {/* Horizontal watercolor brush stroke — soft irregular edges all around */}
+              <svg
+                className="pl-home__brush-shape"
+                viewBox="0 0 720 240"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <defs>
+                  <filter id="pl-brush-soft" x="-8%" y="-20%" width="116%" height="140%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b" />
+                    <feMerge>
+                      <feMergeNode in="b" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <path
+                  filter="url(#pl-brush-soft)"
+                  fill="rgba(255,255,255,0.93)"
+                  d="M48 78c36-34 96-52 168-48 58 3 112 14 170 10 52-4 108-2 158 12 34 10 62 28 74 52 10 20 4 42-14 58-22 20-58 30-98 36-62 10-128 14-196 12-78-2-152-12-210-34-28-10-52-28-60-52-8-22 2-42 22-52 12-6 24-4 36 6z"
+                />
+                <path
+                  fill="rgba(255,255,255,0.55)"
+                  d="M72 96c28-18 78-28 132-24 48 4 96 12 146 8 40-3 86 0 124 14 18 6 28 18 22 30-8 16-36 24-68 28-54 8-112 8-172 4-52-4-102-14-142-28-14-5-22-16-16-26 4-6 12-8 24-6z"
+                />
+              </svg>
+
+              <div className="pl-home__brush-content">
+                <h2 className="pl-home__title">
+                  активный отдых и рыбалка
+                  <span className="pl-home__doodle pl-home__doodle--fish" aria-hidden="true">
+                    <svg viewBox="0 0 40 22">
+                      <path
+                        d="M2 11c5-6 12-7 19-3 4 2 7 2 11 1-2 5-6 8-13 8C12 17 6 14 2 11z"
+                        fill="none"
+                        stroke="#1e3a8a"
+                        strokeWidth="1.8"
+                      />
+                      <circle cx="11" cy="10" r="1.2" fill="#1e3a8a" />
+                    </svg>
+                  </span>
+                </h2>
+                <p className="pl-home__subtitle">Лучшие места Пермского края</p>
+                <p className="pl-home__lead">
+                  Чистые реки, живописные озёра и богатые рыбные угодья ждут вас!
+                  <span className="pl-home__doodle pl-home__doodle--sun" aria-hidden="true">
+                    <svg viewBox="0 0 28 28">
+                      <circle cx="14" cy="14" r="5" fill="none" stroke="#1e3a8a" strokeWidth="1.6" />
+                      <path
+                        d="M14 2v3M14 23v3M2 14h3M23 14h3M5 5l2 2M21 21l2 2M5 23l2-2M21 7l2-2"
+                        stroke="#1e3a8a"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M10 15c1.2 1.4 3.2 1.4 4.5 0"
+                        fill="none"
+                        stroke="#1e3a8a"
+                        strokeWidth="1.4"
+                      />
+                    </svg>
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
 
@@ -254,6 +303,10 @@ export default function FreePlacesHomeSection() {
       </div>
 
       <div className="pl-home__bar" aria-label="Преимущества бесплатных мест">
+        <div className="pl-home__bar-photo" aria-hidden="true">
+          <img src={BG} alt="" width={1920} height={400} decoding="async" />
+        </div>
+        <div className="pl-home__bar-veil" aria-hidden="true" />
         <div className="pl-home__bar-inner section-inner section-inner--wide">
           <ul className="pl-home__bar-list">
             {BAR_ITEMS.map((item) => (
@@ -269,7 +322,8 @@ export default function FreePlacesHomeSection() {
             ))}
           </ul>
           <p className="pl-home__bar-slogan">
-            Пермский край — рыбалка и отдых, который вдохновляет <span aria-hidden="true">♡</span>
+            Пермский край — рыбалка и отдых, который вдохновляет{' '}
+            <span aria-hidden="true">♡</span>
           </p>
         </div>
       </div>
