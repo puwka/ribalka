@@ -4,7 +4,7 @@ import { sortPromoFirst } from '../../lib/waterUtils';
 import { pickCardCover } from '../../lib/mediaCover';
 import './FreePlacesHomeSection.css';
 
-const BG = '/img/home/places-bg.jpg';
+const BG = '/img/home/places-scenic.jpg';
 
 const FEATURE_ICON_SETS = [
   ['fish', 'trees', 'tent'],
@@ -196,7 +196,7 @@ export default function FreePlacesHomeSection() {
   return (
     <section className="pl-home" id="free-places-home">
       <div className="pl-home__bg" aria-hidden="true">
-        <img src={BG} alt="" width={1920} height={1080} loading="lazy" decoding="async" />
+        <img src={BG} alt="" width={1920} height={1080} fetchPriority="high" decoding="async" />
         <div className="pl-home__bg-shade" />
       </div>
 
