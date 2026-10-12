@@ -89,24 +89,12 @@
     transform 0.18s ease,
     box-shadow 0.18s ease;
   white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .site-header__link:hover {
   color: #0f172a;
   background: #f1f5f9;
-}
-
-.site-header__link.is-active {
-  color: #fff;
-  font-weight: 700;
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-}
-
-.site-header__link.is-active:hover {
-  color: #fff;
-  background: #1d4ed8;
-  transform: translateY(-1px);
 }
 
 .site-header__actions {

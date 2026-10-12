@@ -197,33 +197,6 @@ export default function FreePlacesHomeSection() {
         <header className="pl-home__head">
           <div className="pl-home__intro">
             <div className="pl-home__brush">
-              {/* Horizontal watercolor brush stroke — soft irregular edges all around */}
-              <svg
-                className="pl-home__brush-shape"
-                viewBox="0 0 720 240"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <defs>
-                  <filter id="pl-brush-soft" x="-8%" y="-20%" width="116%" height="140%">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="b" />
-                    <feMerge>
-                      <feMergeNode in="b" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                <path
-                  filter="url(#pl-brush-soft)"
-                  fill="rgba(255,255,255,0.93)"
-                  d="M48 78c36-34 96-52 168-48 58 3 112 14 170 10 52-4 108-2 158 12 34 10 62 28 74 52 10 20 4 42-14 58-22 20-58 30-98 36-62 10-128 14-196 12-78-2-152-12-210-34-28-10-52-28-60-52-8-22 2-42 22-52 12-6 24-4 36 6z"
-                />
-                <path
-                  fill="rgba(255,255,255,0.55)"
-                  d="M72 96c28-18 78-28 132-24 48 4 96 12 146 8 40-3 86 0 124 14 18 6 28 18 22 30-8 16-36 24-68 28-54 8-112 8-172 4-52-4-102-14-142-28-14-5-22-16-16-26 4-6 12-8 24-6z"
-                />
-              </svg>
-
               <div className="pl-home__brush-content">
                 <h2 className="pl-home__title">
                   активный отдых и рыбалка

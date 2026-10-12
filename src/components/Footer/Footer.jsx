@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSmartNavigation } from '../../hooks/useSmartNavigation';
 import { useCmsSettings, useCmsFooter } from '../../hooks/useCms';
 import { usePermTime } from '../../hooks/usePermTime';
@@ -171,6 +172,7 @@ function MenuIcon({ type }) {
 
 export default function Footer() {
   const { handleClick } = useSmartNavigation();
+  const isHome = useLocation().pathname === '/';
   const { data: settings } = useCmsSettings();
   const { data: footer } = useCmsFooter();
   const { time, date, weekday } = usePermTime();
@@ -188,6 +190,12 @@ export default function Footer() {
 
   const socialRaw = settings?.social || {};
   const social = {
+    max:
+      !socialRaw.max ||
+      socialRaw.max === 'https://max.ru' ||
+      socialRaw.max === 'https://max.ru/'
+        ? 'https://max.ru/channel_aktiv59'
+        : socialRaw.max,
     telegram:
       !socialRaw.telegram ||
       socialRaw.telegram === 'https://t.me/' ||
@@ -216,7 +224,7 @@ export default function Footer() {
   const weekdayCap = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1) : '';
 
   return (
-    <footer className="footer" id="contacts">
+    <footer className={`footer${isHome ? ' footer--overlap' : ''}`} id="contacts">
       <div className="footer__bg" aria-hidden style={{ backgroundImage: `url(${BG})` }}>
         <img src={BG} alt="" width={1920} height={1080} decoding="async" fetchPriority="low" />
         <div className="footer__bg-shade" />
@@ -390,34 +398,25 @@ export default function Footer() {
           </p>
           {footer?.showSocial !== false && (
             <div className="footer__social">
-              {social.vk && (
-                <a
-                  href={social.vk}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="footer__social-link"
-                  aria-label="ВКонтакте"
-                >
-                  <span className="footer__social-badge" aria-hidden>
-                    VK
-                  </span>
-                  <span>VK</span>
-                </a>
-              )}
-              {social.telegram && (
-                <a
-                  href={social.telegram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="footer__social-link"
-                  aria-label="Telegram"
-                >
-                  <span className="footer__social-badge footer__social-badge--tg" aria-hidden>
-                    ✈
-                  </span>
-                  <span>Telegram</span>
-                </a>
-              )}
+              {[
+                { key: 'max', url: social.max, label: 'MAX' },
+                { key: 'vk', url: social.vk, label: 'ВКонтакте' },
+                { key: 'telegram', url: social.telegram, label: 'Telegram' },
+              ]
+                .filter((s) => s.url)
+                .map((s) => (
+                  <a
+                    key={s.key}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer__social-link"
+                    aria-label={s.label}
+                    title={s.label}
+                  >
+                    <img src={`/img/social/${s.key}.png`} alt="" width={40} height={40} />
+                  </a>
+                ))}
             </div>
           )}
         </div>

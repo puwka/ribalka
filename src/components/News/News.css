@@ -76,11 +76,11 @@
   font-size: clamp(2.2rem, 5vw, 3.4rem);
   color: #1e3a8a;
   line-height: 1;
-  padding: 0.18em 0.7em 0.22em 0.55em;
-  /* Yellow paint brush + sunburst rays */
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 90' preserveAspectRatio='none'%3E%3Cpath fill='%23facc15' d='M12 48c28-22 72-34 120-32 42 2 86 10 128 4 18-2 34 6 40 18 6 12 0 26-16 34-22 12-58 16-98 18-52 3-104 2-148-6-22-4-40-14-46-28-6-12 2-24 20-28z'/%3E%3Cpath stroke='%23facc15' stroke-width='3.2' stroke-linecap='round' d='M268 22l14-12M278 30l16-6M282 40l18 2M278 52l14 10'/%3E%3Ccircle cx='286' cy='28' r='3.2' fill='%23facc15'/%3E%3Ccircle cx='298' cy='38' r='2.2' fill='%23facc15'/%3E%3C/svg%3E")
+  padding: 0.24em 0.8em 0.32em 0.75em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 100' preserveAspectRatio='none'%3E%3Cpath fill='%23facc15' d='M16 28C70 14 170 18 250 15C320 12 370 14 386 28C396 38 396 66 384 76C360 90 280 85 200 87C120 89 50 92 22 80C6 72 4 38 16 28Z'/%3E%3Cpath fill='%23fde047' opacity='.6' d='M34 32C100 22 200 26 290 22C340 20 368 24 370 32C372 40 350 42 320 42C240 42 140 44 70 46C40 47 26 40 34 32Z'/%3E%3C/svg%3E")
     center / 100% 100% no-repeat;
-  filter: drop-shadow(0 4px 10px rgba(250, 204, 21, 0.35));
+  filter: drop-shadow(0 4px 10px rgba(234, 179, 8, 0.3));
+  transform: rotate(-1.5deg);
 }
 
 .news__grid {
@@ -346,7 +346,6 @@
 
   .news__title-mark {
     font-size: clamp(1.85rem, 9vw, 2.6rem);
-    padding: 0.16em 0.6em 0.2em 0.5em;
   }
 
   .news__grid {
