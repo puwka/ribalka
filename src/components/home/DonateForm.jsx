@@ -280,9 +280,9 @@ export default function DonateForm({
         <div className="donate-form__method donate-form__method--active donate-form__method--solo">
           <strong>Банковская карта</strong>
           <span className="donate-form__brands" aria-hidden="true">
-            <span>VISA</span>
-            <span>MC</span>
-            <span>МИР</span>
+            <span>банковская карта</span>
+            <span>qr код</span>
+            <span>сбп</span>
           </span>
         </div>
       </div>
