@@ -44,10 +44,18 @@ export function toVideoEmbedUrl(raw) {
   return url;
 }
 
+// Catalogue seed used this non-existent YouTube ID as a placeholder on every listing.
+const PLACEHOLDER_VIDEO_IDS = new Set(['dQw4e9w8X0w']);
+
 export function normalizeVideoList(list) {
   if (!Array.isArray(list)) return [];
-  return list
+  const urls = list
     .map((v) => (typeof v === 'string' ? v : v?.external_url || v?.public_url || v?.url || ''))
     .map(toVideoEmbedUrl)
     .filter(Boolean);
+
+  // De-duplicate and hide placeholder videos so detail pages never render an empty iframe.
+  return [...new Set(urls)].filter(
+    (url) => ![...PLACEHOLDER_VIDEO_IDS].some((id) => url.includes(id))
+  );
 }
