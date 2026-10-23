@@ -22,18 +22,40 @@ function markViewed(id) {
   }
 }
 
+function NewsThumb({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return <span className="news-accordion__thumb-placeholder" aria-hidden />;
+  }
+  return <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+}
+
+function NewsBodyImage({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return null;
+  return (
+    <div className="news-accordion__image">
+      <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+    </div>
+  );
+}
+
 export default function AllNewsPage() {
   const { data: newsData, loading } = useNews();
   const navigate = useNavigate();
   const [openId, setOpenId] = useState(null);
   const [viewOverrides, setViewOverrides] = useState({});
 
-  const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString('ru-RU', {
+  const formatDate = (dateString) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('ru-RU', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     });
+  };
 
   const toggle = (id) => {
     const opening = openId !== id;
@@ -71,7 +93,14 @@ export default function AllNewsPage() {
           <Link to="/" className="back-link">
             ← На главную
           </Link>
-          <h1 className="page-title">Все новости ({newsData.length})</h1>
+
+          <header className="all-news-page__head">
+            <p className="all-news-page__eyebrow">Жизнь проекта</p>
+            <h1 className="page-title">Все новости ({newsData.length})</h1>
+            <p className="all-news-page__lead">
+              Новые места, события и полезные заметки для рыбалки в Пермском крае.
+            </p>
+          </header>
 
           {newsData.length === 0 ? (
             <p className="all-news-empty">Пока нет новостей</p>
@@ -93,11 +122,7 @@ export default function AllNewsPage() {
                       onClick={() => toggle(news.id)}
                     >
                       <div className="news-accordion__thumb">
-                        {news.image ? (
-                          <img src={news.image} alt="" />
-                        ) : (
-                          <span className="news-accordion__thumb-placeholder" />
-                        )}
+                        <NewsThumb src={news.image} alt={news.title} />
                       </div>
                       <div className="news-accordion__meta">
                         {news.category && (
@@ -114,11 +139,7 @@ export default function AllNewsPage() {
 
                     {isOpen && (
                       <div className="news-accordion__body">
-                        {news.image && (
-                          <div className="news-accordion__image">
-                            <img src={news.image} alt={news.title} />
-                          </div>
-                        )}
+                        <NewsBodyImage src={news.image} alt={news.title} />
                         <p className="news-accordion__excerpt">
                           {news.excerpt || stripRichText(news.content, 280) || ''}
                         </p>

@@ -9,7 +9,52 @@ import {
   normalizeConstructor,
   normalizeServiceTariff,
 } from '../lib/directoryPricing';
+import ScenicRidge from '../components/scenic/ScenicRidge';
 import './TariffsPage.css';
+
+function TariffIcon({ type }) {
+  if (type === 'fish') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M3.5 12c3.2-3.6 6.7-4.2 10.2-2.4 2 1 3.7 1.3 5.3 1-1 3-3.4 4.8-6.8 5.1-3.7.3-6.4-1-8.7-3.7Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+        <path d="M17.5 12.2c.9-.9 1.8-1.6 3-2.1M17.5 12.2c.9.8 1.8 1.4 3 1.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        <circle cx="8.4" cy="11.5" r="1" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (type === 'book') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M4 5.5c2.8-.8 5.3-.3 8 1.4 2.7-1.7 5.2-2.2 8-1.4v13c-2.8-.8-5.3-.3-8 1.4-2.7-1.7-5.2-2.2-8-1.4v-13Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+        <path d="M12 6.9v13" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 20h16M6.5 20v-7.2L12 8l5.5 4.8V20M9.5 20v-4.3h5V20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function TariffsPage() {
   const [baseTariff, setBaseTariff] = useState(() => normalizeConstructor(DEFAULT_CONSTRUCTOR));
@@ -58,6 +103,8 @@ export default function TariffsPage() {
   return (
     <div className="tariffs-page">
       <header className="tariffs-page__hero">
+        <div className="tariffs-page__hero-bg" aria-hidden="true" />
+        <div className="tariffs-page__hero-shade" aria-hidden="true" />
         <div className="tariffs-page__hero-inner">
           <p className="tariffs-page__eyebrow">Размещение на сайте</p>
           <h1>Тарифы</h1>
@@ -67,7 +114,7 @@ export default function TariffsPage() {
         </div>
       </header>
 
-      <div className="tariffs-page__body">
+      <div className="tariffs-page__body scenic-sheet">
         {loading && <p className="tariffs-page__loading">Загружаем актуальные цены…</p>}
 
         <section className="tariffs-block" id="bases">
@@ -81,7 +128,12 @@ export default function TariffsPage() {
 
           <article className="tariff-card">
             <div className="tariff-card__top">
-              <h3>{ctor.title || 'Конструктор'}</h3>
+              <div className="tariff-card__heading">
+                <span className="tariff-card__icon" aria-hidden="true">
+                  <TariffIcon type="base" />
+                </span>
+                <h3>{ctor.title || 'Конструктор'}</h3>
+              </div>
               <div className="tariff-card__price">
                 <strong>{formatRub(ctor.baseAmount)}</strong>
                 <span>/ мес</span>
@@ -150,7 +202,12 @@ export default function TariffsPage() {
 
           <article className="tariff-card">
             <div className="tariff-card__top">
-              <h3>{fish.title || 'Платная рыбалка'}</h3>
+              <div className="tariff-card__heading">
+                <span className="tariff-card__icon" aria-hidden="true">
+                  <TariffIcon type="fish" />
+                </span>
+                <h3>{fish.title || 'Платная рыбалка'}</h3>
+              </div>
               <div className="tariff-card__price">
                 <strong>{formatRub(fish.baseAmount)}</strong>
                 <span>/ мес</span>
@@ -193,8 +250,8 @@ export default function TariffsPage() {
             </ul>
 
             <div className="tariff-card__actions">
-              <Link to="/paid-fishing" className="btn btn--primary">
-                Каталог платной рыбалки
+              <Link to="/register" className="btn btn--primary">
+                Стать владельцем базы
               </Link>
               <Link to="/owner" className="btn btn--ghost">
                 Кабинет владельца
@@ -214,7 +271,12 @@ export default function TariffsPage() {
 
           <article className="tariff-card tariff-card--alt">
             <div className="tariff-card__top">
-              <h3>{dir.title || 'Тариф справочника'}</h3>
+              <div className="tariff-card__heading">
+                <span className="tariff-card__icon" aria-hidden="true">
+                  <TariffIcon type="book" />
+                </span>
+                <h3>{dir.title || 'Тариф справочника'}</h3>
+              </div>
               <div className="tariff-card__price">
                 <strong>{formatRub(dir.amountPerMonth)}</strong>
                 <span>/ мес</span>
@@ -288,6 +350,8 @@ export default function TariffsPage() {
           </article>
         </section>
       </div>
+
+      <ScenicRidge className="tariffs-page__ridge" tone="soft" />
     </div>
   );
 }

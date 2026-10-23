@@ -1,4 +1,4 @@
-import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import './CabinetShell.css';
 
@@ -15,15 +15,6 @@ function roleLabel(role) {
 
 export default function CabinetShell({ title, subtitle, navGroups }) {
   const { profile, user, logout, roles } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const flatLinks = navGroups.flatMap((g) => g.items);
-
-  const current =
-    flatLinks.find((l) =>
-      l.end ? location.pathname === l.to : location.pathname.startsWith(l.to)
-    ) || flatLinks[0];
 
   const onLogout = async () => {
     await logout();
@@ -95,24 +86,54 @@ export default function CabinetShell({ title, subtitle, navGroups }) {
               <h1>{title}</h1>
               {subtitle ? <p className="cabinet__subtitle">{subtitle}</p> : null}
             </div>
-            <label className="cabinet__mobile-nav">
-              <span className="visually-hidden">Раздел</span>
-              <select
-                value={current?.to || ''}
-                onChange={(e) => navigate(e.target.value)}
-              >
-                {navGroups.map((group) => (
-                  <optgroup key={group.title} label={group.title}>
-                    {group.items.map((link) => (
-                      <option key={link.to} value={link.to}>
-                        {link.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
           </header>
+
+          <nav className="cabinet__mobile-links" aria-label="Навигация кабинета">
+            <div className="cabinet__mobile-user">
+              <div className="cabinet__avatar" aria-hidden>
+                {profile?.avatar_path || profile?.avatar_url ? (
+                  <img src={profile.avatar_path || profile.avatar_url} alt="" />
+                ) : (
+                  initials(profile?.display_name, user?.email)
+                )}
+              </div>
+              <div className="cabinet__mobile-user-text">
+                <strong>{profile?.display_name || 'Пользователь'}</strong>
+                <span>{user?.email}</span>
+              </div>
+              <button type="button" className="cabinet__mobile-logout" onClick={onLogout}>
+                Выйти
+              </button>
+            </div>
+
+            {navGroups.map((group) => (
+              <div key={group.title} className="cabinet__mobile-group">
+                <div className="cabinet__mobile-group-title">{group.title}</div>
+                <div className="cabinet__mobile-group-links">
+                  {group.items.map((link) => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      end={link.end}
+                      className={({ isActive }) =>
+                        `cabinet__mobile-link${isActive ? ' is-active' : ''}`
+                      }
+                    >
+                      {link.label}
+                      {link.badge != null && link.badge > 0 ? (
+                        <span className="cabinet__nav-badge">{link.badge}</span>
+                      ) : null}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <Link to="/" className="cabinet__mobile-site-link">
+              ← Вернуться на сайт
+            </Link>
+          </nav>
+
           <div className="cabinet__content">
             <Outlet />
           </div>

@@ -161,23 +161,24 @@ export default function FishermenRankingPage() {
 
   return (
     <div className="ranking-page">
-      <header className="ranking-page__head">
-        <p className="ranking-page__eyebrow">Сообщество</p>
-        <h1>Конкурсы и рейтинг</h1>
-        <p className="ranking-page__lead">
-          Участвуют отчёты об отдыхе в Перми и Пермском крае — не только про улов, а про поездки,
-          базы, природу и впечатления. Места обновляются по голосам и активности. Призы
-          начисляются на баланс в личном кабинете.
-        </p>
-        <div className="ranking-page__controls">
-          <Link to="/reports" className="ranking-page__link">
-            Опубликовать отчёт →
-          </Link>
-          <Link to="/cabinet/balance" className="ranking-page__link">
-            Мой баланс →
-          </Link>
-        </div>
-      </header>
+      <div className="ranking-sheet">
+        <header className="ranking-page__head">
+          <p className="ranking-page__eyebrow">Сообщество</p>
+          <h1>Конкурсы и рейтинг</h1>
+          <p className="ranking-page__lead">
+            Участвуют отчёты об отдыхе в Перми и Пермском крае — не только про улов, а про поездки,
+            базы, природу и впечатления. Места обновляются по голосам и активности. Призы
+            начисляются на баланс в личном кабинете.
+          </p>
+          <div className="ranking-page__controls">
+            <Link to="/reports" className="ranking-page__link">
+              Опубликовать отчёт →
+            </Link>
+            <Link to="/cabinet/balance" className="ranking-page__link">
+              Мой баланс →
+            </Link>
+          </div>
+        </header>
 
       {error && <p className="ranking-page__error">{error}</p>}
 
@@ -290,6 +291,17 @@ export default function FishermenRankingPage() {
           )}
         </>
       )}
+
+        <div className="ranking-page__bottom-actions">
+          <Link to="/paid-waters" className="ranking-page__bottom-btn">
+            Все базы отдыха
+          </Link>
+          <Link to="/free-waters" className="ranking-page__bottom-btn ranking-page__bottom-btn--soft">
+            Где порыбачить
+          </Link>
+        </div>
+        <div className="ranking-page__scenery" aria-hidden="true" />
+      </div>
     </div>
   );
 }

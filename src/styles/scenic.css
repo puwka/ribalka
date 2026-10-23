@@ -1,0 +1,174 @@
+/* Shared visual language for the client's scenic "white sheet over landscape" pages. */
+
+.scenic-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  padding-top: calc(var(--header-height) + var(--safe-top));
+  background: #eaf2f8;
+  color: var(--color-primary);
+  overflow-x: clip;
+}
+
+.scenic-sheet {
+  position: relative;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 28px;
+  box-shadow:
+    0 24px 70px rgba(15, 35, 55, 0.14),
+    0 2px 6px rgba(15, 35, 55, 0.04);
+  backdrop-filter: blur(18px);
+}
+
+.scenic-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.scenic-display {
+  margin: 0;
+  font-family: 'Caveat', 'Rubik', cursive;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+  color: #0f172a;
+}
+
+.scenic-display--light {
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(15, 23, 42, 0.28);
+}
+
+.scenic-lead {
+  margin: 0;
+  font-size: clamp(0.96rem, 0.9rem + 0.3vw, 1.12rem);
+  line-height: 1.6;
+  color: #475569;
+}
+
+.scenic-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.scenic-breadcrumb a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.scenic-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.scenic-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.scenic-btn:hover {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.scenic-btn--soft {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.9);
+  color: #1e3a8a;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.scenic-btn--soft:hover {
+  background: #fff;
+  color: #1d4ed8;
+}
+
+.scenic-btn--yellow {
+  background: #f5c518;
+  border-color: #eab308;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(234, 179, 8, 0.2);
+}
+
+.scenic-btn--yellow:hover {
+  background: #eab308;
+  color: #0f172a;
+}
+
+.scenic-empty {
+  padding: 44px 20px;
+  text-align: center;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.scenic-section-title {
+  margin: 0 0 6px;
+  font-family: 'Caveat', 'Rubik', cursive;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.05;
+  color: #0f172a;
+}
+
+.scenic-section-lead {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+/* Common small scenic strip used behind transparent page content. */
+.scenic-water-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+}
+
+.scenic-water-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(234, 244, 251, 0.82), rgba(246, 251, 254, 0.94)),
+    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.4), transparent 60%);
+}
+
+@media (max-width: 768px) {
+  .scenic-sheet {
+    border-radius: 22px;
+  }
+
+  .scenic-display {
+    font-size: clamp(2.25rem, 11vw, 3rem);
+  }
+}

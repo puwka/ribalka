@@ -1,106 +1,109 @@
-.egorych-card--soon {
-  text-align: center;
-  padding: 1.75rem 1.5rem;
-}
-
-.egorych-soon-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  justify-content: center;
-  margin-top: 1.15rem;
+.egorych-page {
+  position: relative;
+  min-height: 100dvh;
+  padding-top: calc(var(--header-height) + var(--safe-top));
+  padding-bottom: calc(var(--space-10) + var(--safe-bottom));
+  background:
+    radial-gradient(ellipse 70% 40% at 80% 0%, rgba(191, 219, 254, 0.35), transparent 55%),
+    linear-gradient(180deg, #eaf4fb 0%, #f8fbfe 44%, #eaf3fa 100%);
+  color: #0f172a;
+  overflow-x: clip;
 }
 
 .egorych-page--loading {
   display: grid;
   place-items: center;
   min-height: 50vh;
-  color: #3a4536;
+  color: #64748b;
 }
 
-.egorych-page {
-  min-height: 100dvh;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(61, 90, 54, 0.18), transparent 55%),
-    linear-gradient(180deg, #eef2ea 0%, #f7f5f0 40%, #f3efe6 100%);
-  padding-top: calc(var(--header-height) + var(--safe-top));
-  padding-bottom: calc(var(--space-10) + var(--safe-bottom));
-  color: #1a2418;
-  overflow-x: clip;
-}
-
+/* Scenic hero */
 .egorych-hero {
-  padding: var(--space-6) var(--space-4) var(--space-4);
+  position: relative;
+  min-height: clamp(280px, 29vw, 380px);
+  overflow: hidden;
+  border-radius: 0 0 38px 38px;
+  background:
+    linear-gradient(90deg, rgba(15, 35, 55, 0.6), rgba(15, 35, 55, 0.18) 74%),
+    linear-gradient(180deg, rgba(15, 35, 55, 0.1), rgba(15, 35, 55, 0.42)),
+    url('/img/details/detail-lake.jpg') center 48% / cover no-repeat;
+  isolation: isolate;
 }
 
 .egorych-hero__inner {
-  max-width: 880px;
+  max-width: 1040px;
   margin: 0 auto;
+  padding: clamp(32px, 5vw, 56px) var(--gutter) clamp(46px, 6vw, 66px);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: clamp(0.75rem, 3vw, 1.75rem);
+  gap: clamp(16px, 3vw, 28px);
   text-align: left;
 }
 
 .egorych-hero__logo {
-  width: min(140px, 32vw);
+  width: min(128px, 28vw);
   height: auto;
+  flex-shrink: 0;
   border-radius: 50%;
   box-shadow:
-    0 10px 32px rgba(26, 36, 24, 0.2),
-    0 0 0 3px rgba(255, 255, 255, 0.55);
-  flex-shrink: 0;
+    0 16px 38px rgba(15, 23, 42, 0.28),
+    0 0 0 4px rgba(255, 255, 255, 0.6);
 }
 
 .egorych-hero__text {
-  flex: 1 1 280px;
-  max-width: 440px;
+  flex: 1 1 300px;
+  max-width: 600px;
 }
 
 .egorych-hero__eyebrow {
-  margin: 0 0 0.35rem;
-  font-size: 0.8rem;
+  margin: 0 0 4px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: #3d5a36;
 }
 
 .egorych-hero h1 {
-  margin: 0 0 0.55rem;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  margin: 0 0 7px;
+  font-family: 'Caveat', 'Rubik', cursive;
+  font-size: clamp(3rem, 6vw, 4.6rem);
   font-weight: 700;
-  line-height: 1.05;
-  color: #1a2418;
+  line-height: 0.9;
+  color: #fff;
+  text-shadow: 0 4px 24px rgba(15, 23, 42, 0.3);
 }
 
 .egorych-hero__lead {
+  max-width: 560px;
   margin: 0;
-  font-size: 1.02rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(0.9rem, 0.86rem + 0.22vw, 1.02rem);
   line-height: 1.55;
-  color: #3a4536;
+  text-shadow: 0 1px 12px rgba(15, 23, 42, 0.28);
 }
 
+/* Chat + examples */
 .egorych-wrap {
   max-width: 760px;
   margin: 0 auto;
-  padding: 0 var(--space-4) var(--space-8);
+  padding: 22px var(--space-4) var(--space-8);
   display: grid;
-  gap: 1rem;
+  gap: 14px;
 }
 
 .egorych-chat-panel {
   position: relative;
-  height: min(72vh, 680px);
-  min-height: 480px;
-  border-radius: 18px;
+  height: min(70vh, 660px);
+  min-height: 460px;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
   background: #fff;
-  border: 1px solid rgba(61, 90, 54, 0.14);
-  box-shadow: 0 10px 36px rgba(26, 36, 24, 0.1);
+  box-shadow:
+    0 22px 58px rgba(15, 35, 55, 0.13),
+    0 2px 6px rgba(15, 35, 55, 0.04);
 }
 
 .egorych-chat-host {
@@ -121,66 +124,129 @@
 .egorych-chat__error {
   margin: 0;
   padding: 1.5rem;
-  color: #7f1d1d;
+  color: #b42318;
   text-align: center;
 }
 
 .egorych-card {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(61, 90, 54, 0.12);
-  border-radius: 18px;
-  padding: 1.25rem 1.35rem;
-  backdrop-filter: blur(6px);
+  padding: 18px 20px;
+  border: 1px solid #e8eef5;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 22px rgba(15, 35, 55, 0.05);
+  backdrop-filter: blur(8px);
 }
 
 .egorych-card h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.15rem;
-  color: #1a2418;
+  margin: 0 0 5px;
+  font-family: 'Caveat', 'Rubik', cursive;
+  font-size: clamp(1.65rem, 2.6vw, 2rem);
+  font-weight: 700;
+  line-height: 1.05;
+  color: #0f172a;
 }
 
 .egorych-card p {
   margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
   line-height: 1.55;
-  color: #3a4536;
 }
 
 .egorych-examples {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
   display: grid;
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 13px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
 .egorych-examples li {
-  padding: 0.65rem 0.85rem;
-  border-radius: 12px;
-  background: rgba(61, 90, 54, 0.08);
-  color: #2a3826;
-  font-size: 0.95rem;
+  padding: 8px 11px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #1e3a8a;
+  font-size: 0.79rem;
+  line-height: 1.4;
+}
+
+.egorych-examples li span {
+  display: block;
 }
 
 .egorych-card--soon {
-  text-align: center;
   padding: 2rem 1.5rem;
+  text-align: center;
 }
 
 .egorych-card--soon h2 {
   font-size: 1.35rem;
 }
 
-@media (max-width: 640px) {
+.egorych-soon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 1.15rem;
+}
+
+@media (max-width: 720px) {
+  .egorych-hero {
+    min-height: 300px;
+    border-radius: 0 0 28px 28px;
+    background-position: center 42%;
+  }
+
   .egorych-hero__inner {
+    padding: 26px 16px 44px;
     text-align: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .egorych-hero__logo {
+    width: 88px;
   }
 
   .egorych-hero__text {
+    flex-basis: 100%;
     max-width: none;
   }
 
+  .egorych-hero h1 {
+    font-size: clamp(2.9rem, 14vw, 3.7rem);
+  }
+
+  .egorych-hero__lead {
+    max-width: 94%;
+    margin: 0 auto;
+    font-size: 0.86rem;
+  }
+
+  .egorych-wrap {
+    padding: 14px 10px 30px;
+    gap: 10px;
+  }
+
   .egorych-chat-panel {
-    height: min(70vh, 560px);
-    min-height: 420px;
+    height: min(68vh, 540px);
+    min-height: 410px;
+    border-radius: 20px;
+  }
+
+  .egorych-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .egorych-examples {
+    grid-template-columns: 1fr;
+  }
+
+  .egorych-examples li {
+    font-size: 0.75rem;
   }
 }

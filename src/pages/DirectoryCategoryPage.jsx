@@ -90,115 +90,126 @@ export default function DirectoryCategoryPage() {
   };
 
   return (
-    <div className="directory-page">
-      <div className="directory-header">
-        <p className="directory-breadcrumb">
-          <Link to="/directory">Справочник</Link>
-          <span> / </span>
-          <span>
-            {categoryMeta.emoji} {categoryMeta.label}
-          </span>
-        </p>
-        <h1>
-          {categoryMeta.emoji} {categoryMeta.label}
-        </h1>
-        <p>Все предложения категории в Пермском крае — с фильтром по районам</p>
-      </div>
+    <div className="directory-page directory-page--category">
+      <header className="directory-hero directory-hero--compact">
+        <div className="directory-hero__bg" aria-hidden="true" />
+        <div className="directory-hero__shade" aria-hidden="true" />
+        <div className="directory-hero__inner">
+          <p className="directory-breadcrumb">
+            <Link to="/directory">Справочник</Link>
+            <span aria-hidden="true">/</span>
+            <span>
+              {categoryMeta.emoji} {categoryMeta.label}
+            </span>
+          </p>
+          <h1>{categoryMeta.label}</h1>
+          <p className="directory-hero__lead">
+            Все предложения категории в Пермском крае — с фильтром по районам
+          </p>
+
+          <div className="directory-tabs" role="tablist" aria-label="Категории справочника">
+            {DIRECTORY_CATEGORIES.map((cat) => (
+              <Link
+                key={cat.id}
+                to={`/directory/${cat.tab}`}
+                role="tab"
+                aria-selected={cat.tab === tab}
+                className={`directory-tab ${cat.tab === tab ? 'is-active' : ''}`}
+              >
+                <span aria-hidden="true">{cat.emoji}</span> {cat.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </header>
 
       <div className="directory-container">
-        <div className="directory-tabs" role="tablist" aria-label="Категории справочника">
-          {DIRECTORY_CATEGORIES.map((cat) => (
-            <Link
-              key={cat.id}
-              to={`/directory/${cat.tab}`}
-              role="tab"
-              aria-selected={cat.tab === tab}
-              className={`directory-tab ${cat.tab === tab ? 'is-active' : ''}`}
+        <div className="directory-sheet">
+          <div className="directory-filters">
+            <input
+              type="text"
+              placeholder="Поиск по названию, району, описанию…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+              aria-label="Поиск"
+            />
+            <select
+              className="directory-filters__region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              aria-label="Район"
             >
-              {cat.label}
-            </Link>
-          ))}
+              <option value="">Все районы</option>
+              {regions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="directory-count">
+            Найдено: <strong>{filtered.length}</strong>
+            {region ? (
+              <>
+                {' '}
+                в районе <strong>{region}</strong>
+              </>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <div className="no-results">
+              <p>Загрузка…</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="no-results">
+              <span className="no-results-icon">🔍</span>
+              <p>Ничего не найдено</p>
+              <button type="button" className="reset-btn" onClick={resetFilters}>
+                Сбросить фильтры
+              </button>
+            </div>
+          ) : (
+            <div className="directory-region-groups">
+              {groups.map((group) => (
+                <section key={group.region} className="directory-region-group">
+                  <h2 className="directory-region-group__title">
+                    <span className="directory-region-group__pin" aria-hidden>
+                      📍
+                    </span>
+                    {group.region}
+                    <span className="directory-region-group__count">{group.items.length}</span>
+                  </h2>
+                  <div className="directory-grid">
+                    {group.items.map((item) => (
+                      <DirectoryCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+
+          <section className="directory-place-cta">
+            <div className="directory-place-cta__icon" aria-hidden="true">
+              🧭
+            </div>
+            <div className="directory-place-cta__text">
+              <h2>Хотите разместить свою карточку?</h2>
+              <p>
+                Добавление, оплата и продление — в кабинете владельца. На публичной странице
+                только каталог.
+              </p>
+              <div className="directory-place-cta__actions">
+                <Link className="btn btn--primary" to="/directory#directory-pricing">
+                  Перейти к размещению
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
-
-        <div className="directory-filters">
-          <input
-            type="text"
-            placeholder="Поиск по названию, району, описанию…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-            aria-label="Поиск"
-          />
-          <select
-            className="directory-filters__region"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            aria-label="Район"
-          >
-            <option value="">Все районы</option>
-            {regions.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="directory-count">
-          Найдено: <strong>{filtered.length}</strong>
-          {region ? (
-            <>
-              {' '}
-              в районе <strong>{region}</strong>
-            </>
-          ) : null}
-        </div>
-
-        {loading ? (
-          <div className="no-results">
-            <p>Загрузка…</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="no-results">
-            <span className="no-results-icon">🔍</span>
-            <p>Ничего не найдено</p>
-            <button type="button" className="reset-btn" onClick={resetFilters}>
-              Сбросить фильтры
-            </button>
-          </div>
-        ) : (
-          <div className="directory-region-groups">
-            {groups.map((group) => (
-              <section key={group.region} className="directory-region-group">
-                <h2 className="directory-region-group__title">
-                  <span className="directory-region-group__pin" aria-hidden>
-                    📍
-                  </span>
-                  {group.region}
-                  <span className="directory-region-group__count">{group.items.length}</span>
-                </h2>
-                <div className="directory-grid">
-                  {group.items.map((item) => (
-                    <DirectoryCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        <section className="directory-place-cta">
-          <h2>Хотите разместить свою карточку?</h2>
-          <p>
-            Добавление, оплата и продление — в кабинете владельца. На публичной странице только
-            каталог.
-          </p>
-          <div className="directory-place-cta__actions">
-            <Link className="btn btn--primary" to="/directory#directory-pricing">
-              Перейти к размещению
-            </Link>
-          </div>
-        </section>
       </div>
     </div>
   );

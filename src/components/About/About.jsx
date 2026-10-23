@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import ScenicRidge from '../scenic/ScenicRidge';
 import './About.css';
 
 export default function About() {
@@ -16,9 +18,11 @@ export default function About() {
         <div className="about__intro">
           <div className="about__photo">
             <div className="photo-wrapper">
-              <img 
-                src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800" 
-                alt="Семья Михаила и Анастасии" 
+              <img
+                src="/img/hero/saby.jpg"
+                alt="Команда проекта на природе"
+                loading="lazy"
+                decoding="async"
               />
               <div className="photo-decoration"></div>
             </div>
@@ -126,15 +130,17 @@ export default function About() {
               напишите нам, мы всегда рады общению!
             </p>
             <div className="cta-buttons">
-              <a href="#contacts" className="cta-btn cta-btn-primary">
+              <Link to="/support" className="cta-btn cta-btn-primary">
                 Связаться с нами
-              </a>
-              <a href="#paid" className="cta-btn cta-btn-secondary">
+              </Link>
+              <Link to="/paid-waters" className="cta-btn cta-btn-secondary">
                 Смотреть базы
-              </a>
+              </Link>
             </div>
           </div>
         </div>
+
+        <ScenicRidge className="about__ridge" tone="soft" />
       </div>
     </section>
   );

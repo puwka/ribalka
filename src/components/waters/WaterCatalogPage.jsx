@@ -13,6 +13,12 @@ import {
 } from './WaterCard';
 import './WaterCatalogPage.css';
 
+const HERO_IMAGES = {
+  [WATER_TYPE.PAID]: '/img/details/detail-sunset.jpg',
+  [WATER_TYPE.PAID_FISHING]: '/img/details/detail-sunset.jpg',
+  [WATER_TYPE.FREE]: '/img/details/detail-forest.jpg',
+};
+
 const FALLBACK_COPY = {
   [WATER_TYPE.PAID]: {
     title: 'Платные базы',
@@ -57,18 +63,35 @@ export default function WaterCatalogPage({ waterType }) {
 
   return (
     <div className={`water-catalog-page water-catalog-page--${skin}`}>
-      <header className="water-catalog-page__head section-inner">
-        <WaterTypeSwitch />
-        <div className="water-catalog-page__intro">
-          <h1>{copy.title}</h1>
-          <p className="water-catalog-page__desc">{copy.desc}</p>
-          {copy.intro ? <p className="water-catalog-page__desc">{copy.intro}</p> : null}
+      <header className="catalog-hero">
+        <div
+          className="catalog-hero__bg"
+          style={{ backgroundImage: `url(${HERO_IMAGES[waterType] || HERO_IMAGES[WATER_TYPE.PAID]})` }}
+          aria-hidden="true"
+        />
+        <div className="catalog-hero__shade" aria-hidden="true" />
+        <div className="catalog-hero__inner section-inner">
+          <WaterTypeSwitch />
+          <div className="catalog-hero__copy">
+            <p className="catalog-hero__eyebrow">Рыбалка в Прикамье · Пермский край</p>
+            <h1>{copy.title}</h1>
+            <p className="catalog-hero__desc">{copy.desc}</p>
+            {copy.intro ? <p className="catalog-hero__desc">{copy.intro}</p> : null}
+          </div>
+          <div className="catalog-hero__bottom">
+            <span className="catalog-hero__count">
+              {catalog.loading ? 'Загрузка…' : copy.countLabel(catalog.filtered.length)}
+            </span>
+          </div>
         </div>
-        <div className="water-catalog-page__toolbar">
-          <p className="water-catalog-page__count">
-            {catalog.loading ? 'Загрузка…' : copy.countLabel(catalog.filtered.length)}
+      </header>
+
+      <div className="catalog-sheet section-inner">
+        <div className="catalog-sheet__toolbar">
+          <p className="catalog-sheet__hint">
+            <span aria-hidden="true">🧭</span> Найдите базу или место по карте и фильтрам
           </p>
-          <div className="water-catalog-page__view-toggle" role="tablist">
+          <div className="water-catalog-page__view-toggle" role="tablist" aria-label="Вид каталога">
             <button
               type="button"
               role="tab"
@@ -89,9 +112,7 @@ export default function WaterCatalogPage({ waterType }) {
             </button>
           </div>
         </div>
-      </header>
 
-      <div className="section-inner water-catalog-page__body">
         <WaterFilterPanel
           isPaid={isCommercial}
           query={catalog.query}

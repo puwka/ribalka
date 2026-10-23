@@ -72,6 +72,24 @@ function hasWebsite(item) {
   return Boolean(String(item?.website || '').trim());
 }
 
+const CATEGORY_FALLBACK = {
+  shop: [
+    '/img/details/detail-shore.jpg',
+    '/img/details/detail-porch.jpg',
+    '/img/details/detail-sup.jpg',
+  ],
+  service: ['/img/details/detail-lake-cabin.jpg', '/img/details/detail-cliff.jpg'],
+  guide: ['/img/details/detail-forest.jpg', '/img/details/detail-river.jpg'],
+};
+
+function fallbackFor(item) {
+  const list = CATEGORY_FALLBACK[item?.category] || ['/img/details/detail-lake.jpg'];
+  const source = String(item?.id || item?.name || '');
+  let hash = 0;
+  for (let i = 0; i < source.length; i += 1) hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+  return list[hash % list.length];
+}
+
 export default function DirectoryCard({ item }) {
   const viewed = useRef(false);
   const region = getItemRegion(item);
@@ -101,13 +119,26 @@ export default function DirectoryCard({ item }) {
   const website = hasWebsite(item) ? String(item.website).trim() : '';
   const hoursLines = formatHoursLines(item.hours);
   const cover = pickCardCover(item);
+  const isSeedStock =
+    /^https?:\/\/(?:images\.)?unsplash\.com\//i.test(cover.imageUrl || '') ||
+    /^https?:\/\/(?:images\.)?unsplash\.com\//i.test(cover.videoUrl || '');
+  const safeCover = isSeedStock ? { imageUrl: '', videoUrl: '' } : cover;
+  const fallbackImage = fallbackFor(item);
 
   return (
     <div className={classes}>
       <div className="card-image">
-        {(cover.imageUrl || cover.videoUrl) ? (
-          <CardCoverMedia imageUrl={cover.imageUrl} videoUrl={cover.videoUrl} alt={item.name} />
-        ) : null}
+        {(safeCover.imageUrl || safeCover.videoUrl) ? (
+          <CardCoverMedia imageUrl={safeCover.imageUrl} videoUrl={safeCover.videoUrl} alt={item.name} />
+        ) : (
+          <img
+            className="card-image__fallback"
+            src={fallbackImage}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
         {isTop && <div className="card-badge-top">ТОП</div>}
       </div>
 

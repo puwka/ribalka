@@ -80,16 +80,15 @@ export function mapBaseToUi(row, rels = {}) {
  * @param {object} row
  */
 export function mapNewsToUi(row) {
+  const rawDate = row.published_at || row.date || row.created_at;
   return {
     id: row.id,
     title: row.title,
     excerpt: row.excerpt ?? '',
     content: row.content,
-    image: row.cover_url || row.cover_path || '',
-    date: row.published_at
-      ? String(row.published_at).slice(0, 10)
-      : String(row.created_at).slice(0, 10),
-    author: row.author_name || row.profiles?.display_name || 'Редакция',
+    image: row.cover_url || row.cover_path || row.image || '',
+    date: rawDate ? String(rawDate).slice(0, 10) : '',
+    author: row.author_name || row.profiles?.display_name || row.author || 'Редакция',
     category: row.category ?? '',
     views: row.views_count ?? row.views ?? 0,
     slug: row.slug,

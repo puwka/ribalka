@@ -312,6 +312,10 @@
     display: flex;
   }
 
+  .site-header__link {
+    padding: 8px 9px;
+  }
+
   .site-header__drawer-item--primary {
     display: none;
   }
